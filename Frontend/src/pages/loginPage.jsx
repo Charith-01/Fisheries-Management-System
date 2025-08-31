@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import LoginImageSlider from "../components/loginImageSlider";
@@ -9,6 +9,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     function handleLogin() {
         setLoading(true);
@@ -22,19 +23,17 @@ export default function LoginPage() {
         ).then((response) => {
             toast.success("Login successful");
 
-            // Expecting { token, user: { role, ... } }
             const { token, user } = response.data || {};
             if (token) localStorage.setItem("token", token);
             if (user) localStorage.setItem("user", JSON.stringify(user));
 
-            // inline redirect by role (auto-detected by backend)
             const r = user?.role;
             if (r === "admin") {
-                window.location.href = "/admin/dashboard";
+                navigate("/admin/dashboard");
             } else if (r === "fisherman") {
-                window.location.href = "/fisherman/home";
+                navigate("/fisherman/home");
             } else {
-                window.location.href = "/customer/home";
+                navigate("/");
             }
 
         }).catch((error) => {
