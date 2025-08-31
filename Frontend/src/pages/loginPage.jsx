@@ -44,12 +44,12 @@ export default function LoginPage() {
     }
 
     return(
-        <div className="w-full h-screen flex">
-            <div className="w-[40%] h-full bg-white flex justify-center items-center"> 
+        <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row">
+            <div className="w-full md:w-[40%] h-auto md:h-full bg-white flex justify-center items-center"> 
                 <div className="w-[450px] h-[700px] flex justify-center items-center flex-col">
-                    <div className="w-[210px] h-[70px] bg-[url(/logo.jpg)] bg-cover bg-center bg-no-repeat mb-10"></div>
+                    <div className="w-[150px] h-[50px] bg-[url(/logo.jpg)] bg-cover bg-center bg-no-repeat mb-5"></div>
                     <h1 className="font-semibold text-gray-700 text-xl">Welcome Back!</h1>
-                    <label className="text-gray-700">Log in with your Email</label>
+                    <label className="text-gray-700 mb-3 text-center">Log in with your Email</label>
                     <input onChange={
                         (e)=>{
                             setEmail(e.target.value)
