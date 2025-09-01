@@ -1,4 +1,3 @@
-// controllers/loginController.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -13,20 +12,7 @@ export default function loginController(req, res) {
   const password = req.body.password;
   const role = (req.body.role || "").toLowerCase();
 
-  // pick correct model
-  let Model;
-  if (role === "admin") {
-    Model = Admin;
-  } else if (role === "fisherman") {
-    Model = Fisherman;
-  } else if (role === "customer") {
-    Model = Customer;
-  } else {
-    return res.status(400).json({ message: "Unsupported role" });
-  }
-
-  // lookup user
-  Model.findOne({ email: email }).then((user) => {
+  function handleUser(user) {
     if (user == null) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -40,7 +26,6 @@ export default function loginController(req, res) {
       return res.status(403).json({ message: "Account disabled" });
     }
 
-    // prepare safe user object
     const userData = {
       id: user._id,
       email: user.email,
@@ -55,9 +40,9 @@ export default function loginController(req, res) {
       lastLogin: user.lastLogin
     };
 
-    // sign token
+    // Login token
     const token = jwt.sign(
-      { sub: user._id, role: user.role },
+      { sub: user._id, role: user.role, email: user.email },
       process.env.JWT_KEY
     );
 
@@ -65,6 +50,37 @@ export default function loginController(req, res) {
       message: "Login successful",
       token: token,
       user: userData
+    });
+  }
+
+  if (role === "admin" || role === "fisherman" || role === "customer") {
+    let Model;
+    if (role === "admin") {
+      Model = Admin;
+    } else if (role === "fisherman") {
+      Model = Fisherman;
+    } else {
+      Model = Customer;
+    }
+
+    Model.findOne({ email: email })
+      .then(handleUser)
+      .catch((err) => {
+        console.error("Login error:", err);
+        res.status(500).json({ message: "Server error" });
+      });
+    return;
+  }
+
+  Admin.findOne({ email: email }).then((admin) => {
+    if (admin) return handleUser(admin);
+
+    return Fisherman.findOne({ email: email }).then((fisherman) => {
+      if (fisherman) return handleUser(fisherman);
+
+      return Customer.findOne({ email: email }).then((customer) => {
+        return handleUser(customer);
+      });
     });
   }).catch((err) => {
     console.error("Login error:", err);
