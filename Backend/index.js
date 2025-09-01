@@ -6,6 +6,7 @@ import adminRouter from './routes/adminRouter.js';
 import fishermanRouter from './routes/fishermanRouter.js';
 import dotenv from 'dotenv';
 import verifyJWT from './middleware/auth.js';
+import tripRouter from './routes/tripRouter.js';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use(verifyJWT);
 app.use("/api/customer", customerRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/fisherman", fishermanRouter);
+app.use("/api/trip", tripRouter);
 
 //Start the server
 app.listen(3000, () => {
