@@ -6,7 +6,10 @@ import jwt from "jsonwebtoken";
 
 export function addNotification(req, res) {
     const { title, message, role, targetEmails } = req.body;
-
+    const { role: userRole } = req.user;
+    if (userRole !== "admin") {
+        return res.status(403).json({ message: "Only admin can create notifications." });
+    }
     // Validate required fields
     if (!title || !message || !role) {
         return res.status(400).json({ message: "Title, message, and role are required." });
@@ -162,7 +165,10 @@ export function markAsRead(req, res) {
 export async function updateNotificationIfUnread(req, res) {
     const notificationId = req.params.id;
     const { title, message } = req.body; // fields admin wants to update
-
+    const { role: userRole } = req.user;
+    if (userRole !== "admin") {
+        return res.status(403).json({ message: "Only admin can update notifications." });
+    }
     try {
         const notification = await Notification.findById(notificationId);
 
@@ -235,6 +241,11 @@ export async function deleteNotification(req, res) {
 
 
 export async function getAllNotificationsForAdmin(req, res) {
+
+    const { role: userRole } = req.user;
+    if (userRole !== "admin") {
+        return res.status(403).json({ message: "Only admin can view all notifications notifications." });
+    }
     try {
         const notifications = await Notification.find().sort({ createdAt: -1 });
 

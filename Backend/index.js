@@ -9,6 +9,7 @@ import cors from 'cors';
 import verifyJWT from './middleware/auth.js';
 import notificationRoutes from './routes/notificationRoutes.js'
 import loginController from './controllers/loginController.js';
+import paymentRouter from './routes/paymentRouter.js';
 
 // Load environment variables
 dotenv.config();
@@ -38,8 +39,12 @@ app.use("/api/customer", customerRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/fisherman", fishermanRouter);
 app.use("/api/notifications", notificationRoutes);
-
-//Start the server
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
+app.use("/api/payment", paymentRouter);
+// Only apply express.json() for non-webhook routes
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/payment/webhook") {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
 });
