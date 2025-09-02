@@ -12,6 +12,7 @@ import boatRouter from './routes/boatRouter.js';
 import notificationRoutes from './routes/notificationRoutes.js'
 import loginController from './controllers/loginController.js';
 import equipmentRouter from './routes/equipmentRouter.js';
+import productRouter from './routes/productRouter.js';
 
 // Load environment variables
 dotenv.config();
@@ -44,6 +45,7 @@ app.use("/api/trip", tripRouter);
 app.use("/api/boat", boatRouter)
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/equipment", equipmentRouter)
+app.use("/api/product", productRouter)
 
 //Start the server
 app.listen(3000, () => {
