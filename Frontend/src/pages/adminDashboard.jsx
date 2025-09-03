@@ -37,7 +37,8 @@ import {
   Bar,
   Legend
 } from "recharts";
-
+import NotificationDashboard from "./admin/NotificationDashboard";
+import Expenses from "./admin/Expenses";
 /**
  * Enhanced Fisheries Admin Dashboard
  */
@@ -58,7 +59,8 @@ export default function AdminDashboard() {
               <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
               <Route path="products" element={<ManageProducts darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
-              {/* You can add boats, equipment, trip, notifications, reviews pages later */}
+              <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
+              <Route path="income-expense" element={<Expenses />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
