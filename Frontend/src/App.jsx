@@ -3,7 +3,7 @@ import AdminDashboard from "./pages/adminDashboard";
 import LoginPage from "./pages/loginPage";
 import { Toaster } from 'react-hot-toast'
 import RegistrationPage from "./pages/client/registrationPage";
-import AdminNotifications from "./pages/AdminNotifications";
+import NotificationDashboard from "./pages/admin/NotificationDashboard";
 
 function App() {
 
@@ -11,8 +11,8 @@ function App() {
     <BrowserRouter>
     <Toaster position="top-right"/>
         <Routes>
-          <Route path="/admin/*" element={<AdminDashboard/>}/>
-          <Route path="/admin/notifications*" element={<AdminNotifications/>}/>
+           <Route path="/admin/*" element={<AdminDashboard />} />
+          
 
           <Route path="/login" element={<LoginPage/>}/>
           <Route path="/register" element={<RegistrationPage/>}/>
