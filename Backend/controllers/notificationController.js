@@ -6,7 +6,10 @@ import jwt from "jsonwebtoken";
 
 export function addNotification(req, res) {
     const { title, message, role, targetEmails } = req.body;
-
+    const { role: userRole } = req.user;
+    if (userRole !== "admin") {
+        return res.status(403).json({ message: "Only admin can create notifications." });
+    }
     // Validate required fields
     if (!title || !message || !role) {
         return res.status(400).json({ message: "Title, message, and role are required." });
@@ -31,14 +34,14 @@ export function addNotification(req, res) {
             if (role === "customer") modelToQuery = Customer;
             else if (role === "fisherman") modelToQuery = Fisherman;
 
-            let query = {};
+            let query = {};//to add target email
             if (role === "customer" && targetEmails && targetEmails.length > 0) {
                 query.email = { $in: targetEmails };
             }
 
             modelToQuery.find(query)
                 .then((usersToNotify) => {
-                    // Here you can send notifications via email or push
+                    //  send notifications via email or push
                     res.status(201).json({
                         message: "Notification created successfully",
                         notification: savedNotification,
@@ -64,7 +67,7 @@ export function addNotification(req, res) {
 export async function getNotifications(req, res) {
   try {
     const { sub: userId, role } = req.user;
-    
+
     if (!role) {
       return res.status(400).json({ message: "User role is required." });
     }
@@ -72,45 +75,42 @@ export async function getNotifications(req, res) {
     let query = {};
 
     if (role === "fisherman") {
-      // Fishermen get ALL fisherman notifications
+      // Fishermen get all notifications for fishermen
       query = { role: "fisherman" };
     } else if (role === "customer") {
-      
+      // Get the customer from DB
       const dbUser = await Customer.findById(userId);
       if (!dbUser) {
         return res.status(404).json({ message: "User not found." });
       }
 
-      const email = dbUser.email.toLowerCase();
+      const email = dbUser.email?.toLowerCase();
 
-      // Customers get:
-      //  Broadcast notifications
-      //  OR targeted notifications 
+      // Customers get broadcast notifications or targeted notifications
       query = {
         role: "customer",
         $or: [
           { targetEmails: { $exists: false } },
           { targetEmails: { $size: 0 } },
-          { targetEmails: { $in: [email] } }, //  filter by email
+          { targetEmails: { $in: [email] } },
         ],
       };
     }
 
-   
     const notifications = await Notification.find(query).sort({ createdAt: -1 });
-
+    //return reue or false
     const formatted = notifications.map((n) => {
-      const isRead = n.isReadBy.some(
-        (readerId) => readerId.toString() === userId.toString()
-      );
+      const validReaders = Array.isArray(n.isReadBy) ? n.isReadBy.filter(Boolean) : [];//filter false values
+      const isRead = validReaders.some((readerId) => readerId.toString() === userId.toString());
+
       return {
         _id: n._id,
         title: n.title,
         message: n.message,
         role: n.role,
-        targetEmails: n.targetEmails,
+        targetEmails: n.targetEmails || [],
         createdAt: n.createdAt,
-        isRead, //  tells frontend if THIS user already read it
+        isRead,
       };
     });
 
@@ -119,16 +119,16 @@ export async function getNotifications(req, res) {
       notifications: formatted,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching notifications", error: err.message });
+    console.error("Error fetching notifications:", err);
+    res.status(500).json({ message: "Error fetching notifications", error: err.message });
   }
 }
 
 
 export function markAsRead(req, res) {
     const notificationId = req.params.id;
-    const userId = req.body.userId; // frontend must send logged-in user id
+    const userId = req.user.sub; 
+; // get userId from JWT
 
     Notification.findById(notificationId)
         .then((notification) => {
@@ -159,10 +159,14 @@ export function markAsRead(req, res) {
 
 
 
+
 export async function updateNotificationIfUnread(req, res) {
     const notificationId = req.params.id;
     const { title, message } = req.body; // fields admin wants to update
-
+    const { role: userRole } = req.user;
+    if (userRole !== "admin") {
+        return res.status(403).json({ message: "Only admin can update notifications." });
+    }
     try {
         const notification = await Notification.findById(notificationId);
 
@@ -235,6 +239,11 @@ export async function deleteNotification(req, res) {
 
 
 export async function getAllNotificationsForAdmin(req, res) {
+
+    const { role: userRole } = req.user;
+    if (userRole !== "admin") {
+        return res.status(403).json({ message: "Only admin can view all notifications notifications." });
+    }
     try {
         const notifications = await Notification.find().sort({ createdAt: -1 });
 
