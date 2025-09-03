@@ -7,9 +7,13 @@ import fishermanRouter from './routes/fishermanRouter.js';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import verifyJWT from './middleware/auth.js';
+import tripRouter from './routes/tripRouter.js';
+import boatRouter from './routes/boatRouter.js';
 import notificationRoutes from './routes/notificationRoutes.js'
 import loginController from './controllers/loginController.js';
 import paymentRouter from './routes/paymentRouter.js';
+import equipmentRouter from './routes/equipmentRouter.js';
+import productRouter from './routes/productRouter.js';
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +42,8 @@ app.post("/api/auth/login", loginController);
 app.use("/api/customer", customerRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/fisherman", fishermanRouter);
+app.use("/api/trip", tripRouter);
+app.use("/api/boat", boatRouter)
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRouter);
 app.use((req, res, next) => {
@@ -47,6 +53,9 @@ app.use((req, res, next) => {
     express.json()(req, res, next);
   }
 });
+app.use("/api/equipment", equipmentRouter)
+app.use("/api/product", productRouter)
+
 //Start the server
 app.listen(3000, () => {
   console.log("Server is running on port 3000");

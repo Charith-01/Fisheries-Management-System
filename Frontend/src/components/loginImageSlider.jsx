@@ -18,7 +18,7 @@ export default function LoginImageSlider() {
   }, [images.length]);
 
   return (
-    <div className="w-[60%] h-screen relative overflow-hidden">
+    <div className="w-full md:w-[60%] h-[40vh] md:h-full relative overflow-hidden ">
       {/* track with all slides */}
       <div
         className="flex h-full w-full transition-transform duration-700"
