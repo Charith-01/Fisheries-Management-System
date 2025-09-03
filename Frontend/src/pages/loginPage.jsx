@@ -29,7 +29,7 @@ export default function LoginPage() {
 
             const r = user?.role;
             if (r === "admin") {
-                navigate("/admin/dashboard");
+                navigate("/admin");
             } else if (r === "fisherman") {
                 navigate("/fisherman/home");
             } else {
