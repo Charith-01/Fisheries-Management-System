@@ -25,7 +25,7 @@ export const createPaymentIntent = async (req, res) => {
     });
     await payment.save();
 
-    res.json({ clientSecret: paymentIntent.client_secret });
+    res.json({ clientSecret: paymentIntent.client_secret });//used to complete payment in frontend
   } catch (err) {
     console.error("Payment error:", err.message);
     res.status(500).json({ error: "Payment failed" });

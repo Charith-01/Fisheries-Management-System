@@ -40,11 +40,14 @@ app.use("/api/admin", adminRouter);
 app.use("/api/fisherman", fishermanRouter);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRouter);
-// Only apply express.json() for non-webhook routes
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/payment/webhook") {
     next();
   } else {
     express.json()(req, res, next);
   }
+});
+//Start the server
+app.listen(3000, () => {
+  console.log("Server is running on port 3000");
 });
