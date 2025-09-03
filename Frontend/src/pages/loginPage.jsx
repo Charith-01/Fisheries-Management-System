@@ -31,7 +31,7 @@ export default function LoginPage() {
             if (r === "admin") {
                 navigate("/admin");
             } else if (r === "fisherman") {
-                navigate("/fisherman/home");
+                navigate("/fisherman");
             } else {
                 navigate("/");
             }

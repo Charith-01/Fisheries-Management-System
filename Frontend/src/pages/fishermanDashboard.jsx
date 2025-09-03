@@ -38,11 +38,7 @@ import {
   Legend
 } from "recharts";
 
-/**
- * Enhanced Fisheries Admin Dashboard
- */
-
-export default function AdminDashboard() {
+export default function FishermanDashboard() {
   const [darkMode, setDarkMode] = useState(false);
   
   return (
@@ -55,10 +51,12 @@ export default function AdminDashboard() {
           <div className="mt-4">
             <Routes>
               <Route index element={<Overview darkMode={darkMode} />} />
-              <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
-              <Route path="products" element={<ManageProducts darkMode={darkMode} />} />
-              <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
-              {/* You can add boats, equipment, trip, notifications, reviews pages later */}
+              <Route path="stock" element={<StockPage darkMode={darkMode} />} />
+              <Route path="weather" element={<WeatherPage darkMode={darkMode} />} />
+              {/* Added Trip route */}
+              <Route path="trip" element={<TripPage darkMode={darkMode} />} />
+              {/* Keep profile page as a hidden route the dropdown can link to */}
+              <Route path="profile" element={<ProfilePage darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
@@ -90,44 +88,23 @@ function Sidebar({ darkMode, setDarkMode }) {
         />
       </div>
       <nav className="space-y-2">
-        <NavLink to="/admin" end className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+        <NavLink to="/fisherman" end className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <LayoutDashboard className="h-5 w-5" /> Overview
         </NavLink>
-        <NavLink to="/admin/users" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <UsersIcon className="h-5 w-5" /> Users
+        <NavLink to="/fisherman/stock" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+          <TrendingUp className="h-5 w-5" /> Stock
         </NavLink>
-        <NavLink to="/admin/stock" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <BarChart3 className="h-5 w-5" /> Stock
-        </NavLink>
-        <NavLink to="/admin/products" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <Ship className="h-5 w-5" /> Products
-        </NavLink>
-        <NavLink to="/admin/income-expense" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <TrendingUp className="h-5 w-5" /> Income & Expense
-        </NavLink>
-        <NavLink to="/admin/orders" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <FileCheck2 className="h-5 w-5" /> Orders
-        </NavLink>
-        <NavLink to="/admin/boats" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <Ship className="h-5 w-5" /> Boats
-        </NavLink>
-        <NavLink to="/admin/equipment" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <Settings className="h-5 w-5" /> Equipment
-        </NavLink>
-        <NavLink to="/admin/trip" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <Calendar className="h-5 w-5" /> Trip
-        </NavLink>
-        <NavLink to="/admin/weather" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+        <NavLink to="/fisherman/weather" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <BarChart3 className="h-5 w-5" /> Weather
         </NavLink>
-        <NavLink to="/admin/notifications" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <Bell className="h-5 w-5" /> Notifications
+        {/* Trip NavLink (new) */}
+        <NavLink to="/fisherman/trip" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+          <Calendar className="h-5 w-5" /> Trip
         </NavLink>
-        <NavLink to="/admin/reviews" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <CreditCard className="h-5 w-5" /> Reviews
-        </NavLink>
+
+        {/* Sign out (hover to red background) */}
         <NavLink
-          to="/admin/signout"
+          to="/fisherman/signout"
           className={({ isActive }) =>
             `group flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all duration-300
             ${isActive 
@@ -141,23 +118,21 @@ function Sidebar({ darkMode, setDarkMode }) {
           <LogOut className="h-5 w-5" /> Sign out
         </NavLink>
       </nav>
-    </aside>
 
+    </aside>
   );
 }
 
 function Header({ darkMode, setDarkMode }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false); // NEW: profile dropdown state
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  // Fake user details for dropdown
-  const userName = "Admin User";
-  const userEmail = "admin@example.com";
+  const user = { name: "Fisherman", email: "fisherman@example.com" };
   
   const notifications = [
-    { id: 1, message: "New order received from Marine Foods", time: "10 mins ago", read: false },
-    { id: 2, message: "Inventory low on Atlantic Salmon", time: "2 hours ago", read: false },
-    { id: 3, message: "Weather alert for fishing zone 4B", time: "5 hours ago", read: true },
+    { id: 1, message: "Weather update: calm seas tomorrow", time: "10 mins ago", read: false },
+    { id: 2, message: "Port maintenance notice on Friday", time: "2 hours ago", read: false },
+    { id: 3, message: "Fuel price changed at Dock A", time: "5 hours ago", read: true },
   ];
   
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -166,8 +141,8 @@ function Header({ darkMode, setDarkMode }) {
     <header className={`sticky top-0 z-10 rounded-2xl ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'} p-4 shadow-xl ring-1 backdrop-blur`}>
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Admin Dashboard</h2>
-          <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Welcome back, Admin. Here's today's overview.</p>
+          <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Fisherman Dashboard</h2>
+          <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Quick view of stock & weather.</p>
         </div>
         <div className="flex items-center gap-3">
 
@@ -224,40 +199,42 @@ function Header({ darkMode, setDarkMode }) {
             )}
           </div>
           
-          {/* Profile chip + dropdown */}
+          {/* Profile dropdown with name/email and edit button */}
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className={`flex items-center gap-2 rounded-xl ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'} px-3 py-2`}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'}`}
             >
               <img
                 src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=140&auto=format&fit=crop"
-                alt="admin"
+                alt="fisherman"
                 className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
               />
-              <span className="text-sm font-medium">Admin</span>
+              <span className="text-sm font-medium">{user.name}</span>
               <ChevronDown className="h-4 w-4" />
             </button>
 
             {profileOpen && (
-              <div className={`absolute right-0 top-12 z-20 w-72 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800' : 'bg-white'} ring-1 ${darkMode ? 'ring-slate-700' : 'ring-slate-200'}`}>
-                <div className={`p-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{userName}</p>
-                  <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{userEmail}</p>
+              <div className={`absolute right-0 top-12 z-20 w-64 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800 ring-slate-700' : 'bg-white ring-slate-200'} ring-1`}>
+                <div className="p-4">
+                  <p className="font-semibold">{user.name}</p>
+                  <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</p>
                 </div>
+                <div className={`${darkMode ? 'border-slate-700' : 'border-slate-200'} border-t`} />
                 <div className="p-2">
                   <Link
-                    to="/admin/profile"
+                    to="/fisherman/profile"
                     className={`w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold
                       ${darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                    onClick={() => setProfileOpen(false)}
                   >
-                    <Edit className="h-4 w-4" />
                     Edit profile
                   </Link>
                 </div>
               </div>
             )}
           </div>
+
         </div>
       </div>
     </header>
@@ -267,53 +244,14 @@ function Header({ darkMode, setDarkMode }) {
 /* ----------------------------- Pages ------------------------------ */
 
 function Overview({ darkMode }) {
-  // Orders
-  const ordersWeekly = [
-    { day: "Sat", orders: 24 },
-    { day: "Sun", orders: 18 },
-    { day: "Mon", orders: 35 },
-    { day: "Tue", orders: 46 },
-    { day: "Wed", orders: 21 },
-    { day: "Thu", orders: 39 },
-    { day: "Fri", orders: 41 },
-  ];
-
-  // Income & Expenses
-  const finance = [
-    { month: "Apr", income: 24, expenses: 14 },
-    { month: "May", income: 28, expenses: 18 },
-    { month: "Jun", income: 32, expenses: 19 },
-    { month: "Jul", income: 29, expenses: 21 },
-    { month: "Aug", income: 35, expenses: 22 },
-    { month: "Sep", income: 38, expenses: 25 },
-  ];
-
-  // Stock / Trips / Reviews
+  // Stock
   const stockData = [
-    { item: "Tuna", qty: 5240 },
-    { item: "Salmon", qty: 3810 },
-    { item: "Prawns", qty: 1560 },
-    { item: "Crabs", qty: 980 },
-    { item: "Sardines", qty: 4370 },
-    { item: "Cod", qty: 2150 },
-  ];
-
-  const tripsData = [
-    { day: "Sat", trips: 4 },
-    { day: "Sun", trips: 3 },
-    { day: "Mon", trips: 6 },
-    { day: "Tue", trips: 7 },
-    { day: "Wed", trips: 5 },
-    { day: "Thu", trips: 6 },
-    { day: "Fri", trips: 8 },
-  ];
-
-  const reviewsData = [
-    { name: "5★", value: 56 },
-    { name: "4★", value: 28 },
-    { name: "3★", value: 10 },
-    { name: "2★", value: 4 },
-    { name: "1★", value: 2 },
+    { item: "Tuna", qty: 1240 },
+    { item: "Salmon", qty: 880 },
+    { item: "Prawns", qty: 360 },
+    { item: "Crabs", qty: 190 },
+    { item: "Sardines", qty: 1370 },
+    { item: "Cod", qty: 450 },
   ];
 
   // Weather Forecast (next 7 days)
@@ -334,46 +272,46 @@ function Overview({ darkMode }) {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Users"
-          value="234"
-          sub="this week"
-          change="+12%"
+          title="Stock Items"
+          value="6"
+          sub="tracked"
+          change="+2%"
           positive={true}
-          icon={<UsersIcon className="h-5 w-5" />}
+          icon={<BarChart3 className="h-5 w-5" />}
           darkMode={darkMode}
         />
         <StatCard
-          title="Orders"
-          value="128"
-          sub="+6 today"
-          change="+5%"
-          positive={true}
+          title="Upcoming Weather Alerts"
+          value="3"
+          sub="next 7 days"
+          change="+1"
+          positive={false}
           icon={<FileCheck2 className="h-5 w-5" />}
           darkMode={darkMode}
         />
         <StatCard
-          title="Revenue"
-          value="Rs.100000.00"
-          sub="last 7 days"
-          change="+18%"
+          title="Total Trips"
+          value="14"
+          sub="Past 90 days"
+          change="+4%"
           positive={true}
-          icon={<CreditCard className="h-5 w-5" />}
+          icon={<Calendar className="h-5 w-5" />}
           darkMode={darkMode}
         />
         <StatCard
-          title="Weather Alerts"
-          value="3"
-          sub="active now"
-          change="+1"
-          positive={false}
-          icon={<BarChart3 className="h-5 w-5" />}
+          title="Active Days at Sea"
+          value="18"
+          sub="this month"
+          change="+3"
+          positive={true}
+          icon={<Ship className="h-5 w-5" />}
           darkMode={darkMode}
         />
       </div>
 
-      {/* Orders + Income/Expenses */}
+      {/* Stock + Weather */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Orders (Area) */}
+        {/* Stock (Bar) */}
         <div className="col-span-2 rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
           style={{
             background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
@@ -381,92 +319,7 @@ function Overview({ darkMode }) {
           }}
         >
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-semibold">Orders</h3>
-            <div className="flex items-center gap-2">
-              <button className={`rounded-lg p-1.5 ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}>
-                <Calendar className="h-4 w-4" />
-              </button>
-              <button className={`rounded-lg p-1.5 ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}>
-                <Download className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <div className="h-64 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ordersWeekly} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="orders" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="day" stroke={darkMode ? '#cbd5e1' : '#64748b'} tickLine={false} axisLine={false} />
-                <YAxis stroke={darkMode ? '#cbd5e1' : '#64748b'} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: darkMode ? '#1e293b' : '#fff', 
-                    borderColor: darkMode ? '#334155' : '#e2e8f0',
-                    color: darkMode ? '#e2e8f0' : '#000'
-                  }} 
-                />
-                <Area type="monotone" dataKey="orders" stroke="#06b6d4" fill="url(#orders)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Income & Expenses (Dual Area) */}
-        <div className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-            borderColor: darkMode ? '#334155' : '#e2e8f0'
-          }}
-        >
-          <h3 className="mb-4 text-base font-semibold">Income & Expenses</h3>
-          <div className="h-64 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={finance} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="inc" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="exp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="month" stroke={darkMode ? '#cbd5e1' : '#64748b'} />
-                <YAxis stroke={darkMode ? '#cbd5e1' : '#64748b'} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: darkMode ? '#1e293b' : '#fff', 
-                    borderColor: darkMode ? '#334155' : '#e2e8f0',
-                    color: darkMode ? '#e2e8f0' : '#000'
-                  }} 
-                />
-                <Legend />
-                <Area type="monotone" dataKey="income" name="Income" stroke="#22c55e" fill="url(#inc)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#f97316" fill="url(#exp)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Stock, Trips, Reviews */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Stock (Bar) */}
-        <div className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-            borderColor: darkMode ? '#334155' : '#e2e8f0'
-          }}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-semibold">Stock</h3>
+            <h3 className="text-base font-semibold">My Stock</h3>
             <Filter className="h-4 w-4" />
           </div>
           <div className="h-64 sm:h-72">
@@ -484,76 +337,6 @@ function Overview({ darkMode }) {
                 />
                 <Bar dataKey="qty" name="Quantity (kg)" fill="#0ea5e9" />
               </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Trips (Area) */}
-        <div className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-            borderColor: darkMode ? '#334155' : '#e2e8f0'
-          }}
-        >
-          <h3 className="mb-4 text-base font-semibold">Trips</h3>
-          <div className="h-64 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={tripsData} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="trips" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="day" stroke={darkMode ? '#cbd5e1' : '#64748b'} />
-                <YAxis stroke={darkMode ? '#cbd5e1' : '#64748b'} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: darkMode ? '#1e293b' : '#fff', 
-                    borderColor: darkMode ? '#334155' : '#e2e8f0',
-                    color: darkMode ? '#e2e8f0' : '#000'
-                  }} 
-                />
-                <Area type="monotone" dataKey="trips" name="Trips" stroke="#818cf8" fill="url(#trips)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Reviews (Pie) */}
-        <div className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-            borderColor: darkMode ? '#334155' : '#e2e8f0'
-          }}
-        >
-          <h3 className="mb-4 text-base font-semibold">Reviews</h3>
-          <div className="h-64 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie 
-                  data={reviewsData} 
-                  dataKey="value" 
-                  nameKey="name" 
-                  innerRadius={48} 
-                  outerRadius={80} 
-                  paddingAngle={3}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelStyle={{ fill: darkMode ? '#e2e8f0' : '#4b5563', fontSize: '12px' }}
-                >
-                  {reviewsData.map((entry, index) => (
-                    <Cell key={`r-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    background: darkMode ? '#1e293b' : '#fff', 
-                    borderColor: darkMode ? '#334155' : '#e2e8f0',
-                    color: darkMode ? '#e2e8f0' : '#000'
-                  }} 
-                />
-              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -637,27 +420,35 @@ function Overview({ darkMode }) {
   );
 }
 
-/* Minimal shells for pages so you can add CRUDs later */
-function ManageUsers({ darkMode }) {
+/* Minimal shells for pages so you can add your details later */
+function StockPage({ darkMode }) {
   return (
     <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Users</h3>
+      <h3 className="text-lg font-bold">Stock</h3>
     </div>
   );
 }
 
-function ManageProducts({ darkMode }) {
+function WeatherPage({ darkMode }) {
   return (
     <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Products</h3>
+      <h3 className="text-lg font-bold">Weather</h3>
     </div>
   );
 }
 
-function ViewOrders({ darkMode }) {
+function TripPage({ darkMode }) {
   return (
     <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Orders</h3>
+      <h3 className="text-lg font-bold">Trip</h3>
+    </div>
+  );
+}
+
+function ProfilePage({ darkMode }) {
+  return (
+    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
+      <h3 className="text-lg font-bold">Profile</h3>
     </div>
   );
 }
