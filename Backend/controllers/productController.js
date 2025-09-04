@@ -34,10 +34,14 @@ export async function createProduct(req, res){
             productId : newProductId,
             name : req.body.name,
             altNames : req.body.altNames,
+            category : req.body.category,
+            unit : req.body.unit,
             price : req.body.price,
             labeledPrice : req.body.labeledPrice,
             description : req.body.description,
             images : req.body.images,
+            stock : req.body.stock,
+            isActive : req.body.isActive
         })
         
         await product.save();

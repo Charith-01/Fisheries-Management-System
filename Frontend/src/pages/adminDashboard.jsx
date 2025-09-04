@@ -42,11 +42,8 @@ import NotificationDashboard from "./admin/NotificationDashboard";
 import Expenses from "./admin/Expenses";
 
 import AdminProductsPage from "./admin/products";
-
-
-/**
- * Enhanced Fisheries Admin Dashboard
- */
+import AddProductForm from "./admin/addProductForm";
+import UpdateProductForm from "./admin/updateProductForm";
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
@@ -64,6 +61,8 @@ export default function AdminDashboard() {
               <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
               <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
+              <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
+              <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
               <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
               <Route path="income-expense" element={<Expenses />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
