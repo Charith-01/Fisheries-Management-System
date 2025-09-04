@@ -37,6 +37,7 @@ import {
   Bar,
   Legend
 } from "recharts";
+import AdminProductsPage from "./admin/products";
 
 /**
  * Enhanced Fisheries Admin Dashboard
@@ -56,7 +57,7 @@ export default function AdminDashboard() {
             <Routes>
               <Route index element={<Overview darkMode={darkMode} />} />
               <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
-              <Route path="products" element={<ManageProducts darkMode={darkMode} />} />
+              <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
               {/* You can add boats, equipment, trip, notifications, reviews pages later */}
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
@@ -642,14 +643,6 @@ function ManageUsers({ darkMode }) {
   return (
     <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
       <h3 className="text-lg font-bold">Users</h3>
-    </div>
-  );
-}
-
-function ManageProducts({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Products</h3>
     </div>
   );
 }
