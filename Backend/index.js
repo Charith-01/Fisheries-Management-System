@@ -14,6 +14,7 @@ import loginController from './controllers/loginController.js';
 import paymentRouter from './routes/paymentRouter.js';
 import equipmentRouter from './routes/equipmentRouter.js';
 import productRouter from './routes/productRouter.js';
+import orderRouter from './routes/orderRouter.js';
 
 // Load environment variables
 dotenv.config();
@@ -55,6 +56,7 @@ app.use((req, res, next) => {
 });
 app.use("/api/equipment", equipmentRouter)
 app.use("/api/product", productRouter)
+app.use("/api/order", orderRouter);
 
 //Start the server
 app.listen(3000, () => {

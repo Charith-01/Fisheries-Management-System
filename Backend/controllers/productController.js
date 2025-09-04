@@ -15,17 +15,31 @@ export async function createProduct(req, res){
         return;
     }
 
-    const product = new Product({
-        productId : req.body.productId,
-        name : req.body.name,
-        altNames : req.body.altNames,
-        price : req.body.price,
-        labeledPrice : req.body.labeledPrice,
-        description : req.body.description,
-        images : req.body.images,
-    })
-
     try{
+        const lastProducts = await Product.find().sort({ createdAt: -1 }).limit(1);
+        let newProductId = "";
+        if(lastProducts.length === 0){
+            newProductId = "PRD0001";
+        } else {
+            const lastProduct = lastProducts[0];
+            const lastId = lastProduct.productId; // e.g., PRD0001
+            const lastNumber = lastId.replace("PRD", ""); // "0001"
+            const lastInt = parseInt(lastNumber); // 1
+            const newInt = lastInt + 1; // 2
+            const newStr = newInt.toString().padStart(4, "0"); // "0002"
+            newProductId = "PRD" + newStr; // PRD0002
+        }
+
+        const product = new Product({
+            productId : newProductId,
+            name : req.body.name,
+            altNames : req.body.altNames,
+            price : req.body.price,
+            labeledPrice : req.body.labeledPrice,
+            description : req.body.description,
+            images : req.body.images,
+        })
+        
         await product.save();
         res.json({
             message : "Product created successfully"
