@@ -38,10 +38,8 @@ import {
   Legend
 } from "recharts";
 import AdminProductsPage from "./admin/products";
-
-/**
- * Enhanced Fisheries Admin Dashboard
- */
+import AddProductForm from "./admin/addProductForm";
+import UpdateProductForm from "./admin/updateProductForm";
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
@@ -59,7 +57,8 @@ export default function AdminDashboard() {
               <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
               <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
-              {/* You can add boats, equipment, trip, notifications, reviews pages later */}
+              <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
+              <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
