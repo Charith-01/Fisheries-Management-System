@@ -41,7 +41,7 @@ import {
 import NotificationDashboard from "./admin/NotificationDashboard";
 import Expenses from "./admin/Expenses";
 
-import AdminProductsPage from "./admin/products";
+//import AdminProductsPage from "./admin/products";
 
 
 /**
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
             <Routes>
               <Route index element={<Overview darkMode={darkMode} />} />
               <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
-              <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
+              {/*<Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />*/}
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
               <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
               <Route path="income-expense" element={<Expenses />} />
