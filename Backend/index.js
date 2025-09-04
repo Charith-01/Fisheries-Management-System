@@ -14,7 +14,11 @@ import loginController from './controllers/loginController.js';
 import paymentRouter from './routes/paymentRouter.js';
 import equipmentRouter from './routes/equipmentRouter.js';
 import productRouter from './routes/productRouter.js';
+
+import expenseRoutes from './routes/expenseRoutes.js'
+
 import orderRouter from './routes/orderRouter.js';
+
 
 // Load environment variables
 dotenv.config();
@@ -47,6 +51,8 @@ app.use("/api/trip", tripRouter);
 app.use("/api/boat", boatRouter)
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRouter);
+app.use("/api/expenses", expenseRoutes);
+
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/payment/webhook") {
     next();
