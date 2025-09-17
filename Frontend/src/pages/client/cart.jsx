@@ -49,7 +49,6 @@ export default function CartPage() {
   }, []);
 
   // ---- derived totals ----
-  // itemCount = number of distinct products (lines), not sum of quantities
   const { itemCount, subTotal } = useMemo(() => {
     const count = Array.isArray(cart)
       ? cart.filter((it) => (Number(it.quantity) || 0) > 0).length
@@ -79,7 +78,9 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
-    navigate("/checkout"); // change if your route differs
+    // IMPORTANT: Ensure full-cart checkout (not buy-now)
+    localStorage.removeItem("buyNow"); // <-- so checkout uses the full cart
+    navigate("/checkout");
   };
 
   // ---- empty state ----
@@ -233,7 +234,6 @@ export default function CartPage() {
                   <span className="text-slate-600">Discount</span>
                   <span className="font-medium text-slate-900">Rs. {fmt(0)}</span>
                 </div>
-                {/* Add delivery/tax rows here if needed */}
                 <div className="pt-2 flex items-center justify-between border-t border-slate-200 mt-2">
                   <span className="text-base font-semibold text-slate-900">Total</span>
                   <span className="text-base font-semibold text-slate-900">Rs. {fmt(subTotal)}</span>
