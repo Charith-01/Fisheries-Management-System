@@ -34,10 +34,14 @@ export async function createProduct(req, res){
             productId : newProductId,
             name : req.body.name,
             altNames : req.body.altNames,
+            category : req.body.category,
+            unit : req.body.unit,
             price : req.body.price,
             labeledPrice : req.body.labeledPrice,
             description : req.body.description,
             images : req.body.images,
+            stock : req.body.stock,
+            isActive : req.body.isActive
         })
         
         await product.save();
@@ -63,6 +67,22 @@ export async function getProducts(req, res){
             message: "Products not fetched"
         })
     }
+}
+
+export async function getProductById(req, res){
+    const { productId } = req.params; 
+    const product = await Product.findOne({productId : productId});
+
+    if(!product){
+        res.status(404).json({
+            message: "Product not found"
+        })
+        return;
+    }
+    res.json({
+        message: "Product fetched successfully",
+        product: product
+    })
 }
 
 export async function deleteProduct(req, res){
