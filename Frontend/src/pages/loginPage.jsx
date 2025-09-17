@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-import LoginImageSlider from "../components/loginImageSlider";
+import LoginImageSlider from "../components/LoginImageSlider";
 
 export default function LoginPage() {
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
       {/* LEFT: same width as registration; centered content, no extra scroll */}
       <div className="w-full md:w-[40%] h-auto md:h-full bg-white flex justify-center items-center">
         <div className="w-full max-w-[480px] px-5 py-8 md:py-10 flex justify-center items-center flex-col">
-          <div className="w-[170px] h-[70px] bg-[url(/icon-512.png)] bg-cover bg-center bg-no-repeat mb-5"></div>
+          <div className="w-[150px] h-[50px] bg-[url(/logo.jpg)] bg-cover bg-center bg-no-repeat mb-5"></div>
           <h1 className="font-semibold text-gray-700 text-xl">Welcome Back!</h1>
           <label className="text-gray-700 mb-3 text-center">Log in with your Email</label>
 
