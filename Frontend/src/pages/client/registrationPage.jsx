@@ -1,114 +1,124 @@
+// src/pages/client/registrationPage.jsx
 import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
-import LoginImageSlider from "../../components/loginImageSlider";
+import LoginImageSlider from "../../components/LoginImageSlider";
 
-export default function RegistrationPage(){
+export default function RegistrationPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [email, setEmail] = useState("");
-    const [phone, setPhone] = useState("");
-    const [address, setAddress] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
-
-    async function handleRegister(){
-        if(password != confirmPassword){
-            toast.error("Passwords do not match");
-            return;
-        }
-
-        setLoading(true);
-        try{
-            await axios.post(import.meta.env.VITE_BACKEND_URL + "/api/customer/register", {
-                firstName,
-                lastName,
-                email,
-                phone,
-                address,
-                password,
-            });
-
-            toast.success("Registration successful");
-            navigate("/login");
-        } catch (error) {
-            toast.error(error?.response?.data?.message || "Registration failed");
-        } finally {
-            setLoading(false);
-        }
+  async function handleRegister() {
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
     }
 
-    return(
-        <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row">
-            <div className="w-full md:w-[40%] h-auto md:h-full bg-white flex justify-center items-center">
-                <div className="w-[450px] h-[700px] flex justify-center items-center flex-col">
-                    <div className="w-[150px] h-[50px] bg-[url(/logo.jpg)] bg-cover bg-center bg-no-repeat mb-5"></div>
-                    <h1 className="font-semibold text-gray-700 text-xl">Create Your Account</h1>
-                    <label className="text-gray-700 mb-3 text-center">Register with your details</label>
+    setLoading(true);
+    try {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/customer/register`, {
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        password,
+      });
 
-                    <input
-                        onChange={(e) => setFirstName(e.target.value)}
-                        type="text"
-                        placeholder="First Name*"
-                        className="w-[400px] h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center m-[10px]"
-                    />
-                    <input
-                        onChange={(e) => setLastName(e.target.value)}
-                        type="text"
-                        placeholder="Last Name*"
-                        className="w-[400px] h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center m-[10px]"
-                    />
-                    <input
-                        onChange={(e) => setEmail(e.target.value)}
-                        type="email"
-                        placeholder="Email address*"
-                        className="w-[400px] h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center m-[10px]"
-                    />
-                    <input
-                        onChange={(e) => setPhone(e.target.value)}
-                        type="tel"
-                        placeholder="Phone number*"
-                        className="w-[400px] h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center m-[10px]"
-                    />
-                    <input
-                        onChange={(e) => setAddress(e.target.value)}
-                        type="text"
-                        placeholder="Address*"
-                        className="w-[400px] h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center m-[10px]"
-                    />
-                    <input
-                        onChange={(e) => setPassword(e.target.value)}
-                        type="password"
-                        placeholder="Password*"
-                        className="w-[400px] h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center m-[10px]"
-                    />
-                    <input
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        type="password"
-                        placeholder="Confirm Password*"
-                        className="w-[400px] h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center m-[10px]"
-                    />
-                    <button
-                        onClick={handleRegister}
-                        className="w-[400px] h-[50px] bg-blue-500 rounded-lg text-white cursor-pointer m-[15px] hover:bg-blue-600"
-                    >
-                        {loading ? "Registering..." : "Register"}
-                    </button>
-                    <p className="text-gray-700 m-[5px]">
-                        Already have an account?&nbsp;
-                        <span className="text-blue-500 cursor-pointer hover:text-blue-700 font-medium">
-                            <Link to="/login">Login</Link>
-                        </span>
-                    </p>
-                </div>
-            </div>
+      toast.success("Registration successful");
+      navigate("/login");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-            <LoginImageSlider />
+  return (
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row md:overflow-hidden">
+      {/* LEFT: independently scrollable on desktop */}
+      <div className="w-full md:w-[40%] h-full bg-white flex flex-col overflow-visible md:overflow-y-auto min-h-0">
+        <div className="w-full max-w-[480px] mx-auto px-5 py-8 md:py-10">
+          <div className="w-[150px] h-[50px] bg-[url(/logo.jpg)] bg-cover bg-center bg-no-repeat mb-5 mx-auto" />
+          <h1 className="font-semibold text-gray-700 text-xl text-center">Create Your Account</h1>
+          <label className="text-gray-700 mb-5 block text-center">Register with your details</label>
+
+          <div className="space-y-3">
+            <input
+              onChange={(e) => setFirstName(e.target.value)}
+              type="text"
+              placeholder="First Name*"
+              className="w-full h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center"
+            />
+            <input
+              onChange={(e) => setLastName(e.target.value)}
+              type="text"
+              placeholder="Last Name*"
+              className="w-full h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center"
+            />
+            <input
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder="Email address*"
+              className="w-full h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center"
+            />
+            <input
+              onChange={(e) => setPhone(e.target.value)}
+              type="tel"
+              placeholder="Phone number*"
+              className="w-full h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center"
+            />
+            <input
+              onChange={(e) => setAddress(e.target.value)}
+              type="text"
+              placeholder="Address*"
+              className="w-full h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center"
+            />
+            <input
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder="Password*"
+              className="w-full h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center"
+            />
+            <input
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              type="password"
+              placeholder="Confirm Password*"
+              className="w-full h-[50px] border border-blue-500 focus:ring-1 focus:ring-blue-700 outline-none transition-all text-center"
+            />
+          </div>
+
+          <button
+            onClick={handleRegister}
+            className="w-full h-[50px] bg-blue-500 rounded-lg text-white cursor-pointer mt-5 hover:bg-blue-600"
+          >
+            {loading ? "Registering..." : "Register"}
+          </button>
+
+          <p className="text-gray-700 mt-3 text-center">
+            Already have an account?{" "}
+            <span className="text-blue-500 cursor-pointer hover:text-blue-700 font-medium">
+              <Link to="/login">Login</Link>
+            </span>
+          </p>
+
+          <div className="h-6" />
         </div>
-    )
+      </div>
+
+      {/* RIGHT: sticky full-height on desktop, sensible height on mobile */}
+      <div className="w-full md:w-[60%] h-[40vh] md:h-full md:sticky md:top-0 overflow-hidden">
+        <LoginImageSlider />
+      </div>
+    </div>
+  );
 }
