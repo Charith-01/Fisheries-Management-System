@@ -1,4 +1,3 @@
-// src/pages/client/checkout.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -13,6 +12,16 @@ export default function Checkout() {
 
   const readCart = () => {
     try {
+      // Prefer single-item “Buy Now” cart if present
+      const rawBuyNow = localStorage.getItem("buyNow");
+      if (rawBuyNow) {
+        const bn = JSON.parse(rawBuyNow);
+        if (Array.isArray(bn) && bn.length > 0) {
+          setCart(bn);
+          return;
+        }
+      }
+      // Otherwise use the full cart
       const data = getCart();
       setCart(Array.isArray(data) ? data : []);
     } catch {
@@ -22,7 +31,7 @@ export default function Checkout() {
 
   useEffect(() => {
     readCart();
-    const onStorage = (e) => { if (e.key === "cart") readCart(); };
+    const onStorage = (e) => { if (e.key === "cart" || e.key === "buyNow") readCart(); };
     const onCartUpdated = () => readCart();
     window.addEventListener("storage", onStorage);
     window.addEventListener("cart:updated", onCartUpdated);
@@ -151,11 +160,10 @@ export default function Checkout() {
         payload
       );
 
-      toast.success("Order created. Proceeding to card payment.");
-
-      // Clear cart then navigate to your payment step (route can be changed later)
+      // Clear carts then go to success / payment
       localStorage.setItem("cart", JSON.stringify([]));
       window.dispatchEvent(new Event("cart:updated"));
+      localStorage.removeItem("buyNow"); // make sure temp is cleared
 
       navigate(`/checkout/success?orderId=${orderId}`);
     } catch (e) {
@@ -310,7 +318,7 @@ export default function Checkout() {
             </div>
           </section>
 
-          {/* Delivery (affects shipping) + Payment (card only) + Consent */}
+          {/* Delivery + Payment + Consent */}
           <section className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">Delivery</h2>
             <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -342,7 +350,6 @@ export default function Checkout() {
               </label>
             </div>
 
-            {/* Payment method: Card only (UI + accepted brands) */}
             <div className="mt-5 rounded-xl ring-1 ring-slate-200 p-4">
               <div className="text-sm font-medium text-slate-900 mb-2">Payment method</div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 ring-1 ring-slate-200">
@@ -353,7 +360,6 @@ export default function Checkout() {
                 <div className="text-sm text-slate-800">Card (secured on next step)</div>
               </div>
 
-              {/* Accepted card brands (images from /public) */}
               <div className="mt-3">
                 <div className="text-xs text-slate-600 mb-1">We accept</div>
                 <div className="flex items-center gap-2">
@@ -365,7 +371,6 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Consent */}
             <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
@@ -388,7 +393,6 @@ export default function Checkout() {
             <div className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Order Summary</h2>
 
-              {/* Items list (compact) */}
               <div className="mt-3 max-h-64 overflow-auto divide-y divide-slate-100">
                 {cart.map((it) => (
                   <div key={it.productId} className="py-2 flex items-center justify-between gap-3">
@@ -410,7 +414,6 @@ export default function Checkout() {
                 ))}
               </div>
 
-              {/* Totals */}
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600">Items</span>
