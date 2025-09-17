@@ -48,7 +48,7 @@ export default function RegistrationPage() {
       {/* LEFT: independently scrollable on desktop */}
       <div className="w-full md:w-[40%] h-full bg-white flex flex-col overflow-visible md:overflow-y-auto min-h-0">
         <div className="w-full max-w-[480px] mx-auto px-5 py-8 md:py-10">
-          <div className="w-[150px] h-[50px] bg-[url(/logo.jpg)] bg-cover bg-center bg-no-repeat mb-5 mx-auto" />
+          <div className="w-[170px] h-[70px] bg-[url(/icon-512.png)] bg-cover bg-center bg-no-repeat mb-5 mx-auto" />
           <h1 className="font-semibold text-gray-700 text-xl text-center">Create Your Account</h1>
           <label className="text-gray-700 mb-5 block text-center">Register with your details</label>
 
