@@ -49,7 +49,7 @@ export default function ProductImageSlider(props){
                 />
 
                 {/* Thumbnails strip (same element, just modern styling) */}
-                <div className="rounded-2xl h-[100px] w-full absolute bottom-0 flex justify-center items-center gap-2 px-3 overflow-x-auto rounded-b-2xl border-t border-slate-200 bg-white/70 backdrop-blur-sm">
+                <div className="rounded-2xl h-[75px] w-full absolute bottom-0 flex justify-center items-center gap-2 px-3 overflow-x-auto rounded-b-2xl border-t border-slate-200 bg-white/70 backdrop-blur-sm">
                     {
                         images.map(
                             (image, index)=>{
