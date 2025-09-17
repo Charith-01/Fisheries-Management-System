@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+
+import { useState, useEffect } from "react";
+import api from "../api/axios"; 
 import { NavLink, Route, Routes, Link } from "react-router-dom";
 import {
   Fish,
@@ -40,13 +42,13 @@ import {
 
 export default function FishermanDashboard() {
   const [darkMode, setDarkMode] = useState(false);
-  
+  const user = JSON.parse(localStorage.getItem("user"));
   return (
     <div className={`min-h-screen w-full ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-50 text-slate-800'}`}>
       <div className="mx-auto flex flex-col lg:flex-row max-w-[1400px] gap-2 sm:gap-4 p-2 sm:p-4">
         <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} />
         <main className="flex-1 min-w-0">
-          <Header darkMode={darkMode} setDarkMode={setDarkMode} />
+          <Header darkMode={darkMode} setDarkMode={setDarkMode} user={user} />
           {/* Content Area */}
           <div className="mt-4">
             <Routes>
@@ -123,19 +125,37 @@ function Sidebar({ darkMode, setDarkMode }) {
   );
 }
 
-function Header({ darkMode, setDarkMode }) {
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+function Header({ darkMode, setDarkMode, user  }) {
+    const [notifications, setNotifications] = useState([]);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false);
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get("/api/notifications");
+        setNotifications(res.data.notifications);
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
-  const user = { name: "Fisherman", email: "fisherman@example.com" };
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.patch(`/api/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+      );
+    } catch (err) {
+      console.error("Error marking notification as read", err);
+    }
+  };
+
   
-  const notifications = [
-    { id: 1, message: "Weather update: calm seas tomorrow", time: "10 mins ago", read: false },
-    { id: 2, message: "Port maintenance notice on Friday", time: "2 hours ago", read: false },
-    { id: 3, message: "Fuel price changed at Dock A", time: "5 hours ago", read: true },
-  ];
-  
-  const unreadCount = notifications.filter(n => !n.read).length;
+
 
   return (
     <header className={`sticky top-0 z-10 rounded-2xl ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'} p-4 shadow-xl ring-1 backdrop-blur`}>
@@ -162,42 +182,63 @@ function Header({ darkMode, setDarkMode }) {
           </div>
 
           <div className="relative">
-            <button 
-              onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className={`relative rounded-xl p-2 ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+  <button
+    onClick={() => setNotificationsOpen(!notificationsOpen)}
+    className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"
+  >
+    🔔
+    {unreadCount > 0 && (
+      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
+        {unreadCount}
+      </span>
+    )}
+  </button>
+
+  {notificationsOpen && (
+    <div
+      className={`absolute right-0 top-12 z-20 w-80 rounded-xl shadow-lg ${
+        darkMode ? "bg-slate-800" : "bg-white"
+      } ring-1 ${
+        darkMode ? "ring-slate-700" : "ring-slate-200"
+      } max-h-96 overflow-y-auto`}
+    >
+      <div
+        className={`p-4 border-b ${
+          darkMode ? "border-slate-700" : "border-slate-200"
+        }`}
+      >
+        <h3 className="font-semibold">Notifications</h3>
+      </div>
+
+      {notifications.length === 0 ? (
+        <p className="p-4 text-sm text-gray-500">No notifications</p>
+      ) : (
+        notifications.map((notification) => (
+          <div
+            key={notification._id}
+            onClick={() => handleMarkAsRead(notification._id)}
+            className={`p-4 border-b cursor-pointer ${
+              darkMode
+                ? "border-slate-700 hover:bg-slate-700"
+                : "border-slate-100 hover:bg-slate-50"
+            } ${notification.isRead ? "opacity-70" : ""}`}
+          >
+            <p className="text-sm font-medium">{notification.title}</p>
+            <p className="text-xs">{notification.message}</p>
+            <p
+              className={`text-xs mt-1 ${
+                darkMode ? "text-slate-400" : "text-slate-500"
+              }`}
             >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            
-            {notificationsOpen && (
-              <div className={`absolute right-0 top-12 z-20 w-80 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800' : 'bg-white'} ring-1 ${darkMode ? 'ring-slate-700' : 'ring-slate-200'}`}>
-                <div className={`p-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  <h3 className="font-semibold">Notifications</h3>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {notifications.map(notification => (
-                    <div 
-                      key={notification.id} 
-                      className={`p-4 border-b ${darkMode ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-100 hover:bg-slate-50'} ${notification.read ? 'opacity-70' : ''}`}
-                    >
-                      <p className="text-sm">{notification.message}</p>
-                      <p className={`text-xs mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{notification.time}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="p-2">
-                  <button className={`w-full text-center text-sm py-2 rounded-lg ${darkMode ? 'text-cyan-400 hover:bg-slate-700' : 'text-cyan-600 hover:bg-slate-100'}`}>
-                    Mark all as read
-                  </button>
-                </div>
-              </div>
-            )}
+              {new Date(notification.createdAt).toLocaleString()}
+            </p>
           </div>
+        ))
+      )}
+    </div>
+  )}
+</div>
+
           
           {/* Profile dropdown with name/email and edit button */}
           <div className="relative">
@@ -210,14 +251,14 @@ function Header({ darkMode, setDarkMode }) {
                 alt="fisherman"
                 className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
               />
-              <span className="text-sm font-medium">{user.name}</span>
+              <span className="text-sm font-medium">{user.email}</span>
               <ChevronDown className="h-4 w-4" />
             </button>
 
             {profileOpen && (
               <div className={`absolute right-0 top-12 z-20 w-64 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800 ring-slate-700' : 'bg-white ring-slate-200'} ring-1`}>
                 <div className="p-4">
-                  <p className="font-semibold">{user.name}</p>
+                  <p className="font-semibold">{user.email}</p>
                   <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</p>
                 </div>
                 <div className={`${darkMode ? 'border-slate-700' : 'border-slate-200'} border-t`} />
