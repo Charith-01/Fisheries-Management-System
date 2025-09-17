@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import ProductImageSlider from "../../components/productImageSlider";
+import { addToCart } from "../../utils/cart"; // ⬅️ adjust path if needed
 
 export default function ProductOverview(){
 
@@ -190,11 +191,11 @@ export default function ProductOverview(){
 
                             const fmt = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
                             const updateTotal = () => {
-                            const qEl = document.getElementById(qtyId);
-                            const tEl = document.getElementById(totalId);
-                            if (!qEl || !tEl) return;
-                            const q = Math.max(min, parseFloat(qEl.value || String(min)) || min);
-                            tEl.textContent = price ? `Rs. ${fmt(q * price)}` : "—";
+                              const qEl = document.getElementById(qtyId);
+                              const tEl = document.getElementById(totalId);
+                              if (!qEl || !tEl) return;
+                              const q = Math.max(min, parseFloat(qEl.value || String(min)) || min);
+                              tEl.textContent = price ? `Rs. ${fmt(q * price)}` : "—";
                             };
 
                             return (
@@ -261,12 +262,20 @@ export default function ProductOverview(){
                         <button
                             className="px-5 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99] transition shadow-sm inline-flex items-center gap-2"
                             onClick={() => {
-                            const qtyId = `qty-${product?.productId ?? "p"}`;
-                            const el = document.getElementById(qtyId);
-                            const qty = parseFloat(el?.value || "1");
-                            const price = typeof product?.price === "number" ? product.price : 0;
-                            const total = qty * price;
-                            toast.success(`Added ${qty} ${product?.unit || ""} (Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}) to cart`);
+                              const qtyId = `qty-${product?.productId ?? "p"}`;
+                              const el = document.getElementById(qtyId);
+                              let qty = parseFloat(el?.value || "0");
+                              const u = (product?.unit || "").toLowerCase();
+                              const isWeight = ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(u);
+                              const min = isWeight ? 0.25 : 1;
+                              if (isNaN(qty) || qty < min) qty = min;
+
+                              // persist to cart
+                              addToCart(product, qty);
+
+                              const price = typeof product?.price === "number" ? product.price : 0;
+                              const total = qty * price;
+                              toast.success(`Added ${qty} ${product?.unit || ""} (Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}) to cart`);
                             }}
                             aria-label="Add to cart"
                         >
@@ -281,12 +290,21 @@ export default function ProductOverview(){
                         <button
                             className="px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.99] transition shadow-sm inline-flex items-center gap-2"
                             onClick={() => {
-                            const qtyId = `qty-${product?.productId ?? "p"}`;
-                            const el = document.getElementById(qtyId);
-                            const qty = parseFloat(el?.value || "1");
-                            const price = typeof product?.price === "number" ? product.price : 0;
-                            const total = qty * price;
-                            toast(`Checkout: ${qty} ${product?.unit || ""} • Total Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}`);
+                              const qtyId = `qty-${product?.productId ?? "p"}`;
+                              const el = document.getElementById(qtyId);
+                              let qty = parseFloat(el?.value || "0");
+                              const u = (product?.unit || "").toLowerCase();
+                              const isWeight = ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(u);
+                              const min = isWeight ? 0.25 : 1;
+                              if (isNaN(qty) || qty < min) qty = min;
+
+                              // add then go to cart (simple buy-now flow)
+                              addToCart(product, qty);
+                              window.location.href = "/cart"; // or use navigate('/checkout')
+
+                              const price = typeof product?.price === "number" ? product.price : 0;
+                              const total = qty * price;
+                              toast(`Checkout: ${qty} ${product?.unit || ""} • Total Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}`);
                             }}
                             aria-label="Buy now"
                         >
@@ -300,14 +318,14 @@ export default function ProductOverview(){
                         <button
                             className="px-4 py-2 rounded-xl bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 active:scale-[0.99] transition inline-flex items-center gap-2"
                             onClick={() => {
-                            const url = window.location.href;
-                            if (navigator.share) {
+                              const url = window.location.href;
+                              if (navigator.share) {
                                 navigator.share({ title: product?.name ?? "Product", url }).catch(() => {});
-                            } else if (navigator.clipboard) {
+                              } else if (navigator.clipboard) {
                                 navigator.clipboard.writeText(url).then(() => toast.success("Link copied"));
-                            } else {
+                              } else {
                                 toast("Share not supported");
-                            }
+                              }
                             }}
                             title="Share product"
                             aria-label="Share product"
