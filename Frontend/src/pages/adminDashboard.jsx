@@ -41,12 +41,12 @@ import {
 import NotificationDashboard from "./admin/NotificationDashboard";
 import Expenses from "./admin/Expenses";
 
-Ishara-Feat/Payment-management
+
 
 import AdminProductsPage from "./admin/products";
 import AddProductForm from "./admin/addProductForm";
 import UpdateProductForm from "./admin/updateProductForm";
- dev
+
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
