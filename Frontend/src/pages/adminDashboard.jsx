@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { NavLink, Route, Routes, Link } from "react-router-dom";
+import TripsManagement from "./TripsManagement.jsx";
+import AddTripForm from "./AddTripForm.jsx";
+import EditTripForm from "./EditTripForm.jsx";
 import {
   Fish,
   Ship,
@@ -58,6 +61,10 @@ export default function AdminDashboard() {
               <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
               <Route path="products" element={<ManageProducts darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
+              <Route path="trip" element={<TripsManagement darkMode={darkMode} />} />
+              <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
+              <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
+
               {/* You can add boats, equipment, trip, notifications, reviews pages later */}
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>

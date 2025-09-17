@@ -1,55 +1,70 @@
+// models/trip.js
 import mongoose from 'mongoose';
 
-const tripSchema = new mongoose.Schema({
-    tripId: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    // Link to Boat model (reference)
+/** Compute status from date fields */
+function deriveStatus({ departureDateTime, plannedReturnAt, actualReturnAt }) {
+  const now = Date.now();
+  const dep  = departureDateTime ? new Date(departureDateTime).getTime() : null;
+  const plan = plannedReturnAt   ? new Date(plannedReturnAt).getTime()   : null;
+  const act  = actualReturnAt    ? new Date(actualReturnAt).getTime()    : null;
+
+  if (act) return 'completed';
+  if (dep == null || plan == null) return 'upcoming';
+  if (now < dep) return 'upcoming';
+  if (now >= dep && now <= plan) return 'ongoing';
+  return 'overdue';
+}
+
+const tripSchema = new mongoose.Schema(
+  {
+    tripId: { type: String, required: true, unique: true },
+
     boat: {
-        type: mongoose.Schema.Types.ObjectId, // Boat ID
-        ref: 'Boat', // Boat model reference
-        required: true
-     },
-
-    // Link to User model (Captain reference)
-    captain: {
-        type: mongoose.Schema.Types.ObjectId, // User (Captain) ID
-        ref: 'User', // User model reference
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Boat',
+      required: true,
     },
 
-    // Link to multiple User models (Fishermen references)
-    fishermen: [{
-        type: mongoose.Schema.Types.ObjectId, // User (Fisherman) ID
-        ref: 'User', // User model reference
-        required: true
-    }],
-
-    departureDateTime: {
-        type: Date,
-        required: true
-    },
-    plannedReturnAt:   { 
-        type: Date, 
-        required: true 
-    }, 
-    destination: {
-        type: String,
-        required: true
+    // RENAMED: captain -> skipper, and points to Fisherman
+    skipper: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Fisherman',
+      required: true,
     },
 
-    tripType: {
-        type: String,
-       // enum: ["Fishing Trip", "Sightseeing", "Private Charter"], // fixed values
-        required: true
+    // Fishermen now explicitly reference Fisherman collection
+    fishermen: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Fisherman',
+        required: true,
+      },
+    ],
+
+    departureDateTime: { type: Date, required: true },
+    plannedReturnAt:   { type: Date, required: true },
+    actualReturnAt:    { type: Date }, // optional
+
+    destination: { type: String, required: true },
+    tripType:    { type: String, required: true },
+    specialNotes:{ type: String },
+
+    status: {
+      type: String,
+      enum: ['upcoming', 'ongoing', 'completed', 'overdue', 'cancelled'],
+      default: 'upcoming',
     },
-    
-    specialNotes: {
-        type: String
-    }
-})
+  },
+  { timestamps: true }
+);
+
+tripSchema.statics.deriveStatus = deriveStatus;
+
+tripSchema.pre('save', function (next) {
+  if (this.status === 'cancelled' || this.status === 'completed') return next();
+  this.status = deriveStatus(this);
+  next();
+});
 
 const Trip = mongoose.model('Trip', tripSchema);
 export default Trip;

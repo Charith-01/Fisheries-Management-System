@@ -47,6 +47,29 @@ export function registerFisherman(req, res){
     })
 }
 
+//HH
+export async function listFishermen(req, res) {
+  try {
+    const { position, q } = req.query; // position: 'skipper' | 'crew'
+    const filter = {};
+    if (position) filter.position = position;
+    if (q) {
+      filter.$or = [
+        { firstName: { $regex: q, $options: 'i' } },
+        { lastName:  { $regex: q, $options: 'i' } },
+        { email:     { $regex: q, $options: 'i' } },
+      ];
+    }
+    const rows = await Fisherman.find(filter).sort({ firstName: 1, lastName: 1 }).lean();
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to load fishermen" });
+  }
+}
+//HH
+
+
 export function loginFisherman(req, res){
     req.body.role = "fisherman";
     return loginController(req, res);
