@@ -11,6 +11,7 @@ import tripRouter from './routes/tripRouter.js';
 import boatRouter from './routes/boatRouter.js';
 import notificationRoutes from './routes/notificationRoutes.js'
 import loginController from './controllers/loginController.js';
+ import fishStockRouter from './routes/fishStockRouter.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,8 +43,11 @@ app.use("/api/fisherman", fishermanRouter);
 app.use("/api/trip", tripRouter);
 app.use("/api/boat", boatRouter)
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/fishstock", fishStockRouter);
+
 
 //Start the server
 app.listen(3000, () => {
   console.log("Server is running on port 3000");
+ 
 });
