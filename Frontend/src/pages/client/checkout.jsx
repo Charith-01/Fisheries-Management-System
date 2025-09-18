@@ -111,60 +111,106 @@ export default function Checkout() {
       .slice(2, 6)
       .toUpperCase()}`;
 
-  const handlePlaceOrder = async () => {
-    const err = validate();
-    if (err) {
-      toast.error(err);
+const handlePlaceOrder = async () => {
+  const err = validate();
+  if (err) {
+    toast.error(err);
+    return;
+  }
+
+  setPlacing(true);
+  try {
+    const orderId = generateOrderId();
+    const fullName = `${firstName} ${lastName}`.trim();
+    const fullAddress = `${addr1}${addr2 ? ", " + addr2 : ""}, ${city}, ${district} ${postalCode}${
+      notes ? ` (Notes: ${notes})` : ""
+    }`;
+
+    const billItems = cart.map((it) => ({
+      productId: it.productId,
+      productName: it.name,
+      image: it.image || null,
+      quantity: Number(it.quantity) || 0,
+      price: Number(it.price) || 0,
+      total: (Number(it.price) || 0) * (Number(it.quantity) || 0),
+    }));
+
+    const payload = {
+      orderId,
+      email,
+      name: fullName,
+      address: fullAddress,
+      status: "Pending",
+      phone,
+      billItems,
+      total: grandTotal,
+    };
+
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error("Please log in to complete your order");
+      navigate("/login");
       return;
     }
 
-    setPlacing(true);
-    try {
-      const orderId = generateOrderId();
-      const fullName = `${firstName} ${lastName}`.trim();
-      const fullAddress = `${addr1}${addr2 ? ", " + addr2 : ""}, ${city}, ${district} ${postalCode}${
-        notes ? ` (Notes: ${notes})` : ""
-      }`;
+    const response = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/order/create`,
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
 
-      const billItems = cart.map((it) => ({
-        productId: it.productId,
-        productName: it.name,
-        image: it.image || null,
-        quantity: Number(it.quantity) || 0,
-        price: Number(it.price) || 0,
-        total: (Number(it.price) || 0) * (Number(it.quantity) || 0),
-      }));
+    console.log("Order creation response:", response.data);
 
-      const payload = {
-        orderId,
-        email,
-        name: fullName,
-        address: fullAddress,
-        status: "Pending", // card payment to be completed
-        phone,
-        billItems,
-        total: grandTotal,
-      };
-
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/order/create`,
-        payload
-      );
-
+    // Only navigate if order was created successfully
+    if (response.data.message === "Order created successfully") {
       toast.success("Order created. Proceeding to card payment.");
 
-      // Clear cart then navigate to your payment step (route can be changed later)
+      // Save order details to localStorage for success page
+      localStorage.setItem('lastOrder', JSON.stringify({
+        orderId: orderId,
+        total: grandTotal,
+        status: "Pending", // Will be updated to "Paid" after payment
+        date: new Date().toISOString(),
+        items: billItems,
+        shippingAddress: fullAddress,
+        customerName: fullName,
+        email: email,
+        phone: phone
+      }));
+
+      // Clear cart then navigate to payment page
       localStorage.setItem("cart", JSON.stringify([]));
       window.dispatchEvent(new Event("cart:updated"));
 
-      navigate(`/checkout/success?orderId=${orderId}`);
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to create order. Please try again.");
-    } finally {
-      setPlacing(false);
+      // Add a small delay to ensure order is committed to database
+      setTimeout(() => {
+        navigate(`/payment?orderId=${orderId}`);
+      }, 300); // 300ms delay
+      
+    } else {
+      toast.error("Failed to create order: " + (response.data.message || "Unknown error"));
     }
-  };
+    
+  } catch (e) {
+    console.error("Order creation error:", e.response?.data || e.message);
+    
+    if (e.response?.status === 403 || e.response?.status === 401) {
+      toast.error("Please log in to complete your order");
+      navigate("/login");
+    } else if (e.response?.data?.message) {
+      toast.error(e.response.data.message);
+    } else {
+      toast.error("Failed to create order. Please try again.");
+    }
+  } finally {
+    setPlacing(false);
+  }
+};
 
   // ----------------- UI -----------------
   if (!cart || cart.length === 0) {
