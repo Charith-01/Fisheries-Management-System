@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
@@ -39,170 +40,101 @@ export default function EquipmentDetails({ darkMode }) {
         }
     };
 
+
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${darkMode ? 'border-cyan-400' : 'border-blue-500'}`}></div>
+            <div className="flex justify-center items-center min-h-[60vh]">
+                <div className={`animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 ${darkMode ? 'border-cyan-400' : 'border-blue-500'}`}></div>
             </div>
         );
     }
 
     if (error || !equipment) {
         return (
-            <div className="p-6">
-                <div className={`border-l-4 p-4 ${darkMode ? 'bg-red-900/20 border-red-400' : 'bg-red-50 border-red-500'}`}>\
-                    <div className="flex">
-                        <div className="ml-3">
-                            <h3 className={`text-sm font-medium ${darkMode ? 'text-red-300' : 'text-red-800'}`}>Error</h3>
-                            <div className={`mt-2 text-sm ${darkMode ? 'text-red-200' : 'text-red-700'}`}>\
-                                <p>{error || "Failed to load equipment details"}</p>
-                            </div>
-                            <div className="mt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/admin/equipment")}
-                                    className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md ${darkMode ? 'text-red-200 bg-red-900/40 hover:bg-red-900/60' : 'text-red-700 bg-red-50 hover:bg-red-100'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500`}
-                                >
-                                    Go back to equipment
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+            <div className="flex justify-center items-center min-h-[60vh]">
+                <div className={`rounded-xl shadow-lg p-8 flex flex-col items-center max-w-md w-full ${darkMode ? 'bg-red-950/80 border border-red-700' : 'bg-red-50 border border-red-200'}`}>\
+                    <Package size={48} className={darkMode ? 'text-red-400' : 'text-red-500'} />
+                    <h3 className={`text-lg font-semibold mt-4 ${darkMode ? 'text-red-200' : 'text-red-800'}`}>Error</h3>
+                    <p className={`mt-2 text-center ${darkMode ? 'text-red-100' : 'text-red-700'}`}>{error || "Failed to load equipment details"}</p>
+                    <button
+                        type="button"
+                        onClick={() => navigate("/admin/equipment")}
+                        className={`mt-6 px-5 py-2 rounded-lg font-medium shadow transition-all ${darkMode ? 'bg-red-800 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+                    >
+                        Go back to equipment
+                    </button>
                 </div>
             </div>
         );
     }
 
-    return (
-        <div className="p-6 max-w-6xl mx-auto">
-            <div className="mb-6 flex items-center justify-between">
-                <button
-                    onClick={() => navigate("/admin/equipment")}
-                    className={`flex items-center ${darkMode ? 'text-cyan-400 hover:text-cyan-200' : 'text-blue-600 hover:text-blue-800'}`}
-                >
-                    <ArrowLeft className="mr-1" size={18} />
-                    Back to Equipment
-                </button>
-                <div className="flex space-x-3">
-                    <button
-                        onClick={() => navigate(`/admin/equipment/editEquipment/${equipment.equipmentID}`)}
-                        className={`flex items-center px-4 py-2 rounded-md transition-all ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                    >
-                        <Edit size={16} className="mr-2" />
-                        Edit Equipment
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className={`flex items-center px-4 py-2 rounded-md transition-all ${darkMode ? 'bg-red-700 hover:bg-red-800 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                    >
-                        <Trash2 size={16} className="mr-2" />
-                        Delete Equipment
-                    </button>
-                </div>
-            </div>
 
-            <div className={`shadow-md rounded-lg overflow-hidden ${darkMode ? 'bg-slate-800 text-slate-100' : 'bg-white'}`}>
-                <div className="md:flex">
-                    <div className="md:w-1/2 p-6">
-                        <div className="h-96 flex items-center justify-center">
-                            <Package size={64} className={darkMode ? 'text-slate-700' : 'text-gray-300'} />
+    return (
+        <div className={`min-h-screen flex flex-col items-center justify-center py-10 px-2 ${darkMode ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-white'}`}>
+            <div className={`w-full max-w-3xl rounded-3xl shadow-2xl border transition-all ${darkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-gray-200 text-gray-900'}`}>
+                <div className="flex flex-col md:flex-row gap-0 md:gap-8">
+                    {/* Left: Icon and Actions */}
+                    <div className={`flex flex-col items-center justify-center md:w-1/3 p-8 border-b md:border-b-0 md:border-r transition-all ${darkMode ? 'border-slate-700' : 'border-gray-100'}`}>
+                        <div className={`rounded-full p-6 shadow-lg mb-4 ${darkMode ? 'bg-slate-800' : 'bg-blue-50'}`}>
+                            <Package size={64} className={darkMode ? 'text-cyan-400' : 'text-blue-600'} />
+                        </div>
+                        <div className="flex flex-col gap-3 w-full">
+                            <button
+                                onClick={() => navigate("/admin/equipment")}
+                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-cyan-300' : 'bg-blue-50 hover:bg-blue-100 text-blue-700'}`}
+                            >
+                                <ArrowLeft size={18} /> Back to Equipment
+                            </button>
+                            <button
+                                onClick={() => navigate(`/admin/equipment/editEquipment/${equipment.equipmentID}`)}
+                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                            >
+                                <Edit size={16} /> Edit
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${darkMode ? 'bg-red-800 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+                            >
+                                <Trash2 size={16} /> Delete
+                            </button>
                         </div>
                     </div>
-                    <div className="p-6 md:w-1/2">
-                        <div className="flex items-center justify-between mb-4">
-                            <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-200' : 'text-gray-800'}`}>{equipment.name}</h1>
-                            <span className={`px-3 py-1 rounded-full text-sm font-bold capitalize 
-                                ${equipment.status === 'Available' ? (darkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800') : 
-                                equipment.status === 'In Use' ? (darkMode ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800') : 
-                                (darkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800')}`
+                    {/* Right: Details */}
+                    <div className="flex-1 p-8 flex flex-col gap-6">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+                            <h1 className={`text-3xl font-extrabold tracking-tight ${darkMode ? 'text-cyan-200' : 'text-blue-900'}`}>{equipment.name}</h1>
+                            <span className={`px-4 py-1 rounded-full text-base font-bold capitalize shadow-sm border
+                                ${equipment.status === 'Available' ? (darkMode ? 'bg-green-900 text-green-300 border-green-700' : 'bg-green-100 text-green-800 border-green-200') :
+                                equipment.status === 'In Use' ? (darkMode ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-200') :
+                                (darkMode ? 'bg-red-900 text-red-200 border-red-700' : 'bg-red-100 text-red-800 border-red-200')}`
                             }>
                                 {equipment.status}
                             </span>
                         </div>
-
-                        <div className="space-y-4">
-                            <div className="flex items-center">
-                                <Tag className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                <div>
-                                    <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Equipment ID</h3>
-                                    <p className="font-medium">{equipment.equipmentID}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center">
-                                <Tag className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                <div>
-                                    <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Type</h3>
-                                    <p className="font-medium">{equipment.type}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center">
-                                <Tag className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                <div>
-                                    <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Serial</h3>
-                                    <p className="font-medium">{equipment.serial}</p>
-                                </div>
-                            </div>
-
-                            {equipment.purchaseDate && (
-                                <div className="flex items-center">
-                                    <Calendar className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                    <div>
-                                        <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Purchase Date</h3>
-                                        <p className="font-medium">
-                                            {new Date(equipment.purchaseDate).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {equipment.warrantyExpiry && (
-                                <div className="flex items-center">
-                                    <Clock className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                    <div>
-                                        <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Warranty Expiry</h3>
-                                        <p className="font-medium">
-                                            {new Date(equipment.warrantyExpiry).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {equipment.lastServiced && (
-                                <div className="flex items-center">
-                                    <Clock className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                    <div>
-                                        <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Last Serviced</h3>
-                                        <p className="font-medium">
-                                            {new Date(equipment.lastServiced).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {equipment.notes && (
-                                <div className="flex items-center">
-                                    <Tag className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                    <div>
-                                        <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Notes</h3>
-                                        <p className="font-medium whitespace-pre-line">{equipment.notes}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {equipment.boatNumber && (
-                                <div className="flex items-center">
-                                    <Tag className={darkMode ? 'text-slate-400 mr-3' : 'text-gray-500 mr-3'} size={20} />
-                                    <div>
-                                        <h3 className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Boat Number</h3>
-                                        <p className="font-medium">{equipment.boatNumber}</p>
-                                    </div>
-                                </div>
-                            )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <DetailItem label="Equipment ID" value={equipment.equipmentID} darkMode={darkMode} />
+                            <DetailItem label="Type" value={equipment.type} darkMode={darkMode} />
+                            <DetailItem label="Serial" value={equipment.serial} darkMode={darkMode} />
+                            <DetailItem label="Boat Number" value={equipment.boatNumber || '-'} darkMode={darkMode} />
+                            <DetailItem label="Purchase Date" value={equipment.purchaseDate ? new Date(equipment.purchaseDate).toLocaleDateString() : '-'} darkMode={darkMode} icon={<Calendar size={18} />} />
+                            <DetailItem label="Warranty Expiry" value={equipment.warrantyExpiry ? new Date(equipment.warrantyExpiry).toLocaleDateString() : '-'} darkMode={darkMode} icon={<Clock size={18} />} />
+                            <DetailItem label="Last Serviced" value={equipment.lastServiced ? new Date(equipment.lastServiced).toLocaleDateString() : '-'} darkMode={darkMode} icon={<Clock size={18} />} />
+                            <DetailItem label="Notes" value={equipment.notes || '-'} darkMode={darkMode} multiline />
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function DetailItem({ label, value, darkMode, icon, multiline }) {
+    return (
+        <div className={`flex items-start gap-3 p-4 rounded-xl shadow-sm border transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+            {icon && <span className="mt-1">{icon}</span>}
+            <div>
+                <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${darkMode ? 'text-cyan-400' : 'text-blue-600'}`}>{label}</div>
+                <div className={`text-base ${multiline ? 'whitespace-pre-line' : ''} ${darkMode ? 'text-slate-100' : 'text-gray-900'}`}>{value}</div>
             </div>
         </div>
     );
