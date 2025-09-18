@@ -1,34 +1,78 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 export default function Header() {
   const [cartCount, setCartCount] = useState(0);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Smooth scroll to a section if it's present
+  const scrollToId = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Handlers for section nav
+  const goHero = (e) => {
+    e.preventDefault();
+    if (pathname === "/") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollToId("hero"); // try by id too
+    } else {
+      navigate("/#hero");
+      // try scrolling shortly after navigation (works even with custom scroll containers)
+      setTimeout(() => scrollToId("hero"), 0);
+    }
+  };
+
+  const goTrending = (e) => {
+    e.preventDefault();
+    if (pathname === "/") {
+      scrollToId("trending");
+    } else {
+      navigate("/#trending");
+      setTimeout(() => scrollToId("trending"), 0);
+    }
+  };
+
+  const goContact = (e) => {
+    e.preventDefault();
+    if (pathname === "/") {
+      scrollToId("contact");
+    } else {
+      navigate("/#contact");
+      setTimeout(() => scrollToId("contact"), 0);
+    }
+  };
+
+  const goReviews = (e) => {
+    e.preventDefault();
+    if (pathname === "/") {
+      scrollToId("reviews");
+    } else {
+      navigate("/#reviews");
+      setTimeout(() => scrollToId("reviews"), 0);
+    }
+  };
 
   useEffect(() => {
     const readCartCount = () => {
       try {
         const raw = localStorage.getItem("cart") || "[]";
         const cart = JSON.parse(raw);
-
-        // Count DISTINCT items (lines) with qty > 0, not the sum of quantities
         const total = Array.isArray(cart)
           ? cart.filter((it) => (Number(it?.quantity) || 0) > 0).length
           : 0;
-
         setCartCount(total);
       } catch {
         setCartCount(0);
       }
     };
 
-    // initial load
     readCartCount();
 
-    // update on cross-tab changes
     const onStorage = (e) => { if (e.key === "cart") readCartCount(); };
-    // update on same-tab custom event (call after setItem in your cart helpers)
     const onCartUpdated = () => readCartCount();
-    // update when tab regains focus/visibility
     const onVisible = () => { if (!document.hidden) readCartCount(); };
 
     window.addEventListener("storage", onStorage);
@@ -58,10 +102,32 @@ export default function Header() {
       {/* Center: Navigation */}
       <nav className="flex-1 flex justify-center">
         <ul className="flex items-center gap-8 text-blue-800 font-medium">
-          <li><Link to="/" className="hover:text-blue-600 transition">Home</Link></li>
-          <li><Link to="/products" className="hover:text-blue-600 transition">Products</Link></li>
-          <li><Link to="/contact" className="hover:text-blue-600 transition">Contact</Link></li>
-          <li><Link to="/reviews" className="hover:text-blue-600 transition">Reviews</Link></li>
+          {/* Home → Hero */}
+          <li>
+            <a href="/#hero" onClick={goHero} className="hover:text-blue-600 transition">
+              Home
+            </a>
+          </li>
+
+          <li>
+            <a href="/#trending" onClick={goTrending} className="hover:text-blue-600 transition">
+              Trending
+            </a>
+          </li>
+
+          {/* Contact → Contact section */}
+          <li>
+            <a href="/#contact" onClick={goContact} className="hover:text-blue-600 transition">
+              Contact
+            </a>
+          </li>
+
+          {/* Reviews → Reviews section */}
+          <li>
+            <a href="/#reviews" onClick={goReviews} className="hover:text-blue-600 transition">
+              Reviews
+            </a>
+          </li>
         </ul>
       </nav>
 
