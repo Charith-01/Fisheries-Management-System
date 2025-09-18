@@ -49,6 +49,10 @@ import Expenses from "./admin/Expenses";
 import AdminProductsPage from "./admin/products";
 import AddProductForm from "./admin/addProductForm";
 import UpdateProductForm from "./admin/updateProductForm";
+import AddBoatForm from "./admin/addBoatForm.jsx";
+import BoatsManagement from "./admin/boatManagement.jsx";
+import EditBoatForm from "./admin/editBoatForm.jsx";
+import BoatDetail from "./admin/boatDetails.jsx";
 
 
 export default function AdminDashboard() {
@@ -76,6 +80,10 @@ export default function AdminDashboard() {
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
               <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
               <Route path="income-expense" element={<Expenses />} />
+              <Route path="boats" element={<BoatsManagement darkMode={darkMode} />} />
+              <Route path="boats/addBoat" element={<AddBoatForm darkMode={darkMode} />} />
+              <Route path="boats/editBoat/:boatNumber" element={<EditBoatForm darkMode={darkMode} />} />
+              <Route path="boats/:boatNumber" element={<BoatDetail darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
