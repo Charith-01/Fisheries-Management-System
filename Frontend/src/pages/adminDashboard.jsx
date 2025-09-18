@@ -54,6 +54,10 @@ import AddBoatForm from "./admin/addBoatForm.jsx";
 import BoatsManagement from "./admin/boatManagement.jsx";
 import EditBoatForm from "./admin/editBoatForm.jsx";
 import BoatDetail from "./admin/boatDetails.jsx";
+import EquipmentManagement from "./admin/equipmentManagement.jsx";
+import AddEquipmentForm from "./admin/addEquipmentForm.jsx";
+import EditEquipmentForm from "./admin/editEquipmentForm.jsx";
+import EquipmentDetails from "./admin/equipmentDetails.jsx";
 
 
 export default function AdminDashboard() {
@@ -86,6 +90,10 @@ export default function AdminDashboard() {
               <Route path="boats/addBoat" element={<AddBoatForm darkMode={darkMode} />} />
               <Route path="boats/editBoat/:boatNumber" element={<EditBoatForm darkMode={darkMode} />} />
               <Route path="boats/:boatNumber" element={<BoatDetail darkMode={darkMode} />} />
+              <Route path="equipment" element={<EquipmentManagement darkMode={darkMode} />} />
+              <Route path="equipment/addEquipment" element={<AddEquipmentForm darkMode={darkMode} />} />
+              <Route path="equipment/editEquipment/:equipmentID" element={<EditEquipmentForm darkMode={darkMode} />} />
+              <Route path="equipment/:equipmentID" element={<EquipmentDetails darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
