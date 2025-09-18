@@ -1,25 +1,5 @@
 
-import { Link, Route, Routes } from "react-router-dom";
-import FishStockList from "./FishStockList";
 
-export default function AdminDashboard() {
-    return (
-        <div className="w-full h-screen bg-gray-200 flex p-2">
-            <div className="h-full w-[300px]">
-                <h2 className="text-lg font-bold">Admin Menu</h2>
-                <Link to="/admin/users" className="block py-2 px-4 hover:bg-gray-300">Manage Users</Link>
-                <Link to="/admin/products" className="block py-2 px-4 hover:bg-gray-300">Manage Products</Link>
-                <Link to="/admin/orders" className="block py-2 px-4 hover:bg-gray-300">View Orders</Link>
-                <Link to="/admin/fishstock" className="block py-2 px-4 hover:bg-gray-300 rounded mb-2">Manage Fish Stock</Link>
-
-            </div>
-            <div className="h-full bg-white w-[calc(100vw-300px)] rounded-lg">
-               <Routes path="/*">
-                    <Route path="/users" element={<h2>Manage Users Content</h2>} />
-                    <Route path="/products" element={<h2>Products Content</h2>} />
-                    <Route path="/orders" element={<h2>View Orders Content</h2>} />
-                    <Route path="/fishstock" element={<FishStockList />} />
-               </Routes>
 
 import React, { useState } from "react";
 import { NavLink, Route, Routes, Link } from "react-router-dom";
@@ -66,9 +46,7 @@ import {
 
 import NotificationDashboard from "./admin/NotificationDashboard";
 import Expenses from "./admin/Expenses";
-
-
-
+import FishStockList from "./FishStockList.jsx";
 import AdminProductsPage from "./admin/products";
 import AddProductForm from "./admin/addProductForm";
 import UpdateProductForm from "./admin/updateProductForm";
@@ -97,6 +75,7 @@ export default function AdminDashboard() {
               <Route path="trip" element={<TripsManagement darkMode={darkMode} />} />
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
               <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
+              <Route path="stock" element={<FishStockList darkMode={darkMode} />}/>
 
               {/* You can add boats, equipment, trip, notifications, reviews pages later */}
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
