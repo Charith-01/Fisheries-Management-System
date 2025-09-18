@@ -6,6 +6,7 @@ import RegistrationPage from "./pages/client/registrationPage";
 import NotificationDashboard from "./pages/admin/NotificationDashboard";
 import FishermanDashboard from "./pages/fishermanDashboard";
 import HomePage from "./pages/homePage";
+import NotFoundPage from "./pages/client/notFoundPage";
 
 function App() {
 
@@ -18,7 +19,7 @@ function App() {
            <Route path="/login" element={<LoginPage />} />
            <Route path="/register" element={<RegistrationPage />} />
            <Route path="/*" element={<HomePage />} />
-           <Route path="/*" element={<h1>404 Not Found</h1>} />
+           <Route path="/*" element={<NotFoundPage />} />
         </Routes>
     </BrowserRouter>
   )
