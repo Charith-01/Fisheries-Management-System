@@ -57,7 +57,8 @@ export default function Checkout() {
   const [postalCode, setPostalCode] = useState("");
   const [notes, setNotes] = useState("");
 
-  const [delivery, setDelivery] = useState("standard"); // affects shipping cost
+  // ✅ One delivery mode only: fast within 24h (keep state for totals)
+  const [delivery, setDelivery] = useState("express"); // affects shipping cost
   const [agree, setAgree] = useState(false);
 
   // Prefill from local cache (optional)
@@ -86,7 +87,7 @@ export default function Checkout() {
 
   const shippingCost = useMemo(() => {
     if (!cart.length) return 0;
-    return delivery === "express" ? 700 : 350;
+    return delivery === "express" ? 400 : 350;
   }, [delivery, cart.length]);
 
   const grandTotal = Math.max(0, subTotal + shippingCost);
@@ -321,35 +322,25 @@ export default function Checkout() {
           {/* Delivery + Payment + Consent */}
           <section className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">Delivery</h2>
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-center gap-3 p-3 rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="standard"
-                  checked={delivery === "standard"}
-                  onChange={() => setDelivery("standard")}
-                />
+
+            {/* ✅ Single delivery option: within 24 hours (non-interactive) */}
+            <div className="mt-3 p-3 rounded-lg ring-1 ring-slate-200 bg-slate-50">
+              <div className="flex items-start gap-3">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor">
+                  <path d="M3 13h13l3.5-6H6.5L3 13z" strokeWidth="2" />
+                  <circle cx="7.5" cy="18.5" r="1.5" />
+                  <circle cx="16.5" cy="18.5" r="1.5" />
+                </svg>
                 <div className="flex-1">
-                  <div className="text-sm text-slate-900">Standard (3–5 days)</div>
-                  <div className="text-xs text-slate-600">Rs. 350</div>
+                  <div className="text-sm text-slate-900 font-medium">Fresh fish delivery — within 24 hours</div>
+                  <div className="text-xs text-slate-600">Fixed fast delivery (Rs. 400)</div>
                 </div>
-              </label>
-              <label className="flex items-center gap-3 p-3 rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="express"
-                  checked={delivery === "express"}
-                  onChange={() => setDelivery("express")}
-                />
-                <div className="flex-1">
-                  <div className="text-sm text-slate-900">Express (1–2 days)</div>
-                  <div className="text-xs text-slate-600">Rs. 700</div>
-                </div>
-              </label>
+              </div>
+              {/* keep state consistent just in case */}
+              <input type="hidden" name="delivery" value={delivery} readOnly />
             </div>
 
+            {/* Payment method: Card only (UI + accepted brands) */}
             <div className="mt-5 rounded-xl ring-1 ring-slate-200 p-4">
               <div className="text-sm font-medium text-slate-900 mb-2">Payment method</div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 ring-1 ring-slate-200">
@@ -360,6 +351,7 @@ export default function Checkout() {
                 <div className="text-sm text-slate-800">Card (secured on next step)</div>
               </div>
 
+              {/* Accepted card brands (images from /public) */}
               <div className="mt-3">
                 <div className="text-xs text-slate-600 mb-1">We accept</div>
                 <div className="flex items-center gap-2">
@@ -371,6 +363,7 @@ export default function Checkout() {
               </div>
             </div>
 
+            {/* Consent */}
             <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
@@ -393,6 +386,7 @@ export default function Checkout() {
             <div className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Order Summary</h2>
 
+              {/* Items list (compact) */}
               <div className="mt-3 max-h-64 overflow-auto divide-y divide-slate-100">
                 {cart.map((it) => (
                   <div key={it.productId} className="py-2 flex items-center justify-between gap-3">
@@ -414,6 +408,7 @@ export default function Checkout() {
                 ))}
               </div>
 
+              {/* Totals */}
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600">Items</span>
