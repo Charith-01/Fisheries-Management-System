@@ -1,5 +1,11 @@
+
+
+
 import React, { useState } from "react";
 import { NavLink, Route, Routes, Link } from "react-router-dom";
+import TripsManagement from "./TripsManagement.jsx";
+import AddTripForm from "./AddTripForm.jsx";
+import EditTripForm from "./EditTripForm.jsx";
 import {
   Fish,
   Ship,
@@ -40,12 +46,18 @@ import {
 
 import NotificationDashboard from "./admin/NotificationDashboard";
 import Expenses from "./admin/Expenses";
-
-
-
+import FishStockList from "./FishStockList.jsx";
 import AdminProductsPage from "./admin/products";
 import AddProductForm from "./admin/addProductForm";
 import UpdateProductForm from "./admin/updateProductForm";
+import AddBoatForm from "./admin/addBoatForm.jsx";
+import BoatsManagement from "./admin/boatManagement.jsx";
+import EditBoatForm from "./admin/editBoatForm.jsx";
+import BoatDetail from "./admin/boatDetails.jsx";
+import EquipmentManagement from "./admin/equipmentManagement.jsx";
+import AddEquipmentForm from "./admin/addEquipmentForm.jsx";
+import EditEquipmentForm from "./admin/editEquipmentForm.jsx";
+import EquipmentDetails from "./admin/equipmentDetails.jsx";
 
 
 export default function AdminDashboard() {
@@ -64,10 +76,24 @@ export default function AdminDashboard() {
               <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
               <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
+              <Route path="trip" element={<TripsManagement darkMode={darkMode} />} />
+              <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
+              <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
+              <Route path="stock" element={<FishStockList darkMode={darkMode} />}/>
+
+              {/* You can add boats, equipment, trip, notifications, reviews pages later */}
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
               <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
               <Route path="income-expense" element={<Expenses />} />
+              <Route path="boats" element={<BoatsManagement darkMode={darkMode} />} />
+              <Route path="boats/addBoat" element={<AddBoatForm darkMode={darkMode} />} />
+              <Route path="boats/editBoat/:boatNumber" element={<EditBoatForm darkMode={darkMode} />} />
+              <Route path="boats/:boatNumber" element={<BoatDetail darkMode={darkMode} />} />
+              <Route path="equipment" element={<EquipmentManagement darkMode={darkMode} />} />
+              <Route path="equipment/addEquipment" element={<AddEquipmentForm darkMode={darkMode} />} />
+              <Route path="equipment/editEquipment/:equipmentID" element={<EditEquipmentForm darkMode={darkMode} />} />
+              <Route path="equipment/:equipmentID" element={<EquipmentDetails darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
@@ -398,6 +424,7 @@ function Overview({ darkMode }) {
               <button className={`rounded-lg p-1.5 ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}>
                 <Download className="h-4 w-4" />
               </button>
+
             </div>
           </div>
           <div className="h-64 sm:h-72">

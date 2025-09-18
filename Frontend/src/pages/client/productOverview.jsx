@@ -37,7 +37,6 @@ export default function ProductOverview(){
     return(
         <div className="w-full h-full flex items-center justify-center">
             { status == "loading" && 
-                // Modern skeleton for image + details (no extra imports)
                 <div className="w-full h-full flex gap-6 p-6 animate-pulse">
                     {/* Left: image area skeleton */}
                     <div className="w-[50%] h-full">
@@ -257,7 +256,7 @@ export default function ProductOverview(){
                         })()}
                         </div>
 
-                        {/* Actions with icons (include total in toasts) */}
+                        {/* Actions */}
                         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                         <button
                             className="px-5 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99] transition shadow-sm inline-flex items-center gap-2"
@@ -298,9 +297,17 @@ export default function ProductOverview(){
                               const min = isWeight ? 0.25 : 1;
                               if (isNaN(qty) || qty < min) qty = min;
 
-                              // add then go to cart (simple buy-now flow)
-                              addToCart(product, qty);
-                              window.location.href = "/cart"; // or use navigate('/checkout')
+                              // BUY NOW: store just this item, then go to checkout
+                              const singleItem = {
+                                productId: product?.productId,
+                                name: product?.name,
+                                unit: product?.unit,
+                                image: Array.isArray(product?.images) ? product.images[0] : product?.image || null,
+                                price: typeof product?.price === "number" ? product.price : 0,
+                                quantity: qty,
+                              };
+                              localStorage.setItem("buyNow", JSON.stringify([singleItem]));
+                              window.location.href = "/checkout";
 
                               const price = typeof product?.price === "number" ? product.price : 0;
                               const total = qty * price;
@@ -356,7 +363,6 @@ export default function ProductOverview(){
                 </div>
             }
             { status == "error" && 
-                // Modern error card with Retry + Back actions (no new imports)
                 <div className="w-full h-full flex items-center justify-center p-6">
                     <div className="max-w-lg w-full rounded-2xl bg-red-50 ring-1 ring-red-200 p-6 text-red-900">
                         <div className="flex items-start gap-3">
