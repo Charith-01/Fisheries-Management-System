@@ -7,7 +7,7 @@ import verifyJWT from "../middleware/auth.js";
 const Nrouter = express.Router();
 
 // POST /api/notifications - create a notification (admin only)
-Nrouter.post("/", addNotification);
+Nrouter.post("/",verifyJWT,addNotification);
 
 // Current logged-in role fetches notifications
 Nrouter.get("/", verifyJWT, getNotifications);
@@ -16,10 +16,10 @@ Nrouter.get("/", verifyJWT, getNotifications);
 Nrouter.patch("/:id/read", verifyJWT, markAsRead)
 
 // Update a notification (only if no user has read it)
-Nrouter.put("/:id", updateNotificationIfUnread);
+Nrouter.put("/:id",verifyJWT,updateNotificationIfUnread);
 
-Nrouter.delete("/:id", deleteNotification);
+Nrouter.delete("/:id",verifyJWT,deleteNotification);
 
-Nrouter.get("/admin", getAllNotificationsForAdmin);
+Nrouter.get("/admin",verifyJWT,getAllNotificationsForAdmin);
 
 export default Nrouter;

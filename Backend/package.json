@@ -19,6 +19,11 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
+
+
+    "nodemon": "^3.1.10",
+    "stripe": "^18.5.0",
+
     "react-router-dom": "^7.8.2"
   },
   "devDependencies": {

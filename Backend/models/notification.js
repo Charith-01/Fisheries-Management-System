@@ -30,12 +30,8 @@ const notificationSchema = new mongoose.Schema(
       },
       default: [],
     },
-    isReadBy: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    isReadBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
+,
   },
   {
     timestamps: true, // adds createdAt and updatedAt
