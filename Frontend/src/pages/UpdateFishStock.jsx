@@ -46,7 +46,7 @@ export default function UpdateFishStock() {
             });
 
             toast.success("Fish stock updated successfully");
-            navigate("/admin/fishstock");
+            navigate("/admin/stock");
         } catch (error) {
             toast.error(error.message || "Failed to update fish stock");
         } finally {

@@ -28,7 +28,7 @@ export default function CreateFishStock() {
             });
 
             toast.success("Fish stock created successfully");
-            navigate("/admin/fishstock");
+            navigate("/admin/stock");
         } catch (error) {
             toast.error(error.message || "Failed to create fish stock");
         } finally {
