@@ -1,3 +1,26 @@
+
+import { Link, Route, Routes } from "react-router-dom";
+import FishStockList from "./FishStockList";
+
+export default function AdminDashboard() {
+    return (
+        <div className="w-full h-screen bg-gray-200 flex p-2">
+            <div className="h-full w-[300px]">
+                <h2 className="text-lg font-bold">Admin Menu</h2>
+                <Link to="/admin/users" className="block py-2 px-4 hover:bg-gray-300">Manage Users</Link>
+                <Link to="/admin/products" className="block py-2 px-4 hover:bg-gray-300">Manage Products</Link>
+                <Link to="/admin/orders" className="block py-2 px-4 hover:bg-gray-300">View Orders</Link>
+                <Link to="/admin/fishstock" className="block py-2 px-4 hover:bg-gray-300 rounded mb-2">Manage Fish Stock</Link>
+
+            </div>
+            <div className="h-full bg-white w-[calc(100vw-300px)] rounded-lg">
+               <Routes path="/*">
+                    <Route path="/users" element={<h2>Manage Users Content</h2>} />
+                    <Route path="/products" element={<h2>Products Content</h2>} />
+                    <Route path="/orders" element={<h2>View Orders Content</h2>} />
+                    <Route path="/fishstock" element={<FishStockList />} />
+               </Routes>
+
 import React, { useState } from "react";
 import { NavLink, Route, Routes, Link } from "react-router-dom";
 import TripsManagement from "./TripsManagement.jsx";
@@ -414,6 +437,7 @@ function Overview({ darkMode }) {
               <button className={`rounded-lg p-1.5 ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}>
                 <Download className="h-4 w-4" />
               </button>
+
             </div>
           </div>
           <div className="h-64 sm:h-72">
