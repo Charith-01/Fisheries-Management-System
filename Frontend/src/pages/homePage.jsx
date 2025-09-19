@@ -8,12 +8,28 @@ import Checkout from "./client/checkout";
 import NotFoundPage from "./client/notFoundPage";
 import Footer from "../components/footer";
 
-/* --------------------- Hero (Image Slider) --------------------- */
+/* --------------------- Shared centered section header --------------------- */
+function SectionHeader({ title, subtitle }) {
+  return (
+    <div className="mb-10">
+      <div className="mx-auto flex max-w-3xl items-center gap-6">
+        <div className="h-px flex-1 bg-slate-200" />
+        <h2 className="text-center text-2xl font-extrabold tracking-wide text-slate-800 md:text-3xl">
+          {title}
+        </h2>
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+      {subtitle ? (
+        <p className="mt-2 text-center text-slate-600">{subtitle}</p>
+      ) : null}
+    </div>
+  );
+}
+
 /* --------------------- Hero (Image Slider with Promotions) --------------------- */
 function HeroSection() {
   const navigate = useNavigate();
 
-  // Each slide now carries its own promotion details
   const slides = useMemo(
     () => [
       {
@@ -52,6 +68,7 @@ function HeroSection() {
 
   const [idx, setIdx] = useState(0);
   const timerRef = useRef(null);
+
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setIdx((p) => (p + 1) % slides.length);
@@ -89,16 +106,15 @@ function HeroSection() {
             </button>
 
             <button
-            onClick={(e) => {
+              onClick={(e) => {
                 e.preventDefault();
                 const el = document.getElementById("reviews");
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 active:translate-y-0"
+              }}
+              className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 active:translate-y-0"
             >
-            See Reviews
+              See Reviews
             </button>
-
           </div>
 
           {/* trust stats */}
@@ -200,12 +216,56 @@ function HeroSection() {
   );
 }
 
+/* --------------------- Categories (Circular, One-line) --------------------- */
+function CategorySection() {
+  const categories = useMemo(
+    () => [
+      { name: "FISH", slug: "fish", img: "https://www.oceancare.org/wp-content/uploads/2023/10/shutterstock_2151164471_Taras-Shparhala.jpg" },
+      { name: "CRAB", slug: "crab", img: "https://bringmaalu.lk/cdn/shop/products/IMG-20210204-WA0001.jpg?v=1612621311" },
+      { name: "SHELLFISH", slug: "shellfish", img: "https://www.mussel-inn.com/wp-content/uploads/2018/06/Mussels-clams-and-prawns.jpg" },
+      { name: "PRAWNS/SHRIMPS", slug: "prawn", img: "https://seafoodfactoryoutlet.com.au/wp-content/uploads/2024/09/Whole-Cooked-Prawns.jpg" },
+      { name: "LOBSTER", slug: "lobster", img: "https://lobsteranywhere.com/wp-content/uploads/2013/10/Live-Lobsters-For-Sale-1535x1024.jpg" },
+      { name: "SQUID", slug: "squid", img: "https://media.sciencephoto.com/image/h1104023/400wm" },
+      { name: "IMPORTED SEAFOOD", slug: "imported", img: "https://media.fisheries.noaa.gov/dam-migration/shutterstock-seafood-display-in-market-750x500.jpg" },
+      { name: "OTHER", slug: "other", img: "https://www.allrecipes.com/thmb/N104Tn_L-bXuNxozTT7tg007bhA=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/IMG_1122__90605.1633465971-e42410e5e88f4b52ba973b537a23e25e.jpg" },
+    ],
+    []
+  );
 
-/* --------------------- Trending Products --------------------- */
+  return (
+    <section id="categories" className="relative isolate bg-white py-12 md:py-16">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <SectionHeader title="BROWSE OUR CATEGORIES" />
+
+        {/* Circular tiles, single line labels */}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-10 md:gap-14">
+          {categories.map((c) => (
+            <Link
+              key={c.slug}
+              to={`/products?category=${encodeURIComponent(c.slug)}`}
+              className="group flex w-[150px] flex-col items-center md:w-[200px]"
+              aria-label={`Browse ${c.name}`}
+            >
+              <div className="h-[150px] w-[150px] overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm transition-transform duration-300 group-hover:scale-[1.04] md:h-[200px] md:w-[200px]">
+                <img src={c.img} alt={c.name} className="h-full w-full object-cover" loading="lazy" draggable="false" />
+              </div>
+              <span className="mt-4 w-full truncate text-center text-sm font-semibold tracking-wide text-slate-700 md:text-base" title={c.name}>
+                {c.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* --------------------- Trending Products (feels trending) --------------------- */
 function TrendingSection() {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState("");
+  const [refreshedAt, setRefreshedAt] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -213,33 +273,57 @@ function TrendingSection() {
       try {
         const res = await fetch(import.meta.env.VITE_BACKEND_URL + "/api/product/all");
         const json = await res.json();
-        const list = json?.data || [];
+        const list = Array.isArray(json?.data) ? json.data : [];
 
-        const pickImg = (p) =>
-          p?.imageUrl ||
-          (Array.isArray(p?.images) ? p.images[0] : null) ||
-          p?.thumbnail ||
-          null;
+        const pickImg = (p) => p?.imageUrl || (Array.isArray(p?.images) ? p.images[0] : null) || p?.thumbnail || null;
 
-        // Just grab first 4 active products (or adjust to your needs)
-        const top = list
+        const discountPct = (p) => {
+          const price = Number(p?.price);
+          const was = Number(p?.compareAtPrice || p?.mrp);
+          if (!price || !was || was <= price) return 0;
+          return Math.round(((was - price) / was) * 100);
+        };
+
+        const rating = (p) => Number(p?.rating || p?.avgRating || 0);
+        const ordersToday = (p) => Number(p?.ordersToday || p?.salesLast24h || 0);
+        const views7d = (p) => Number(p?.views7d || p?.views || 0);
+        const stock = (p) => Number(p?.stock || p?.qty || 0);
+
+        const score = (p) => {
+          const o = ordersToday(p);
+          const v = views7d(p);
+          const r = rating(p);
+          const d = discountPct(p);
+          const s = stock(p);
+          const lowStockBoost = s > 0 ? Math.max(0, 10 - Math.min(10, s)) : 0;
+          return o * 3 + v * 0.02 + r * 4 + d * 0.5 + lowStockBoost;
+        };
+
+        const enriched = list
           .filter((p) => p && (p.isActive ?? true))
-          .slice(0, 4)
           .map((p) => ({
-            id: p?.productId || p?._id || p?.id || p?.name,
+            raw: p,
+            id: p?.productId || p?._id || p?.id || p?.slug || String(p?.name || "item"),
             name: p?.name || "Unnamed Product",
-            img:
-              pickImg(p) ||
-              "https://images.unsplash.com/photo-1523419409543-8fcf3a4e5a9f?q=80&w=1600&auto=format&fit=crop",
+            img: pickImg(p) || "https://images.unsplash.com/photo-1523419409543-8fcf3a4e5a9f?q=80&w=1600&auto=format&fit=crop",
             tag: p?.category || "Fresh",
-            price: p?.price
-              ? `Rs ${Number(p.price).toLocaleString()}`
-              : "See price",
+            price: p?.price != null ? Number(p.price) : null,
+            wasPrice: p?.compareAtPrice || p?.mrp ? Number(p?.compareAtPrice || p?.mrp) : null,
+            discount: discountPct(p),
+            rating: rating(p),
+            reviewsCount: Number(p?.reviewsCount || p?.ratingsCount || 0),
+            ordersToday: ordersToday(p),
+            stock: stock(p),
+            score: score(p),
           }));
+
+        const top = enriched.sort((a, b) => b.score - a.score).slice(0, 4);
 
         if (mounted) {
           setItems(top);
           setLoaded(true);
+          const now = new Date();
+          setRefreshedAt(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         }
       } catch (e) {
         if (mounted) {
@@ -254,20 +338,15 @@ function TrendingSection() {
   }, []);
 
   return (
-    <section className="bg-gradient-to-b from-sky-50 to-white py-12 md:py-16">
+    <section id="trending" className="bg-gradient-to-b from-sky-50 to-white py-12 md:py-16 scroll-mt-[80px]">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
-              Trending Today
-            </h2>
-            <p className="mt-1 text-slate-600">
-              Freshest best-sellers
-            </p>
-          </div>
+        <SectionHeader title="TRENDING TODAY" subtitle={refreshedAt ? `Freshest best-sellers • updated ${refreshedAt}` : "Freshest best-sellers"} />
+
+        {/* Centered "View all" under title for consistency */}
+        <div className="flex justify-center">
           <Link
             to="/products"
-            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
+            className="inline-block rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
           >
             View all
           </Link>
@@ -277,11 +356,8 @@ function TrendingSection() {
         {!loaded && (
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-[320px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm animate-pulse"
-              >
-                <div className="h-40 w-full rounded-xl bg-slate-200" />
+              <div key={i} className="h-[340px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm animate-pulse">
+                <div className="h-44 w-full rounded-xl bg-slate-200" />
                 <div className="mt-4 space-y-3">
                   <div className="h-4 w-1/2 rounded bg-slate-200" />
                   <div className="h-4 w-1/3 rounded bg-slate-200" />
@@ -302,37 +378,96 @@ function TrendingSection() {
         {/* Products */}
         {loaded && !err && (
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {items.map((p, i) => (
-              <Link
-                to={`/overview/${encodeURIComponent(p.id)}`}
-                key={p.id}
-                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-              >
-                <div className="aspect-[4/3] w-full overflow-hidden">
-                  <img
-                    src={p.img}
-                    alt={p.name}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-900">{p.name}</h3>
-                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
-                      {p.tag}
+            {items.map((p) => {
+              const lowStock = p.stock > 0 && p.stock <= 10;
+              const hasDeal = p.discount > 0;
+              const priceText = p.price != null ? `Rs ${p.price.toLocaleString()}` : "See price";
+              return (
+                <Link
+                  to={`/overview/${encodeURIComponent(p.id)}`}
+                  key={p.id}
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                >
+                  {/* Badges */}
+                  <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-600/90 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                      <span className="animate-pulse">🔥</span> Trending
                     </span>
+                    {lowStock && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                        ⚡ Selling fast
+                      </span>
+                    )}
+                    {hasDeal && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                        {p.discount}% OFF
+                      </span>
+                    )}
                   </div>
-                  <div className="mt-1 text-sm text-slate-600">{p.price}</div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Tap to view</span>
-                    <span className="translate-x-0 transition group-hover:translate-x-1">
-                      →
-                    </span>
+
+                  <div className="aspect-[4/3] w-full overflow-hidden">
+                    <img
+                      src={p.img}
+                      alt={p.name}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-slate-900 line-clamp-1">{p.name}</h3>
+                      <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                        {p.tag}
+                      </span>
+                    </div>
+
+                    <div className="mt-1 text-lg font-bold text-blue-600">
+                      {priceText}{" "}
+                      {p.wasPrice && p.wasPrice > (p.price || 0) && (
+                        <span className="ml-2 text-xs text-slate-400 line-through">
+                          Rs {p.wasPrice.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                      {p.rating > 0 && (
+                        <span aria-label={`${p.rating} stars`}>
+                          {"★".repeat(Math.round(p.rating))} {"☆".repeat(5 - Math.round(p.rating))}
+                        </span>
+                      )}
+                      {p.reviewsCount > 0 && <span>({p.reviewsCount})</span>}
+                      {p.ordersToday > 0 && (
+                        <span className="ml-auto text-rose-600 font-semibold">
+                          {p.ordersToday} ordered today
+                        </span>
+                      )}
+                    </div>
+
+                    {lowStock && (
+                      <div className="mt-3">
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-slate-500">
+                          <span>Only {p.stock} left</span>
+                          <span>Hurry</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full bg-amber-500 transition-[width] duration-700"
+                            style={{ width: `${Math.max(5, (p.stock / 10) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xs text-slate-500">Tap to view</span>
+                      <span className="translate-x-0 transition group-hover:translate-x-1">→</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
@@ -340,66 +475,40 @@ function TrendingSection() {
   );
 }
 
-
-
 /* --------------------- Contact Us --------------------- */
 function ContactSection() {
   return (
-    <section className="relative isolate overflow-hidden bg-white py-12 md:py-16">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 lg:grid-cols-2 lg:gap-16 lg:px-8">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">Contact Us</h2>
-          <p className="mt-2 text-slate-600">
-            Questions about today’s catch, bulk orders, or delivery? We’d love to help.
-          </p>
+    <section className="relative isolate overflow-hidden bg-white py-12 md:py-16" id="contact">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <SectionHeader title="CONTACT US" subtitle="Questions about today’s catch, bulk orders, or delivery? We’d love to help." />
 
-          <form
-            className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-sm"
-            onSubmit={(e) => e.preventDefault()}
-          >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <input
-                className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200"
-                placeholder="Full name"
-              />
-              <input
-                type="email"
-                className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200"
-                placeholder="Email"
-              />
-            </div>
-            <input
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200"
-              placeholder="Subject"
-            />
-            <textarea
-              className="h-28 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200"
-              placeholder="Your message…"
-            />
-            <button
-              className="w-full rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:opacity-90 active:translate-y-0"
-              type="button"
-            >
-              Send Message
-            </button>
-            <p className="text-xs text-slate-500">
-              By contacting us, you agree to our terms & privacy policy.
-            </p>
-          </form>
-        </div>
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <form className="mt-2 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-sm" onSubmit={(e) => e.preventDefault()}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <input className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200" placeholder="Full name" />
+                <input type="email" className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200" placeholder="Email" />
+              </div>
+              <input className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200" placeholder="Subject" />
+              <textarea className="h-28 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none ring-2 ring-transparent transition focus:border-sky-300 focus:ring-sky-200" placeholder="Your message…" />
+              <button className="w-full rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:opacity-90 active:translate-y-0" type="button">
+                Send Message
+              </button>
+              <p className="text-xs text-slate-500">By contacting us, you agree to our terms & privacy policy.</p>
+            </form>
+          </div>
 
-        <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-xl">
-          <img
-            src="https://images.unsplash.com/photo-1523374228107-6e44bd2b524e?q=80&w=1600&auto=format&fit=crop"
-            alt="Our docks and partner boats"
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-white/85 p-4 backdrop-blur">
-            <div className="text-sm font-semibold text-slate-800">Dock Office</div>
-            <div className="text-xs text-slate-600">
-              Fisheries Harbour, Colombo • Mon–Sat 7:00–18:00
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-xl">
+            <img
+              src="https://cfhc.gov.lk/cfhc_admin/upload/539_image3.jpg"
+              alt="Our docks and partner boats"
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-white/85 p-4 backdrop-blur">
+              <div className="text-sm font-semibold text-slate-800">Office</div>
+              <div className="text-xs text-slate-600">Fisheries Harbour, Galle • Mon–Sat 7:00–18:00</div>
             </div>
           </div>
         </div>
@@ -411,21 +520,9 @@ function ContactSection() {
 /* --------------------- Reviews --------------------- */
 function ReviewsSection() {
   const reviews = [
-    {
-      name: "Kavindu S.",
-      text:
-        "Best prawns I’ve had in years. Packed in ice, zero smell, super fresh!",
-    },
-    {
-      name: "Ishara P.",
-      text:
-        "Delivery was quick and the tuna quality was restaurant-grade. Highly recommend.",
-    },
-    {
-      name: "Ruwan D.",
-      text:
-        "Transparent pricing and honest weights. My go-to for weekly seafood.",
-    },
+    { name: "Kavindu S.", text: "Best prawns I’ve had in years. Packed in ice, zero smell, super fresh!" },
+    { name: "Ishara P.", text: "Delivery was quick and the tuna quality was restaurant-grade. Highly recommend." },
+    { name: "Ruwan D.", text: "Transparent pricing and honest weights. My go-to for weekly seafood." },
   ];
   const [active, setActive] = useState(0);
 
@@ -435,10 +532,9 @@ function ReviewsSection() {
   }, [reviews.length]);
 
   return (
-    <section className="bg-gradient-to-b from-white to-sky-50 py-12 md:py-16">
+    <section className="bg-gradient-to-b from-white to-sky-50 py-12 md:py-16" id="reviews">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">What Customers Say</h2>
-        <p className="mt-1 text-slate-600">Real feedback from happy seafood lovers</p>
+        <SectionHeader title="WHAT CUSTOMERS SAY" subtitle="Real feedback from happy seafood lovers" />
 
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
           {reviews.map((r, i) => (
@@ -487,34 +583,30 @@ function LandingPage() {
         <HeroSection />
       </section>
 
-      {/* Trending products can stay without id */}
+      {/* Categories */}
+      <section>
+        <CategorySection />
+      </section>
+
+      {/* Trending */}
       <section id="trending">
         <TrendingSection />
       </section>
 
-
       {/* Contact */}
-      <section id="contact">
-        <ContactSection />
-      </section>
+      <ContactSection />
 
       {/* Reviews */}
-      <section id="reviews">
-        <ReviewsSection />
-      </section>
+      <ReviewsSection />
 
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0 }
-          to { opacity: 1 }
-        }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
       `}</style>
 
       <Footer />
     </main>
   );
 }
-
 
 export default function HomePage() {
   return (
