@@ -17,11 +17,20 @@ export default function Header() {
     e.preventDefault();
     if (pathname === "/") {
       window.scrollTo({ top: 0, behavior: "smooth" });
-      scrollToId("hero"); // try by id too
+      scrollToId("hero");
     } else {
       navigate("/#hero");
-      // try scrolling shortly after navigation (works even with custom scroll containers)
       setTimeout(() => scrollToId("hero"), 0);
+    }
+  };
+
+  const goCategories = (e) => {
+    e.preventDefault();
+    if (pathname === "/") {
+      scrollToId("categories");
+    } else {
+      navigate("/#categories");
+      setTimeout(() => scrollToId("categories"), 0);
     }
   };
 
@@ -93,7 +102,7 @@ export default function Header() {
       {/* Left: Logo */}
       <div className="flex items-center gap-3">
         <img
-          src="/logo-dashboard.png"   // ✅ directly reference from public/
+          src="/logo-dashboard.png"
           alt="Ocean Track 360"
           className="h-10 w-auto"
         />
@@ -102,10 +111,15 @@ export default function Header() {
       {/* Center: Navigation */}
       <nav className="flex-1 flex justify-center">
         <ul className="flex items-center gap-8 text-blue-800 font-medium">
-          {/* Home → Hero */}
           <li>
             <a href="/#hero" onClick={goHero} className="hover:text-blue-600 transition">
               Home
+            </a>
+          </li>
+
+          <li>
+            <a href="/#categories" onClick={goCategories} className="hover:text-blue-600 transition">
+              Category
             </a>
           </li>
 
@@ -115,14 +129,12 @@ export default function Header() {
             </a>
           </li>
 
-          {/* Contact → Contact section */}
           <li>
             <a href="/#contact" onClick={goContact} className="hover:text-blue-600 transition">
               Contact
             </a>
           </li>
 
-          {/* Reviews → Reviews section */}
           <li>
             <a href="/#reviews" onClick={goReviews} className="hover:text-blue-600 transition">
               Reviews
@@ -133,7 +145,6 @@ export default function Header() {
 
       {/* Right: Cart + Auth buttons */}
       <div className="flex items-center gap-3">
-        {/* Cart with live badge */}
         <Link
           to="/cart"
           className="relative inline-flex items-center justify-center h-10 w-10 rounded-lg ring-1 ring-blue-200 text-blue-800 hover:bg-blue-50 hover:ring-blue-300 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -147,7 +158,12 @@ export default function Header() {
             className="h-5 w-5"
             aria-hidden="true"
           >
-            <path d="M3 3h2l.4 2M7 13h10l3-8H6.4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M3 3h2l.4 2M7 13h10l3-8H6.4"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
             <circle cx="9" cy="19" r="1.6" />
             <circle cx="17" cy="19" r="1.6" />
           </svg>
