@@ -29,8 +29,8 @@ export default function AddBoatForm({ darkMode }) {
         const fetchEquipment = async () => {
             try {
                 const res = await api.get("/api/equipment");
-                // Only allow equipment not assigned to any boat
-                setEquipmentList(res.data.filter(eq => !eq.boatNumber || eq.boatNumber === ""));
+                // Show all equipment in the dropdown
+                setEquipmentList(res.data);
             } catch (err) {
                 setEquipmentList([]);
             }
@@ -83,7 +83,9 @@ export default function AddBoatForm({ darkMode }) {
         if (!formData.name.trim()) newErrors.name = "Boat name is required";
         if (!formData.capacity || formData.capacity < 1) newErrors.capacity = "Capacity must be at least 1";
         if (!imageFiles.length) newErrors.images = "At least one image is required";
-        if (!formData.equipmentID || formData.equipmentID.length === 0) newErrors.equipmentID = "At least one equipment is required";
+        if (!formData.equipmentID || formData.equipmentID.length === 0) {
+            newErrors.equipmentID = "At least one equipment is required";
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };

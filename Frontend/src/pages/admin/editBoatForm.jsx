@@ -37,8 +37,8 @@ export default function EditBoatForm({ darkMode }) {
         const fetchEquipment = async () => {
             try {
                 const res = await api.get("/api/equipment");
-                // Only allow equipment not assigned to any boat, or already assigned to this boat
-                setEquipmentList(res.data.filter(eq => !eq.boatNumber || eq.boatNumber === formData.boatNumber));
+                // Show all equipment in the dropdown
+                setEquipmentList(res.data);
                 // Map equipmentID to name
                 const map = {};
                 res.data.forEach(eq => {
@@ -151,40 +151,42 @@ export default function EditBoatForm({ darkMode }) {
 
     const validateForm = () => {
         const newErrors = {};
-        
         if (!formData.name.trim()) {
             newErrors.name = "Boat name is required";
         }
-        
         if (!formData.capacity || formData.capacity < 1) {
             newErrors.capacity = "Capacity must be at least 1";
         }
-        
         if (formData.images.length === 0 && imageFiles.length === 0) {
             newErrors.images = "At least one image is required";
         }
-        
         if (formData.equipmentID.length === 0) {
             newErrors.equipmentID = "At least one equipment is required";
         }
-        
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             toast.error("Please fix the errors before submitting");
             return;
         }
-        
+
         setIsSubmitting(true);
-        
+
         try {
             let finalFormData = { ...formData };
-            
+
+            // Convert equipmentID to ObjectIds for backend
+            finalFormData.equipmentID = formData.equipmentID.map(eqId => {
+                // Try to find by equipmentID or _id
+                const eq = equipmentList.find(e => e.equipmentID === eqId || e._id === eqId);
+                return eq ? eq._id : eqId;
+            });
+
             // First upload any new images if we have them
             if (imageFiles.length > 0) {
                 setIsUploadingImages(true);
@@ -204,7 +206,7 @@ export default function EditBoatForm({ darkMode }) {
             }
             // Submit the form data to update the boat
             await api.put(`/api/boat/${boatNumber}`, finalFormData);
-            
+
             toast.success("Boat updated successfully");
             navigate("/admin/boats");
         } catch (error) {
