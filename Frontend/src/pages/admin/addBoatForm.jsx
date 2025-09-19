@@ -24,11 +24,13 @@ export default function AddBoatForm({ darkMode }) {
     // Equipment list for dropdown
     const [equipmentList, setEquipmentList] = useState([]);
 
+
     useEffect(() => {
         const fetchEquipment = async () => {
             try {
                 const res = await api.get("/api/equipment");
-                setEquipmentList(res.data);
+                // Only allow equipment not assigned to any boat
+                setEquipmentList(res.data.filter(eq => !eq.boatNumber || eq.boatNumber === ""));
             } catch (err) {
                 setEquipmentList([]);
             }
