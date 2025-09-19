@@ -1,9 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 
 export default function AddEquipmentForm({ darkMode }) {
+    const [boatList, setBoatList] = useState([]);
+    useEffect(() => {
+        const fetchBoats = async () => {
+            try {
+                const res = await axios.get("/api/boat");
+                setBoatList(res.data);
+            } catch (err) {
+                setBoatList([]);
+            }
+        };
+        fetchBoats();
+    }, []);
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -146,14 +158,19 @@ export default function AddEquipmentForm({ darkMode }) {
                         className={`w-full px-3 py-2 border rounded ${errors.notes ? "border-red-500" : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : "border-gray-300"}`}
                         rows={3}
                     />
-                    <input
-                        type="text"
+                    <select
                         name="boatNumber"
-                        placeholder="Boat Number (optional)"
                         value={formData.boatNumber}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
-                    />
+                    >
+                        <option value="">No Boat Assigned</option>
+                        {boatList.map(boat => (
+                            <option key={boat.boatNumber} value={boat.boatNumber}>
+                                {boat.name} ({boat.boatNumber})
+                            </option>
+                        ))}
+                    </select>
                     <div className="flex justify-end gap-2 mt-4">
                         <button type="button" onClick={() => navigate("/admin/equipment")}
                             className={`px-4 py-2 border rounded ${darkMode ? 'border-slate-600 text-slate-200' : 'border-gray-300'}`}>Cancel</button>

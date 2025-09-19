@@ -5,6 +5,18 @@ import { Package, Save, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function EditEquipmentForm({ darkMode }) {
+    const [boatList, setBoatList] = useState([]);
+    useEffect(() => {
+        const fetchBoats = async () => {
+            try {
+                const res = await axios.get("/api/boat");
+                setBoatList(res.data);
+            } catch (err) {
+                setBoatList([]);
+            }
+        };
+        fetchBoats();
+    }, []);
     const { equipmentID } = useParams();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,7 +168,14 @@ export default function EditEquipmentForm({ darkMode }) {
                     </div>
                     <div>
                         <label htmlFor="boatNumber" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Boat Number (optional)</label>
-                        <input type="text" id="boatNumber" name="boatNumber" value={formData.boatNumber} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} placeholder="Enter boat number" />
+                        <select id="boatNumber" name="boatNumber" value={formData.boatNumber} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`}>
+                            <option value="">No Boat Assigned</option>
+                            {boatList.map(boat => (
+                                <option key={boat.boatNumber} value={boat.boatNumber}>
+                                    {boat.name} ({boat.boatNumber})
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
                 <div className="mt-8 flex justify-end gap-4">
