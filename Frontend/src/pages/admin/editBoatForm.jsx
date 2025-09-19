@@ -37,7 +37,8 @@ export default function EditBoatForm({ darkMode }) {
         const fetchEquipment = async () => {
             try {
                 const res = await api.get("/api/equipment");
-                setEquipmentList(res.data);
+                // Only allow equipment not assigned to any boat, or already assigned to this boat
+                setEquipmentList(res.data.filter(eq => !eq.boatNumber || eq.boatNumber === formData.boatNumber));
                 // Map equipmentID to name
                 const map = {};
                 res.data.forEach(eq => {
@@ -50,7 +51,7 @@ export default function EditBoatForm({ darkMode }) {
             }
         };
         fetchEquipment();
-    }, []);
+    }, [formData.boatNumber]);
 
     useEffect(() => {
         const fetchBoatDetails = async () => {
@@ -389,15 +390,15 @@ export default function EditBoatForm({ darkMode }) {
                     {equipmentItems.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                             {equipmentItems.map((item, index) => {
-                                const eq = equipmentList.find(eq => eq._id === item || eq.equipmentID === item);
+                                // Try to find by _id or equipmentID in equipmentList
+                                let eq = equipmentList.find(eq => eq.equipmentID === item || eq._id === item);
+                                // If not found, fallback to equipmentMap (from all equipment fetched earlier)
+                                let label = eq
+                                    ? `${eq.name} (${eq.equipmentID})`
+                                    : (equipmentMap[item] ? `${equipmentMap[item]} (${item})` : item);
                                 return (
-                                    <div
-                                        key={index}
-                                        className={`px-3 py-1 rounded-full flex items-center gap-1 ${darkMode ? 'bg-slate-700 text-slate-100' : 'bg-gray-100'}`}
-                                    >
-                                        <span className="text-sm">
-                                            {eq ? `${eq.name} (${eq.equipmentID})` : item}
-                                        </span>
+                                    <div key={index} className={`px-3 py-1 rounded-full flex items-center gap-1 ${darkMode ? 'bg-slate-700 text-slate-100' : 'bg-gray-100'}`}>
+                                        <span className="text-sm">{label}</span>
                                         <button
                                             type="button"
                                             onClick={() => removeEquipment(index)}
