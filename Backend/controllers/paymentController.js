@@ -3,9 +3,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+import Income from '../models/income.js';
 import Order from '../models/order.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY );
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Create payment intent
 export const createPaymentIntent = async (req, res) => {
@@ -46,36 +47,55 @@ export const confirmPayment = async (req, res) => {
   try {
     const { orderId, paymentIntentId } = req.body;
     
-    // Verify order exists
-    const order = await Order.findOne({ orderId });
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    
-    // Verify user owns this order (unless admin)
-    if (req.user.role !== 'admin' && order.email !== req.user.email) {
-      return res.status(403).json({ error: 'You do not have permission to confirm this payment' });
-    }
-    
-    // Verify the payment was successful
+    // Retrieve payment details from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     
-    if (paymentIntent.status !== 'succeeded') {
-      return res.status(400).json({ error: 'Payment not successful' });
-    }
-    
-    // Update order status
+    // Update order with payment information
     const updatedOrder = await Order.findOneAndUpdate(
       { orderId },
       { 
-        status: 'Paid',
-        paymentId: paymentIntentId 
+        paymentStatus: paymentIntent.status,
+        stripePaymentIntentId: paymentIntent.id,
+        paymentId: paymentIntent.id,
+        paymentDate: new Date(),
+        status: paymentIntent.status === 'succeeded' ? 'Paid' : 'Pending'
       },
       { new: true }
     );
     
+    if (!updatedOrder) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Verify user owns this order (unless admin)
+    if (req.user.role !== 'admin' && updatedOrder.email !== req.user.email) {
+      return res.status(403).json({ error: 'You do not have permission to confirm this payment' });
+    }
+    
+    // Create income record for successful payments
+    if (paymentIntent.status === 'succeeded') {
+      try {
+        await Income.create({
+          orderId,
+          stripePaymentId: paymentIntent.id,
+          amount: paymentIntent.amount / 100, // Convert from cents
+          customerEmail: updatedOrder.email,
+          customerName: updatedOrder.name,
+          items: updatedOrder.billItems,
+          status: 'completed',
+          date: new Date()
+        });
+        
+        console.log('Income record created for order:', orderId);
+      } catch (incomeError) {
+        console.error('Error creating income record:', incomeError);
+        // Don't fail the payment confirmation if income recording fails
+      }
+    }
+    
     res.json({ 
       message: 'Payment confirmed successfully',
+      paymentStatus: paymentIntent.status,
       order: updatedOrder
     });
   } catch (error) {
@@ -115,8 +135,10 @@ export const getPaymentDetails = async (req, res) => {
       order: {
         orderId: order.orderId,
         status: order.status,
+        paymentStatus: order.paymentStatus,
         total: order.total,
-        date: order.date
+        date: order.date,
+        paymentDate: order.paymentDate
       },
       payment: paymentDetails
     });
@@ -148,15 +170,35 @@ export const handleWebhook = async (req, res) => {
         const orderId = paymentIntent.metadata.orderId;
         
         if (orderId) {
-          // Update order status
-          await Order.findOneAndUpdate(
-            { orderId },
-            { 
-              status: 'Paid',
-              paymentId: paymentIntent.id 
-            }
-          );
-          console.log(`Order ${orderId} marked as paid via webhook`);
+          // Find the order
+          const order = await Order.findOne({ orderId });
+          
+          if (order) {
+            // Update order status
+            await Order.findOneAndUpdate(
+              { orderId },
+              { 
+                status: 'Paid',
+                paymentStatus: 'succeeded',
+                paymentId: paymentIntent.id,
+                paymentDate: new Date()
+              }
+            );
+            
+            // Create income record
+            await Income.create({
+              orderId,
+              stripePaymentId: paymentIntent.id,
+              amount: paymentIntent.amount / 100, // Convert from cents
+              customerEmail: order.email,
+              customerName: order.name,
+              items: order.billItems,
+              status: 'completed',
+              date: new Date()
+            });
+            
+            console.log(`Order ${orderId} marked as paid via webhook and income record created`);
+          }
         }
         break;
         
@@ -170,6 +212,7 @@ export const handleWebhook = async (req, res) => {
             { orderId: failedOrderId },
             { 
               status: 'Payment Failed',
+              paymentStatus: 'failed',
               paymentId: failedPaymentIntent.id 
             }
           );
