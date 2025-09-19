@@ -37,6 +37,7 @@ export default function EditBoatForm({ darkMode }) {
         const fetchEquipment = async () => {
             try {
                 const res = await api.get("/api/equipment");
+                // Show all equipment in the dropdown
                 setEquipmentList(res.data);
                 // Map equipmentID to name
                 const map = {};
@@ -50,7 +51,7 @@ export default function EditBoatForm({ darkMode }) {
             }
         };
         fetchEquipment();
-    }, []);
+    }, [formData.boatNumber]);
 
     useEffect(() => {
         const fetchBoatDetails = async () => {
@@ -150,40 +151,42 @@ export default function EditBoatForm({ darkMode }) {
 
     const validateForm = () => {
         const newErrors = {};
-        
         if (!formData.name.trim()) {
             newErrors.name = "Boat name is required";
         }
-        
         if (!formData.capacity || formData.capacity < 1) {
             newErrors.capacity = "Capacity must be at least 1";
         }
-        
         if (formData.images.length === 0 && imageFiles.length === 0) {
             newErrors.images = "At least one image is required";
         }
-        
         if (formData.equipmentID.length === 0) {
             newErrors.equipmentID = "At least one equipment is required";
         }
-        
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             toast.error("Please fix the errors before submitting");
             return;
         }
-        
+
         setIsSubmitting(true);
-        
+
         try {
             let finalFormData = { ...formData };
-            
+
+            // Convert equipmentID to ObjectIds for backend
+            finalFormData.equipmentID = formData.equipmentID.map(eqId => {
+                // Try to find by equipmentID or _id
+                const eq = equipmentList.find(e => e.equipmentID === eqId || e._id === eqId);
+                return eq ? eq._id : eqId;
+            });
+
             // First upload any new images if we have them
             if (imageFiles.length > 0) {
                 setIsUploadingImages(true);
@@ -203,7 +206,7 @@ export default function EditBoatForm({ darkMode }) {
             }
             // Submit the form data to update the boat
             await api.put(`/api/boat/${boatNumber}`, finalFormData);
-            
+
             toast.success("Boat updated successfully");
             navigate("/admin/boats");
         } catch (error) {
@@ -389,15 +392,15 @@ export default function EditBoatForm({ darkMode }) {
                     {equipmentItems.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                             {equipmentItems.map((item, index) => {
-                                const eq = equipmentList.find(eq => eq._id === item || eq.equipmentID === item);
+                                // Try to find by _id or equipmentID in equipmentList
+                                let eq = equipmentList.find(eq => eq.equipmentID === item || eq._id === item);
+                                // If not found, fallback to equipmentMap (from all equipment fetched earlier)
+                                let label = eq
+                                    ? `${eq.name} (${eq.equipmentID})`
+                                    : (equipmentMap[item] ? `${equipmentMap[item]} (${item})` : item);
                                 return (
-                                    <div
-                                        key={index}
-                                        className={`px-3 py-1 rounded-full flex items-center gap-1 ${darkMode ? 'bg-slate-700 text-slate-100' : 'bg-gray-100'}`}
-                                    >
-                                        <span className="text-sm">
-                                            {eq ? `${eq.name} (${eq.equipmentID})` : item}
-                                        </span>
+                                    <div key={index} className={`px-3 py-1 rounded-full flex items-center gap-1 ${darkMode ? 'bg-slate-700 text-slate-100' : 'bg-gray-100'}`}>
+                                        <span className="text-sm">{label}</span>
                                         <button
                                             type="button"
                                             onClick={() => removeEquipment(index)}

@@ -1,9 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 
 export default function AddEquipmentForm({ darkMode }) {
+    const [boatList, setBoatList] = useState([]);
+    useEffect(() => {
+        const fetchBoats = async () => {
+            try {
+                const res = await axios.get("/api/boat");
+                setBoatList(res.data);
+            } catch (err) {
+                setBoatList([]);
+            }
+        };
+        fetchBoats();
+    }, []);
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -22,7 +34,12 @@ export default function AddEquipmentForm({ darkMode }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        let updated = { ...formData, [name]: value };
+        // If boatNumber changes, auto-update status
+        if (name === 'boatNumber') {
+            updated.status = value ? 'In Use' : 'Available';
+        }
+        setFormData(updated);
         if (errors[name]) setErrors({ ...errors, [name]: null });
     };
 
@@ -68,22 +85,25 @@ export default function AddEquipmentForm({ darkMode }) {
             <div className={`w-full max-w-xl shadow-md rounded-lg p-6 ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
                 <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-cyan-300' : ''}`}>Add New Equipment</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment ID *</label>
                     <input
                         type="text"
                         name="equipmentID"
-                        placeholder="Equipment ID *"
+                        placeholder="Equipment ID"
                         value={formData.equipmentID}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${errors.equipmentID ? "border-red-500" : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : "border-gray-300"}`}
                     />
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Name *</label>
                     <input
                         type="text"
                         name="name"
-                        placeholder="Equipment Name *"
+                        placeholder="Equipment Name"
                         value={formData.name}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${errors.name ? "border-red-500" : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : "border-gray-300"}`}
                     />
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Type *</label>
                     <select
                         name="type"
                         value={formData.type}
@@ -96,14 +116,16 @@ export default function AddEquipmentForm({ darkMode }) {
                         <option value="Engine">Engine</option>
                         <option value="Other">Other</option>
                     </select>
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Serial *</label>
                     <input
                         type="text"
                         name="serial"
-                        placeholder="Serial *"
+                        placeholder="Serial"
                         value={formData.serial}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${errors.serial ? "border-red-500" : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : "border-gray-300"}`}
                     />
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Status *</label>
                     <select
                         name="status"
                         value={formData.status}
@@ -114,6 +136,7 @@ export default function AddEquipmentForm({ darkMode }) {
                         <option value="In Use">In Use</option>
                         <option value="Under Maintenance">Under Maintenance</option>
                     </select>
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Purchase Date *</label>
                     <input
                         type="date"
                         name="purchaseDate"
@@ -122,6 +145,7 @@ export default function AddEquipmentForm({ darkMode }) {
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
                     />
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Warrenty Expiry *</label>
                     <input
                         type="date"
                         name="warrantyExpiry"
@@ -130,6 +154,7 @@ export default function AddEquipmentForm({ darkMode }) {
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
                     />
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Last  Serviced *</label>
                     <input
                         type="date"
                         name="lastServiced"
@@ -138,6 +163,7 @@ export default function AddEquipmentForm({ darkMode }) {
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
                     />
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Notes *</label>
                     <textarea
                         name="notes"
                         placeholder="Notes *"
@@ -146,14 +172,20 @@ export default function AddEquipmentForm({ darkMode }) {
                         className={`w-full px-3 py-2 border rounded ${errors.notes ? "border-red-500" : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : "border-gray-300"}`}
                         rows={3}
                     />
-                    <input
-                        type="text"
+                    {/* <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Boat Number </label>
+                    <select
                         name="boatNumber"
-                        placeholder="Boat Number (optional)"
                         value={formData.boatNumber}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
-                    />
+                    >
+                        <option value="">No Boat Assigned</option>
+                        {boatList.map(boat => (
+                            <option key={boat.boatNumber} value={boat.boatNumber}>
+                                {boat.name} ({boat.boatNumber})
+                            </option>
+                        ))}
+                    </select> */}
                     <div className="flex justify-end gap-2 mt-4">
                         <button type="button" onClick={() => navigate("/admin/equipment")}
                             className={`px-4 py-2 border rounded ${darkMode ? 'border-slate-600 text-slate-200' : 'border-gray-300'}`}>Cancel</button>

@@ -39,10 +39,18 @@ export default function EquipmentDetails({ darkMode }) {
     };
 
 
+    // if (loading) {
+    //     return (
+    //         <div className="flex justify-center items-center min-h-[60vh]">
+    //             <div className={`animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 ${darkMode ? 'border-cyan-400' : 'border-blue-500'}`}></div>
+    //         </div>
+    //     );
+    // }
+
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-[60vh]">
-                <div className={`animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 ${darkMode ? 'border-cyan-400' : 'border-blue-500'}`}></div>
+            <div className="flex justify-center items-center h-64">
+                <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${darkMode ? 'border-cyan-400' : 'border-blue-500'}`}></div>
             </div>
         );
     }
@@ -113,7 +121,7 @@ export default function EquipmentDetails({ darkMode }) {
                             <DetailItem label="Equipment ID" value={equipment.equipmentID} darkMode={darkMode} />
                             <DetailItem label="Type" value={equipment.type} darkMode={darkMode} />
                             <DetailItem label="Serial" value={equipment.serial} darkMode={darkMode} />
-                            <DetailItem label="Boat Number" value={equipment.boatNumber || '-'} darkMode={darkMode} />
+                            {/* <DetailItem label="Boat Number" value={equipment.boatNumber || '-'} darkMode={darkMode} /> */}
                             <DetailItem label="Purchase Date" value={equipment.purchaseDate ? new Date(equipment.purchaseDate).toLocaleDateString() : '-'} darkMode={darkMode} icon={<Calendar size={18} />} />
                             <DetailItem label="Warranty Expiry" value={equipment.warrantyExpiry ? new Date(equipment.warrantyExpiry).toLocaleDateString() : '-'} darkMode={darkMode} icon={<Clock size={18} />} />
                             <DetailItem label="Last Serviced" value={equipment.lastServiced ? new Date(equipment.lastServiced).toLocaleDateString() : '-'} darkMode={darkMode} icon={<Clock size={18} />} />

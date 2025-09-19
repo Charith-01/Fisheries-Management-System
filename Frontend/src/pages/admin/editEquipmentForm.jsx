@@ -5,6 +5,18 @@ import { Package, Save, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function EditEquipmentForm({ darkMode }) {
+    const [boatList, setBoatList] = useState([]);
+    useEffect(() => {
+        const fetchBoats = async () => {
+            try {
+                const res = await axios.get("/api/boat");
+                setBoatList(res.data);
+            } catch (err) {
+                setBoatList([]);
+            }
+        };
+        fetchBoats();
+    }, []);
     const { equipmentID } = useParams();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,7 +67,12 @@ export default function EditEquipmentForm({ darkMode }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        let updated = { ...formData, [name]: value };
+        // If boatNumber changes, auto-update status
+        if (name === 'boatNumber') {
+            updated.status = value ? 'In Use' : 'Available';
+        }
+        setFormData(updated);
         if (errors[name]) setErrors({ ...errors, [name]: null });
     };
 
@@ -154,10 +171,17 @@ export default function EditEquipmentForm({ darkMode }) {
                         <textarea id="notes" name="notes" value={formData.notes} onChange={handleChange} className={`w-full px-4 py-2 border ${errors.notes ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} rows={3} placeholder="Enter notes" />
                         {errors.notes && (<p className="mt-1 text-sm text-red-400">{errors.notes}</p>)}
                     </div>
-                    <div>
+                    {/* <div>
                         <label htmlFor="boatNumber" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Boat Number (optional)</label>
-                        <input type="text" id="boatNumber" name="boatNumber" value={formData.boatNumber} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} placeholder="Enter boat number" />
-                    </div>
+                        <select id="boatNumber" name="boatNumber" value={formData.boatNumber} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`}>
+                            <option value="">No Boat Assigned</option>
+                            {boatList.map(boat => (
+                                <option key={boat.boatNumber} value={boat.boatNumber}>
+                                    {boat.name} ({boat.boatNumber})
+                                </option>
+                            ))}
+                        </select>
+                    </div> */}
                 </div>
                 <div className="mt-8 flex justify-end gap-4">
                     <button type="button" onClick={() => navigate("/admin/equipment")}
