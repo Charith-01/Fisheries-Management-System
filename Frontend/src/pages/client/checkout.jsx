@@ -200,9 +200,9 @@ const handlePlaceOrder = async () => {
 
       localStorage.setItem("cart", JSON.stringify([]));
       window.dispatchEvent(new Event("cart:updated"));
-      localStorage.removeItem("buyNow"); // make sure temp is cleared
+      localStorage.removeItem("buyNow"); 
 
-      // Add a small delay to ensure order is committed to database
+      //  small delay to ensure order is committed to database
       setTimeout(() => {
         navigate(`/payment?orderId=${orderId}`);
       }, 300); // 300ms delay

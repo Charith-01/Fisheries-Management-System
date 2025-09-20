@@ -6,6 +6,8 @@ import axios from "axios";
 import Payment from "../../components/Payment";
 import toast from "react-hot-toast";
 
+// ✅ Use your PUBLIC key (starts with pk_test_)
+// This is safe to include in frontend code
 const stripePromise = loadStripe("pk_test_51S2DQvGjCGbAdkkDgjBNqw3s69w2GeWQ8pX2elXN0qjIURdKDmdUGZSEUO6H5bUzHIBnJqEQ5uxWOr06slvPv5MM00zKOe5NMH");
 
 export default function PaymentPage() {
@@ -32,7 +34,6 @@ export default function PaymentPage() {
           return;
         }
 
-        // CORRECTED API ENDPOINT - use params not URL path
         const response = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/order/${orderId}`,
           {
@@ -67,7 +68,7 @@ export default function PaymentPage() {
   }, [orderId, navigate]);
 
   const handlePaymentSuccess = () => {
-     console.log("Payment successful, navigating to success page");
+    console.log("Payment successful, navigating to success page");
     window.location.assign(`/checkout/success?orderId=${orderId}`);
   };
 

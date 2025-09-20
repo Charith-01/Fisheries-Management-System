@@ -6,6 +6,7 @@ dotenv.config();
 import Income from '../models/income.js';
 import Order from '../models/order.js';
 
+// ✅ Initialize Stripe with SECRET key from .env
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Create payment intent
@@ -24,7 +25,7 @@ export const createPaymentIntent = async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to pay for this order' });
     }
     
-    // Create a PaymentIntent
+    // Create a PaymentIntent using SERVER'S Stripe key
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount),
       currency,
@@ -47,7 +48,7 @@ export const confirmPayment = async (req, res) => {
   try {
     const { orderId, paymentIntentId } = req.body;
     
-    // Retrieve payment details from Stripe
+    // Retrieve payment details from Stripe using SERVER'S key
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     
     // Update order with payment information
@@ -72,21 +73,31 @@ export const confirmPayment = async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to confirm this payment' });
     }
     
-    // Create income record for successful payments
+    // ✅ CREATE INCOME RECORD FOR SUCCESSFUL PAYMENTS
     if (paymentIntent.status === 'succeeded') {
       try {
-        await Income.create({
-          orderId,
-          stripePaymentId: paymentIntent.id,
-          amount: paymentIntent.amount / 100, // Convert from cents
-          customerEmail: updatedOrder.email,
-          customerName: updatedOrder.name,
-          items: updatedOrder.billItems,
-          status: 'completed',
-          date: new Date()
-        });
+        // Check if income record already exists to avoid duplicates
+        const existingIncome = await Income.findOne({ orderId });
         
-        console.log('Income record created for order:', orderId);
+        if (!existingIncome) {
+          await Income.create({
+            orderId,
+            stripePaymentId: paymentIntent.id,
+            amount: paymentIntent.amount / 100, // Convert from cents
+            currency: paymentIntent.currency.toUpperCase(),
+            paymentMethod: 'card',
+            status: 'completed',
+            customerEmail: updatedOrder.email,
+            customerName: updatedOrder.name,
+            items: updatedOrder.billItems,
+            description: `Payment for order ${orderId}`,
+            date: new Date()
+          });
+          
+          console.log('Income record created for order:', orderId);
+        } else {
+          console.log('Income record already exists for order:', orderId);
+        }
       } catch (incomeError) {
         console.error('Error creating income record:', incomeError);
         // Don't fail the payment confirmation if income recording fails
@@ -104,54 +115,10 @@ export const confirmPayment = async (req, res) => {
   }
 };
 
-// Get payment details
-export const getPaymentDetails = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    
-    // Verify order exists
-    const order = await Order.findOne({ orderId });
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    
-    // Verify user owns this order (unless admin)
-    if (req.user.role !== 'admin' && order.email !== req.user.email) {
-      return res.status(403).json({ error: 'You do not have permission to view this payment' });
-    }
-    
-    // If payment ID exists, get details from Stripe
-    let paymentDetails = null;
-    if (order.paymentId) {
-      try {
-        paymentDetails = await stripe.paymentIntents.retrieve(order.paymentId);
-      } catch (stripeError) {
-        console.error('Error fetching payment details from Stripe:', stripeError);
-        // Continue without Stripe details
-      }
-    }
-    
-    res.json({
-      order: {
-        orderId: order.orderId,
-        status: order.status,
-        paymentStatus: order.paymentStatus,
-        total: order.total,
-        date: order.date,
-        paymentDate: order.paymentDate
-      },
-      payment: paymentDetails
-    });
-  } catch (error) {
-    console.error('Error fetching payment details:', error);
-    res.status(500).json({ error: 'Failed to fetch payment details' });
-  }
-};
-
-// Webhook handler
+// Webhook handler - UPDATED TO PREVENT DUPLICATES
 export const handleWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_32e52291476a41baf20b2ee81f5ed4bb62870811056b83171c0af8d345e5e544';
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   let event;
 
@@ -163,7 +130,6 @@ export const handleWebhook = async (req, res) => {
   }
 
   try {
-    // Handle the event
     switch (event.type) {
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object;
@@ -185,19 +151,27 @@ export const handleWebhook = async (req, res) => {
               }
             );
             
-            // Create income record
-            await Income.create({
-              orderId,
-              stripePaymentId: paymentIntent.id,
-              amount: paymentIntent.amount / 100, // Convert from cents
-              customerEmail: order.email,
-              customerName: order.name,
-              items: order.billItems,
-              status: 'completed',
-              date: new Date()
-            });
-            
-            console.log(`Order ${orderId} marked as paid via webhook and income record created`);
+            //  CHECK FOR EXISTING INCOME RECORD BEFORE CREATING
+            const existingIncome = await Income.findOne({ orderId });
+            if (!existingIncome) {
+              await Income.create({
+                orderId,
+                stripePaymentId: paymentIntent.id,
+                amount: paymentIntent.amount / 100,
+                currency: paymentIntent.currency.toUpperCase(),
+                paymentMethod: 'card',
+                status: 'completed',
+                customerEmail: order.email,
+                customerName: order.name,
+                items: order.billItems,
+                description: `Payment for order ${orderId}`,
+                date: new Date()
+              });
+              
+              console.log(`Income record created via webhook for order ${orderId}`);
+            } else {
+              console.log(`Income record already exists for order ${orderId}`);
+            }
           }
         }
         break;
@@ -207,7 +181,6 @@ export const handleWebhook = async (req, res) => {
         const failedOrderId = failedPaymentIntent.metadata.orderId;
         
         if (failedOrderId) {
-          // Update order status to indicate payment failure
           await Order.findOneAndUpdate(
             { orderId: failedOrderId },
             { 
@@ -228,5 +201,45 @@ export const handleWebhook = async (req, res) => {
   } catch (error) {
     console.error('Error processing webhook:', error);
     res.status(500).json({ error: 'Failed to process webhook' });
+  }
+};
+
+// Get payment details (keep this as is)
+export const getPaymentDetails = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    if (req.user.role !== 'admin' && order.email !== req.user.email) {
+      return res.status(403).json({ error: 'You do not have permission to view this payment' });
+    }
+    
+    let paymentDetails = null;
+    if (order.paymentId) {
+      try {
+        paymentDetails = await stripe.paymentIntents.retrieve(order.paymentId);
+      } catch (stripeError) {
+        console.error('Error fetching payment details from Stripe:', stripeError);
+      }
+    }
+    
+    res.json({
+      order: {
+        orderId: order.orderId,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        total: order.total,
+        date: order.date,
+        paymentDate: order.paymentDate
+      },
+      payment: paymentDetails
+    });
+  } catch (error) {
+    console.error('Error fetching payment details:', error);
+    res.status(500).json({ error: 'Failed to fetch payment details' });
   }
 };
