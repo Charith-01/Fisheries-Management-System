@@ -59,7 +59,6 @@ import AddEquipmentForm from "./admin/addEquipmentForm.jsx";
 import EditEquipmentForm from "./admin/editEquipmentForm.jsx";
 import EquipmentDetails from "./admin/equipmentDetails.jsx";
 
-
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
   
@@ -80,12 +79,12 @@ export default function AdminDashboard() {
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
               <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
               <Route path="stock" element={<FishStockList darkMode={darkMode} />}/>
-
+               
               {/* You can add boats, equipment, trip, notifications, reviews pages later */}
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
               <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
-              <Route path="income-expense" element={<Expenses />} />
+              <Route path="expense" element={<Expenses />} />
               <Route path="boats" element={<BoatsManagement darkMode={darkMode} />} />
               <Route path="boats/addBoat" element={<AddBoatForm darkMode={darkMode} />} />
               <Route path="boats/editBoat/:boatNumber" element={<EditBoatForm darkMode={darkMode} />} />
@@ -137,8 +136,9 @@ function Sidebar({ darkMode, setDarkMode }) {
         <NavLink to="/admin/products" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <Ship className="h-5 w-5" /> Products
         </NavLink>
-        <NavLink to="/admin/income-expense" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <TrendingUp className="h-5 w-5" /> Income & Expense
+        
+        <NavLink to="/admin/expense" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+          <TrendingUp className="h-5 w-5" /> Income & Expences
         </NavLink>
         <NavLink to="/admin/orders" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <FileCheck2 className="h-5 w-5" /> Orders
