@@ -552,9 +552,9 @@ function Overview({ darkMode }) {
         />
         <StatCard
           title="Orders"
-          value="128"
-          sub="+6 today"
-          change="+5%"
+          value="0"
+          sub="+0 today"
+          change="+0%"
           positive={true}
           icon={<FileCheck2 className="h-5 w-5" />}
           darkMode={darkMode}
