@@ -48,13 +48,6 @@ function normName(s = "") {
   return String(s).trim().toLowerCase();
 }
 
-/**
- * GET /api/product/all
- * Returns products with FishStock-derived fields:
- *  - stockWeight: sum(FishStock.weight) matched by name (case-insensitive)
- *  - stockUnit: unit with the highest total recorded weight for that name
- *  - stockType: most frequent FishStock.type for that name
- */
 export async function getProducts(req, res){
   try{
     const products = await Product.find().lean();
@@ -65,7 +58,6 @@ export async function getProducts(req, res){
 
     const names = Array.from(new Set(products.map(p => normName(p.name)).filter(Boolean)));
 
-    // Aggregate weights by name+unit
     const byUnitAgg = await FishStock.aggregate([
       {
         $group: {
@@ -76,7 +68,6 @@ export async function getProducts(req, res){
       { $match: { "_id.name": { $in: names } } }
     ]);
 
-    // Aggregate counts/weights by name+type
     const byTypeAgg = await FishStock.aggregate([
       {
         $group: {
@@ -88,8 +79,7 @@ export async function getProducts(req, res){
       { $match: { "_id.name": { $in: names } } }
     ]);
 
-    // Build lookups
-    const unitMapByName = {}; // name -> { unit -> totalWeight }
+    const unitMapByName = {}; 
     for (const row of byUnitAgg) {
       const n = row._id?.name || "";
       const u = row._id?.unit || "";
@@ -98,7 +88,7 @@ export async function getProducts(req, res){
       unitMapByName[n][u] = (unitMapByName[n][u] || 0) + w;
     }
 
-    const bestUnitByName = {}; // name -> unit with max totalWeight
+    const bestUnitByName = {}; 
     for (const [n, mp] of Object.entries(unitMapByName)) {
       let bestU = undefined;
       let bestW = -1;
@@ -111,7 +101,7 @@ export async function getProducts(req, res){
       bestUnitByName[n] = bestU;
     }
 
-    const typeStatsByName = {}; // name -> array of {type,count,totalWeight}
+    const typeStatsByName = {}; 
     for (const row of byTypeAgg) {
       const n = row._id?.name || "";
       const t = row._id?.type || "";
@@ -121,17 +111,15 @@ export async function getProducts(req, res){
       typeStatsByName[n].push({ type: t, count: c, totalWeight: tw });
     }
 
-    const bestTypeByName = {}; // name -> best type
+    const bestTypeByName = {}; 
     for (const [n, arr] of Object.entries(typeStatsByName)) {
       arr.sort((a, b) => (b.count - a.count) || (b.totalWeight - a.totalWeight));
       bestTypeByName[n] = arr[0]?.type;
     }
 
-    // Attach computed fields (no product.category/unit/stock anymore)
     const hydrated = products.map(p => {
       const n = normName(p.name);
       const perUnit = unitMapByName[n] || {};
-      // Preferred unit removed from Product; default to "kg" when summing
       const preferredUnit = "kg";
       let stockWeight = perUnit[preferredUnit];
 
@@ -193,7 +181,6 @@ export async function updateProduct(req, res){
   }
 
   try{
-    // Only allow updating fields that still exist on Product
     const allowed = {
       name: req.body.name,
       altNames: req.body.altNames,

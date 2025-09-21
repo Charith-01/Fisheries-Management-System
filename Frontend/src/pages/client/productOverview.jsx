@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import ProductImageSlider from "../../components/productImageSlider";
-import { addToCart } from "../../utils/cart"; // ⬅️ adjust path if needed
+import { addToCart } from "../../utils/cart";
 
 export default function ProductOverview(){
 
@@ -15,19 +15,15 @@ export default function ProductOverview(){
     }
 
     const [product, setProduct] = useState(null);
-    const [status, setStatus] = useState("loading"); // loading, error
+    const [status, setStatus] = useState("loading");
 
     useEffect(()=>{
         if(status === "loading"){
-            // 1) Load the base product (as before)
             axios.get(import.meta.env.VITE_BACKEND_URL + "/api/product/get/" + encodeURIComponent(params.id))
             .then(async (res)=>{
-                // your backend sends { product: {...} }
                 const base = res.data?.product ?? res.data?.data ?? res.data;
                 if (!base) throw new Error("Empty product payload");
 
-                // 2) Try to enrich with computed stock fields from /api/product/all
-                //    (that endpoint returns stockWeight, stockUnit, stockType)
                 try {
                   const all = await axios.get(import.meta.env.VITE_BACKEND_URL + "/api/product/all");
                   const arr = Array.isArray(all.data?.data) ? all.data.data : [];
@@ -37,7 +33,6 @@ export default function ProductOverview(){
                     : base;
                   setProduct(merged);
                 } catch {
-                  // If this lookup fails, fall back to base product only
                   setProduct(base);
                 }
 
@@ -48,17 +43,15 @@ export default function ProductOverview(){
                 setStatus("error");
             });
         }
-    }, [status, params.id]); // refetch if the route id changes
+    }, [status, params.id]);
 
     return(
         <div className="w-full h-full flex items-center justify-center">
             { status == "loading" && 
                 <div className="w-full h-full flex gap-6 p-6 animate-pulse">
-                    {/* Left: image area skeleton */}
                     <div className="w-[50%] h-full">
                         <div className="w-full aspect-square rounded-2xl bg-slate-200" />
                     </div>
-                    {/* Right: details skeleton */}
                     <div className="w-[50%] h-full">
                         <div className="h-full w-full p-6 md:p-8">
                             <div className="h-7 w-2/3 bg-slate-200 rounded mb-4" />
@@ -98,10 +91,8 @@ export default function ProductOverview(){
 
                     <div className="w-[50%] h-full">
                     <div className="h-full w-full p-6 md:p-8">
-                        {/* Title */}
                         <h1 className="text-3xl font-bold text-center mt-8 tracking-tight">{product?.name}</h1>
 
-                        {/* Alt names as chips */}
                         {Array.isArray(product?.altNames) && product.altNames.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2 justify-center">
                             {product.altNames.slice(0, 4).map((n, i) => (
@@ -121,15 +112,12 @@ export default function ProductOverview(){
                         </div>
                         )}
 
-                        {/* Resolve effective unit & stock */}
                         {(() => {
-                          // prefer live unit/stock from FishStock if present
                           const effectiveUnit = product?.stockUnit || product?.unit;
                           const effectiveStock = (typeof product?.stockWeight === "number")
                             ? product.stockWeight
                             : product?.stock;
 
-                          // price and discount helpers
                           const hasDiscount =
                             typeof product?.labeledPrice === "number" &&
                             typeof product?.price === "number" &&
@@ -137,7 +125,6 @@ export default function ProductOverview(){
 
                           return (
                             <>
-                              {/* Pricing block (unit price + discount) */}
                               <div className="mt-5 flex items-end justify-center gap-3">
                                 <div className="text-3xl font-extrabold text-slate-900">
                                   {typeof product?.price === "number"
@@ -159,7 +146,6 @@ export default function ProductOverview(){
                                 )}
                               </div>
 
-                              {/* TOTAL (auto-updates with qty) */}
                               <div className="mt-2 text-center">
                                 {(() => {
                                     const u = (effectiveUnit || "").toLowerCase();
@@ -179,7 +165,6 @@ export default function ProductOverview(){
                                 })()}
                               </div>
 
-                              {/* Availability / stock */}
                               <div className="mt-2 text-center">
                                 <span
                                   className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ring-1 ${
@@ -203,14 +188,12 @@ export default function ProductOverview(){
                           );
                         })()}
 
-                        {/* Description */}
                         {product?.description && (
                         <p className="text-[15px] leading-6 text-slate-700 text-center mt-4 max-w-[42ch] mx-auto">
                             {product.description}
                         </p>
                         )}
 
-                        {/* ── Quantity selector (minus / input / plus) + TOTAL updater ─────────── */}
                         <div className="mt-5 flex items-stretch justify-center gap-2">
                         {(() => {
                             const effectiveUnit = product?.stockUnit || product?.unit;
@@ -290,7 +273,6 @@ export default function ProductOverview(){
                         })()}
                         </div>
 
-                        {/* Actions */}
                         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                         <button
                             className="px-5 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99] transition shadow-sm inline-flex items-center gap-2"
@@ -304,7 +286,6 @@ export default function ProductOverview(){
                               const min = isWeight ? 0.25 : 1;
                               if (isNaN(qty) || qty < min) qty = min;
 
-                              // persist to cart
                               addToCart({ ...product, unit: effectiveUnit }, qty);
 
                               const price = typeof product?.price === "number" ? product.price : 0;
@@ -333,7 +314,6 @@ export default function ProductOverview(){
                               const min = isWeight ? 0.25 : 1;
                               if (isNaN(qty) || qty < min) qty = min;
 
-                              // BUY NOW: store just this item, then go to checkout
                               const singleItem = {
                                 productId: product?.productId,
                                 name: product?.name,
@@ -383,7 +363,6 @@ export default function ProductOverview(){
                         </button>
                         </div>
 
-                        {/* Quick specs */}
                         <div className="mt-6 grid grid-cols-2 gap-3 max-w-md mx-auto text-sm">
                         <div className="p-3 rounded-xl ring-1 ring-slate-200 bg-white">
                             <div className="text-[11px] uppercase tracking-wide text-slate-500">Product ID</div>
