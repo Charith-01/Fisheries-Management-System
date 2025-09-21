@@ -199,6 +199,7 @@ export default function UpdateFishermanForm({ darkMode }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
+                disabled
                 required
                 placeholder="john@example.com"
                 className={inputClass(darkMode)}
