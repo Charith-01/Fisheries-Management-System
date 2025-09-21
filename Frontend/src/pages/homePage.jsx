@@ -35,7 +35,7 @@ function HeroSection() {
       {
         title: "Fresh Yellowfin Tuna",
         subtitle: "Wild-caught • Grade A • Same-day dispatch",
-        img: "https://images.unsplash.com/photo-1514511826142-1be72277b32e?q=80&w=1600&auto=format&fit=crop",
+        img: "https://thumbs.dreamstime.com/b/fresh-seafood-sale-crabs-sea-urchins-mussels-lemons-displayed-ice-shop-window-generated-ai-338121829.jpg",
         discount: "-20%",
         promoText: "Weekend Deal — Yellowfin Tuna",
         code: "FRESH20",
@@ -45,7 +45,7 @@ function HeroSection() {
       {
         title: "Premium Tiger Prawns",
         subtitle: "Firm, sweet & perfect for grills",
-        img: "https://images.unsplash.com/photo-1604908554028-236a0ff2b2e2?q=80&w=1600&auto=format&fit=crop",
+        img: "https://media.istockphoto.com/id/649390552/photo/fresh-tuna-fish-in-market-seafood-background.jpg?s=612x612&w=0&k=20&c=EVQPFFkSMellZtaRnvvd6Wj8tM4ymHOp4VJTFGyJtsM=",
         discount: "-15%",
         promoText: "Grill Season — Tiger Prawns",
         code: "PRAWN15",
@@ -55,7 +55,7 @@ function HeroSection() {
       {
         title: "Line-Caught Mahi-Mahi",
         subtitle: "Sustainably sourced from local boats",
-        img: "https://images.unsplash.com/photo-1586201375761-83865001e31b?q=80&w=1600&auto=format&fit=crop",
+        img: "https://static.vecteezy.com/system/resources/previews/069/422/533/non_2x/fresh-shrimps-on-a-black-background-photo.jpg",
         discount: "Buy 2 kg, Get 10% OFF",
         promoText: "Boat-fresh Mahi-Mahi",
         code: "MAHI10",
