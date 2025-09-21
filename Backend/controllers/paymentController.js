@@ -5,9 +5,27 @@ dotenv.config();
 
 import Income from '../models/income.js';
 import Order from '../models/order.js';
+import Notification from '../models/notification.js'; // Import Notification model
 
 // ✅ Initialize Stripe with SECRET key from .env
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Helper function to create notification
+const createPaymentNotification = async (order, status, message) => {
+  try {
+    await Notification.create({
+      title: `Payment ${status}`,
+      message: message,
+      role: "customer",
+      targetEmails: [order.email],
+      isReadBy: [] // Initialize as empty array
+    });
+    console.log(`Payment notification created for ${order.email}`);
+  } catch (error) {
+    console.error('Error creating payment notification:', error);
+    // Don't throw error, just log it
+  }
+};
 
 // Create payment intent
 export const createPaymentIntent = async (req, res) => {
@@ -95,6 +113,13 @@ export const confirmPayment = async (req, res) => {
           });
           
           console.log('Income record created for order:', orderId);
+          
+          // Send success notification to customer
+          await createPaymentNotification(
+            updatedOrder, 
+            'Successful', 
+            `Your payment for order #${orderId} was successful. Thank you for your purchase!`
+          );
         } else {
           console.log('Income record already exists for order:', orderId);
         }
@@ -102,6 +127,13 @@ export const confirmPayment = async (req, res) => {
         console.error('Error creating income record:', incomeError);
         // Don't fail the payment confirmation if income recording fails
       }
+    } else if (paymentIntent.status === 'failed') {
+      // Send failure notification to customer
+      await createPaymentNotification(
+        updatedOrder, 
+        'Failed', 
+        `Your payment for order #${orderId} failed. Please try again or contact support.`
+      );
     }
     
     res.json({ 
@@ -151,7 +183,7 @@ export const handleWebhook = async (req, res) => {
               }
             );
             
-            //  CHECK FOR EXISTING INCOME RECORD BEFORE CREATING
+            // CHECK FOR EXISTING INCOME RECORD BEFORE CREATING
             const existingIncome = await Income.findOne({ orderId });
             if (!existingIncome) {
               await Income.create({
@@ -172,6 +204,13 @@ export const handleWebhook = async (req, res) => {
             } else {
               console.log(`Income record already exists for order ${orderId}`);
             }
+            
+            // Send success notification to customer via webhook
+            await createPaymentNotification(
+              order, 
+              'Successful', 
+              `Your payment for order #${orderId} was successful. Thank you for your purchase!`
+            );
           }
         }
         break;
@@ -181,15 +220,27 @@ export const handleWebhook = async (req, res) => {
         const failedOrderId = failedPaymentIntent.metadata.orderId;
         
         if (failedOrderId) {
-          await Order.findOneAndUpdate(
-            { orderId: failedOrderId },
-            { 
-              status: 'Payment Failed',
-              paymentStatus: 'failed',
-              paymentId: failedPaymentIntent.id 
-            }
-          );
-          console.log(`Payment failed for order ${failedOrderId}`);
+          const order = await Order.findOne({ orderId: failedOrderId });
+          
+          if (order) {
+            await Order.findOneAndUpdate(
+              { orderId: failedOrderId },
+              { 
+                status: 'Payment Failed',
+                paymentStatus: 'failed',
+                paymentId: failedPaymentIntent.id 
+              }
+            );
+            
+            // Send failure notification to customer via webhook
+            await createPaymentNotification(
+              order, 
+              'Failed', 
+              `Your payment for order #${failedOrderId} failed. Please try again or contact support.`
+            );
+            
+            console.log(`Payment failed for order ${failedOrderId}`);
+          }
         }
         break;
         
