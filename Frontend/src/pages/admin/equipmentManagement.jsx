@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import { Package, Trash2, Edit, PlusCircle, Download } from "lucide-react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import toast from "react-hot-toast";
 
 export default function EquipmentManagement({ darkMode }) {
@@ -57,29 +55,52 @@ export default function EquipmentManagement({ darkMode }) {
                                 toast.error("No equipment to export");
                                 return;
                             }
-                            const data = equipment.map(({ equipmentID, name, type, status, serial, purchaseDate, warrantyExpiry, lastServiced, notes }) => ({
-                                "Equipment ID": equipmentID,
-                                "Name": name,
-                                "Type": type,
-                                "Status": status,
-                                "Serial": serial,
-                                "Purchase Date": purchaseDate ? new Date(purchaseDate).toLocaleDateString() : "",
-                                "Warranty Expiry": warrantyExpiry ? new Date(warrantyExpiry).toLocaleDateString() : "",
-                                "Last Serviced": lastServiced ? new Date(lastServiced).toLocaleDateString() : "",
-                                "Notes": notes || ""
-                            }));
-                            const worksheet = XLSX.utils.json_to_sheet(data);
-                            const workbook = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(workbook, worksheet, "Equipment");
-                            const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-                            const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-                            saveAs(blob, "equipment.xlsx");
+                            const headers = [
+                                "Equipment ID",
+                                "Name",
+                                "Type",
+                                "Status",
+                                "Serial",
+                                "Purchase Date",
+                                "Warranty Expiry",
+                                "Last Serviced",
+                                "Notes"
+                            ];
+                            const escapeCSV = (str) => {
+                                if (str == null) return "";
+                                str = String(str);
+                                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                                    return '"' + str.replace(/"/g, '""') + '"';
+                                }
+                                return str;
+                            };
+                            const rows = equipment.map((item) => [
+                                item.equipmentID,
+                                escapeCSV(item.name),
+                                escapeCSV(item.type),
+                                escapeCSV(item.status),
+                                escapeCSV(item.serial),
+                                item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : "",
+                                item.warrantyExpiry ? new Date(item.warrantyExpiry).toLocaleDateString() : "",
+                                item.lastServiced ? new Date(item.lastServiced).toLocaleDateString() : "",
+                                escapeCSV(item.notes || "")
+                            ]);
+                            const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+                            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `equipment_report_${new Date().toISOString().slice(0, 10)}.csv`;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
                         }}
                         type="button"
                         className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
                             darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
                         }`}
-                        title="Export all equipment as Excel"
+                        title="Export all equipment as CSV"
                     >
                         <Download className="h-4 w-4" />
                         Export

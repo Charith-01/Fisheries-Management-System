@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { Package, ArrowLeft, Edit, Trash2, Calendar, Clock, Tag, Download } from "lucide-react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import toast from "react-hot-toast";
 
 export default function EquipmentDetails({ darkMode }) {
@@ -99,29 +97,52 @@ export default function EquipmentDetails({ darkMode }) {
                                         toast.error("No equipment details to export");
                                         return;
                                     }
-                                    const data = [{
-                                        "Equipment ID": equipment.equipmentID,
-                                        "Name": equipment.name,
-                                        "Type": equipment.type,
-                                        "Status": equipment.status,
-                                        "Serial": equipment.serial,
-                                        "Purchase Date": equipment.purchaseDate ? new Date(equipment.purchaseDate).toLocaleDateString() : "",
-                                        "Warranty Expiry": equipment.warrantyExpiry ? new Date(equipment.warrantyExpiry).toLocaleDateString() : "",
-                                        "Last Serviced": equipment.lastServiced ? new Date(equipment.lastServiced).toLocaleDateString() : "",
-                                        "Notes": equipment.notes || ""
-                                    }];
-                                    const worksheet = XLSX.utils.json_to_sheet(data);
-                                    const workbook = XLSX.utils.book_new();
-                                    XLSX.utils.book_append_sheet(workbook, worksheet, "Equipment Details");
-                                    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-                                    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-                                    saveAs(blob, `equipment_${equipment.equipmentID}.xlsx`);
+                                    const headers = [
+                                        "Equipment ID",
+                                        "Name",
+                                        "Type",
+                                        "Status",
+                                        "Serial",
+                                        "Purchase Date",
+                                        "Warranty Expiry",
+                                        "Last Serviced",
+                                        "Notes"
+                                    ];
+                                    const escapeCSV = (str) => {
+                                        if (str == null) return "";
+                                        str = String(str);
+                                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                                            return '"' + str.replace(/"/g, '""') + '"';
+                                        }
+                                        return str;
+                                    };
+                                    const row = [
+                                        equipment.equipmentID,
+                                        escapeCSV(equipment.name),
+                                        escapeCSV(equipment.type),
+                                        escapeCSV(equipment.status),
+                                        escapeCSV(equipment.serial),
+                                        equipment.purchaseDate ? new Date(equipment.purchaseDate).toLocaleDateString() : "",
+                                        equipment.warrantyExpiry ? new Date(equipment.warrantyExpiry).toLocaleDateString() : "",
+                                        equipment.lastServiced ? new Date(equipment.lastServiced).toLocaleDateString() : "",
+                                        escapeCSV(equipment.notes || "")
+                                    ];
+                                    const csv = [headers.join(","), row.join(",")].join("\n");
+                                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = `equipment_${equipment.equipmentID}_${new Date().toISOString().slice(0, 10)}.csv`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    a.remove();
+                                    URL.revokeObjectURL(url);
                                 }}
                                 type="button"
                                 className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
                                     darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
                                 }`}
-                                title="Export equipment details as Excel"
+                                title="Export equipment details as CSV"
                             >
                                 <Download className="h-4 w-4" />
                                 Export
