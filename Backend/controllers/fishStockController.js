@@ -14,19 +14,27 @@ export const createFishStock = async (req, res) => {
       });
     }
 
-    const { type, weight, quality, catchDate } = req.body;
+    const { name, type, weight, unit, quality, catchDate } = req.body;
 
-    if (!type || !weight || !quality) {
+    // Required fields
+    if (!name || !type || weight == null || !quality) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Type, weight, and quality are required fields.' 
+        message: 'Name, type, weight, and quality are required fields.' 
+      });
+    }
+
+    if (typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name must be a non-empty string.'
       });
     }
 
     if (typeof weight !== 'number' || weight <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Weight must be a positive number.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Weight must be a positive number.'
       });
     }
 
@@ -38,8 +46,10 @@ export const createFishStock = async (req, res) => {
     }
 
     const newFishStock = new FishStock({
-      type: type.trim(),
+      name: name.trim(),
+      type: String(type).trim(),
       weight,
+      unit, // model default is "kg" if undefined
       quality,
       catchDate: catchDate || new Date(),
       addedBy: userId,
@@ -76,7 +86,7 @@ export const createFishStock = async (req, res) => {
         message: 'A fish stock with this identifier already exists.' 
       });
     }
-    else if (error.message.includes('Cannot read properties of null') || error.message.includes('this.constructor.findOne')) {
+    else if (error.message?.includes('Cannot read properties of null') || error.message?.includes('this.constructor.findOne')) {
       return res.status(500).json({ 
         success: false, 
         message: 'Database error: Unable to generate stock ID. Please try again.' 
@@ -90,7 +100,7 @@ export const createFishStock = async (req, res) => {
   }
 };
 
-// view 
+// view all
 export const getAllFishStocks = async (req, res) => {
   try {
     const userRole = req.user.role;
@@ -121,7 +131,7 @@ export const getAllFishStocks = async (req, res) => {
   }
 };
 
-// view single id
+// view single by ID
 export const getFishStockById = async (req, res) => {
   try {
     const userRole = req.user.role;
@@ -177,11 +187,29 @@ export const updateFishStock = async (req, res) => {
       });
     }
 
-    const { type, weight, quality, catchDate } = req.body;
+    const { name, type, weight, unit, quality, catchDate } = req.body;
     const updateData = {};
 
+    if (name !== undefined) {
+      if (typeof name !== 'string' || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Name must be a non-empty string.'
+        });
+      }
+      updateData.name = name.trim();
+    }
     if (type !== undefined) updateData.type = type;
-    if (weight !== undefined) updateData.weight = weight;
+    if (weight !== undefined) {
+      if (typeof weight !== 'number' || weight <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Weight must be a positive number.'
+        });
+      }
+      updateData.weight = weight;
+    }
+    if (unit !== undefined) updateData.unit = unit;
     if (quality !== undefined) updateData.quality = quality;
     if (catchDate !== undefined) updateData.catchDate = catchDate;
 
