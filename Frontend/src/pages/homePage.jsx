@@ -7,6 +7,7 @@ import CartPage from "./client/cart";
 import Checkout from "./client/checkout";
 import NotFoundPage from "./client/notFoundPage";
 import Footer from "../components/footer";
+import Profile from "./client/profile";
 
 /* --------------------- Shared centered section header --------------------- */
 function SectionHeader({ title, subtitle }) {
@@ -26,7 +27,6 @@ function SectionHeader({ title, subtitle }) {
   );
 }
 
-/* --------------------- Hero (Image Slider with Promotions) --------------------- */
 function HeroSection() {
   const navigate = useNavigate();
 
@@ -216,7 +216,6 @@ function HeroSection() {
   );
 }
 
-/* --------------------- Categories (Circular, One-line) --------------------- */
 function CategorySection() {
   const categories = useMemo(
     () => [
@@ -260,7 +259,6 @@ function CategorySection() {
   );
 }
 
-/* --------------------- Trending Products (feels trending) --------------------- */
 function TrendingSection() {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -475,7 +473,6 @@ function TrendingSection() {
   );
 }
 
-/* --------------------- Contact Us --------------------- */
 function ContactSection() {
   return (
     <section className="relative isolate overflow-hidden bg-white py-12 md:py-16" id="contact">
@@ -517,7 +514,6 @@ function ContactSection() {
   );
 }
 
-/* --------------------- Reviews --------------------- */
 function ReviewsSection() {
   const reviews = [
     { name: "Kavindu S.", text: "Best prawns I’ve had in years. Packed in ice, zero smell, super fresh!" },
@@ -574,7 +570,6 @@ function ReviewsSection() {
   );
 }
 
-/* --------------------- Landing (combines sections) --------------------- */
 function LandingPage() {
   return (
     <main className="animate-[fadeIn_0.5s_ease]">
@@ -619,6 +614,7 @@ export default function HomePage() {
           <Route path="/overview/:id" element={<ProductOverview />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/*" element={<NotFoundPage />} />
         </Routes>
       </div>
