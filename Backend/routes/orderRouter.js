@@ -5,7 +5,6 @@ const orderRouter = express.Router();
 
 orderRouter.post('/create', createOrder);
 orderRouter.get('/all', getOrders);
-//This route expects orderId as a parameter
 orderRouter.get('/:orderId',verifyJWT, getOrderById);
 orderRouter.put('/update/:orderId',verifyJWT, updateOrder);
 orderRouter.put('/status/:orderId',verifyJWT, updateOrderStatus);

@@ -74,9 +74,6 @@ export function loginFisherman(req, res){
     return loginController(req, res);
 }
 
-/* -------------------------------------------------------------
-   NEW: Get all fishermen - appended without changing structure
--------------------------------------------------------------- */
 export async function getAllFishermen(req, res) {
   try {
     const docs = await Fisherman.find({}).select("-password -__v");
@@ -87,10 +84,6 @@ export async function getAllFishermen(req, res) {
   }
 }
 
-/* -------------------------------------------------------------
-   ADMIN: Update fisherman by ID (mirrors your product pattern)
-   Route: PATCH /api/fisherman/:id
--------------------------------------------------------------- */
 export async function adminUpdateFisherman(req, res) {
   if (req.user == null) {
     res.status(403).json({
@@ -123,10 +116,6 @@ export async function adminUpdateFisherman(req, res) {
   }
 }
 
-/* -------------------------------------------------------------
-   ADMIN: Delete fisherman by ID (mirrors your product pattern)
-   Route: DELETE /api/fisherman/:id
--------------------------------------------------------------- */
 export async function adminDeleteFisherman(req, res) {
   if (req.user == null) {
     res.status(403).json({

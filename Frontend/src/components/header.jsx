@@ -14,9 +14,7 @@ function base64UrlDecode(input) {
   }
 }
 
-// Try to read user from several likely localStorage keys without changing your app structure.
 function readAuthFromStorage() {
-  // Priority: explicit user objects first
   const candidates = ["customer", "user", "auth", "auth_user"];
   for (const key of candidates) {
     const raw = localStorage.getItem(key);
@@ -24,14 +22,12 @@ function readAuthFromStorage() {
     try {
       const obj = JSON.parse(raw);
       if (obj && typeof obj === "object") {
-        // Common shapes: { customer: {...} }, { user: {...} }, direct object
         const u = obj.customer || obj.user || obj;
         if (u?.role === "customer" || u?.email) return u;
       }
-    } catch { /* ignore */ }
+    } catch {  }
   }
 
-  // Fallback: decode JWT to get a minimal profile
   const tokenKeyCandidates = ["token", "authToken", "access_token", "jwt"];
   for (const key of tokenKeyCandidates) {
     const t = localStorage.getItem(key);
@@ -54,7 +50,6 @@ function readAuthFromStorage() {
 }
 
 function clearAuthFromStorage() {
-  // Clear a safe set of common keys without modifying your backend
   const keys = [
     "customer",
     "user",
@@ -73,19 +68,16 @@ function clearAuthFromStorage() {
       changed = true;
     }
   }
-  // Let other tabs/components know
   if (changed) {
     window.dispatchEvent(new StorageEvent("storage", { key: "auth", newValue: null }));
   }
 }
-/** -------------------------------------------------------------- */
 
 export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState(() => readAuthFromStorage());
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // NEW: UI state for confirm modal + toast
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: "" });
   const [notificationCount, setNotificationCount] = useState(0);
@@ -98,12 +90,10 @@ export default function Header() {
   const { pathname } = useLocation();
   const menuRef = useRef(null);
 
-  // Check if user is logged in and get user info
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
-        // Decode token to get user info (assuming JWT format)
         const payload = JSON.parse(atob(token.split('.')[1]));
         setUserEmail(payload.email || "");
         setUserRole(payload.role || "");
@@ -113,13 +103,11 @@ export default function Header() {
     }
   }, []);
 
-  // Smooth scroll to a section if it's present
   const scrollToId = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Handlers for section nav (keep your existing code)
   const goHero = (e) => {
     e.preventDefault();
     if (pathname === "/") {
@@ -171,7 +159,6 @@ export default function Header() {
     }
   };
 
-  // Fetch notifications based on user role and email
   const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -187,20 +174,16 @@ export default function Header() {
       if (response.ok) {
         const data = await response.json();
         
-        // Filter notifications based on user role and email
         let filteredNotifications = [];
         
         if (userRole === "customer") {
-          // Customers see broadcast notifications AND targeted notifications for their email
           filteredNotifications = data.notifications.filter(n => 
             n.role === "customer" && 
             (!n.targetEmails || n.targetEmails.length === 0 || n.targetEmails.includes(userEmail))
           );
         } else if (userRole === "admin") {
-          // Admins see all customer notifications (for management purposes)
           filteredNotifications = data.notifications.filter(n => n.role === "customer");
         }
-        // Fishermen don't see any notifications in this view
         
         setNotifications(filteredNotifications || []);
         setNotificationCount(filteredNotifications.filter(n => !n.isRead).length);
@@ -212,7 +195,6 @@ export default function Header() {
     }
   };
 
-  // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem("token");
@@ -227,7 +209,6 @@ export default function Header() {
       );
       
       if (response.ok) {
-        // Update local state
         setNotifications(prev => 
           prev.map(n => 
             n._id === notificationId ? { ...n, isRead: true } : n
@@ -240,7 +221,6 @@ export default function Header() {
     }
   };
 
-  // Mark all as read
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -258,7 +238,6 @@ export default function Header() {
         );
         
         if (response.ok) {
-          // Update local state for each successfully marked notification
           setNotifications(prev => 
             prev.map(n => 
               n._id === notification._id ? { ...n, isRead: true } : n
@@ -273,7 +252,6 @@ export default function Header() {
     }
   };
 
-  // Toggle notifications dropdown
   const toggleNotifications = () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -287,7 +265,6 @@ export default function Header() {
     setShowNotifications(!showNotifications);
   };
 
-  // Close notifications when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showNotifications && !e.target.closest(".notifications-container")) {
@@ -299,9 +276,7 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showNotifications]);
 
-  // Cart count logic (keep your existing code)
   useEffect(() => {
-    // Cart counter
     const readCartCount = () => {
       try {
         const raw = localStorage.getItem("cart") || "[]";
@@ -316,7 +291,6 @@ export default function Header() {
     };
     readCartCount();
 
-    // Auth watcher
     const readAuth = () => setUser(readAuthFromStorage());
 
     const onStorage = (e) => {
@@ -346,7 +320,6 @@ export default function Header() {
     };
   }, []);
 
-  // Close profile menu when clicking outside
   useEffect(() => {
     const onClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -365,12 +338,10 @@ export default function Header() {
     return "U";
   }, [user]);
 
-  // UPDATED: logout now opens a confirmation modal
   const logout = () => {
     setConfirmOpen(true);
   };
 
-  // Runs the actual sign-out after user confirms
   const performLogout = () => {
     clearAuthFromStorage();
     setUser(null);
@@ -378,13 +349,11 @@ export default function Header() {
     setConfirmOpen(false);
     setToast({ show: true, msg: "Logged out successfully" });
     navigate("/");
-    // auto-hide toast
     setTimeout(() => setToast({ show: false, msg: "" }), 2200);
   };
 
   return (
     <header className="h-[75px] w-full bg-white shadow-md flex items-center px-6">
-      {/* tiny local animation (no layout changes) */}
       <style>{`
         @keyframes fadeInScale {
           from { opacity: 0; transform: translateY(-6px) scale(0.98); }
@@ -404,7 +373,6 @@ export default function Header() {
         }
       `}</style>
 
-      {/* Left: Logo */}
       <div className="flex items-center gap-3">
         <img
           src="/logo-dashboard.png"
@@ -413,7 +381,6 @@ export default function Header() {
         />
       </div>
 
-      {/* Center: Navigation */}
       <nav className="flex-1 flex justify-center">
         <ul className="flex items-center gap-8 text-blue-800 font-medium">
           <li>
@@ -448,9 +415,7 @@ export default function Header() {
         </ul>
       </nav>
 
-      {/* Right: Notification bell, Cart + Auth buttons */}
       <div className="flex items-center gap-3">
-        {/* Notification Bell - Only show for customers and admins */}
         {(userRole === "customer" || userRole === "admin") && (
           <div className="notifications-container relative">
             <button
@@ -484,7 +449,6 @@ export default function Header() {
               )}
             </button>
 
-            {/* Notifications Dropdown */}
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                 <div className="p-3 border-b border-gray-200 flex justify-between items-center">
@@ -575,7 +539,6 @@ export default function Header() {
           )}
         </Link>
 
-        {/* Auth area */}
         {!user ? (
           <>
             <Link
@@ -601,7 +564,6 @@ export default function Header() {
               aria-expanded={menuOpen}
               title={user?.email || "Profile"}
             >
-              {/* Subtle gradient ring around avatar, same size */}
               <div className="h-7 w-7 rounded-full bg-blue-800 text-white grid place-items-center font-bold ring-2 ring-blue-300/60">
                 {initials}
               </div>
@@ -624,7 +586,6 @@ export default function Header() {
                 className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-sm shadow-xl overflow-hidden z-50"
                 style={{ animation: "fadeInScale 160ms ease-out both" }}
               >
-                {/* Header */}
                 <div className="px-4 py-3 border-b bg-gradient-to-r from-blue-50 to-teal-50">
                   <p className="text-sm font-semibold text-slate-800">
                     {user?.firstName || user?.email || "Customer"}
@@ -634,7 +595,6 @@ export default function Header() {
                   )}
                 </div>
 
-                {/* Items */}
                 <ul className="py-1">
                   <li>
                     <Link
@@ -643,7 +603,6 @@ export default function Header() {
                       role="menuitem"
                       onClick={() => setMenuOpen(false)}
                     >
-                      {/* icon */}
                       <svg viewBox="0 0 24 24" className="h-4 w-4 fill-slate-500">
                         <path d="M3 6h18l-2 12H5L3 6Zm4 0V4h10v2H7Z" />
                       </svg>
@@ -683,20 +642,17 @@ export default function Header() {
         )}
       </div>
 
-      {/* --- Confirm Logout Modal (modern, light, no layout changes) --- */}
       {confirmOpen && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
           aria-modal="true"
           role="dialog"
         >
-          {/* overlay */}
           <div
             className="absolute inset-0 bg-slate-900/40"
             style={{ animation: "overlayIn 160ms ease-out both" }}
             onClick={() => setConfirmOpen(false)}
           />
-          {/* modal */}
           <div
             className="relative z-[101] w-[90%] max-w-sm rounded-2xl bg-white shadow-2xl border border-slate-200 p-5"
             style={{ animation: "modalIn 160ms ease-out both" }}
@@ -728,7 +684,6 @@ export default function Header() {
         </div>
       )}
 
-      {/* --- Logout Success Toast --- */}
       {toast.show && (
         <div
           className="fixed bottom-4 right-4 z-[101] rounded-xl px-4 py-3 shadow-xl bg-emerald-600 text-white text-sm flex items-center gap-2"

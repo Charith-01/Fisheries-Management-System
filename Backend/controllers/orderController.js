@@ -13,7 +13,6 @@ export async function createOrder(req, res) {
 
     const body = req.body;
     
-    // Check if order already exists
     const existingOrder = await Order.findOne({ orderId: body.orderId });
     if (existingOrder) {
       console.log("CREATE ORDER - Order ID already exists:", body.orderId);
@@ -24,7 +23,7 @@ export async function createOrder(req, res) {
 
     const orderData = {
       orderId: body.orderId,
-      email: req.user.email, // Use authenticated user's email
+      email: req.user.email,
       name: body.name,
       address: body.address,
       phone: body.phone,
@@ -41,7 +40,6 @@ export async function createOrder(req, res) {
     console.log("CREATE ORDER - Order saved successfully. MongoDB ID:", savedOrder._id);
     console.log("CREATE ORDER - Order ID:", savedOrder.orderId);
     
-    // Verify the order was actually saved
     const verifyOrder = await Order.findOne({ orderId: body.orderId });
     console.log("CREATE ORDER - Verification find result:", verifyOrder);
 
@@ -102,19 +100,15 @@ export async function getOrderById(req, res) {
       });
     }
 
-    // Try different query approaches
     const order = await Order.findOne({ orderId: req.params.orderId });
     console.log("GET ORDER - Find result:", order);
 
     if (!order) {
-      // Try alternative queries for debugging
       console.log("GET ORDER - Trying alternative queries...");
       
-      // Query by MongoDB _id
       const allOrders = await Order.find({}).limit(5);
       console.log("GET ORDER - First 5 orders in DB:", allOrders);
       
-      // Try case-insensitive search
       const caseInsensitiveOrder = await Order.findOne({ 
         orderId: { $regex: new RegExp(`^${req.params.orderId}$`, 'i') } 
       });
@@ -125,7 +119,6 @@ export async function getOrderById(req, res) {
 
     console.log("GET ORDER - Order found. Order email:", order.email, "User email:", req.user.email);
 
-    // Check if user has permission to view this order
     if (req.user.role !== 'admin' && order.email !== req.user.email) {
       return res.status(403).json({ 
         message: "You do not have permission to view this order" 

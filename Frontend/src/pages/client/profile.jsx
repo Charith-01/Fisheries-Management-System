@@ -17,7 +17,7 @@ import {
   Package,
   Bell
 } from "lucide-react";
-import Footer from "../../components/footer"; // ✅ add Footer import (do not change Footer code)
+import Footer from "../../components/footer";
 
 function classNames(...xs) { return xs.filter(Boolean).join(" "); }
 
@@ -66,16 +66,13 @@ export default function Profile() {
   const [tab, setTab] = useState("Overview");
   const [toast, setToast] = useState({ kind: "success", msg: "" });
 
-  // forms
   const [info, setInfo] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [addr, setAddr] = useState({ address: "" });
   const [pwd, setPwd] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
-  // avatar (local preview only)
   const [avatar, setAvatar] = useState("");
   const fileRef = useRef(null);
 
-  // 🔴 Delete account (states)
   const [showDelete, setShowDelete] = useState(false);
   const [deleteText, setDeleteText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -107,7 +104,6 @@ export default function Profile() {
           setAddr({ address: customer.address || "" });
         }
       } catch (e) {
-        // Not logged in? bounce to login
         navigate("/login");
       } finally {
         if (!ignore) setLoading(false);
@@ -122,7 +118,7 @@ export default function Profile() {
         firstName: info.firstName,
         lastName: info.lastName,
         phone: info.phone,
-        address: addr.address, // keep in sync
+        address: addr.address,
       };
       const { data } = await api.put("/api/customer/me", payload);
       setMe(data.customer);
@@ -171,7 +167,6 @@ export default function Profile() {
     reader.readAsDataURL(file);
   };
 
-  // 🔴 Delete account handler
   const clearAuth = () => {
     const keys = ["customer","user","auth","auth_user","token","authToken","access_token","jwt","refresh_token"];
     keys.forEach(k => localStorage.removeItem(k));
@@ -180,7 +175,6 @@ export default function Profile() {
   const deleteAccount = async () => {
     try {
       setDeleting(true);
-      // backend controller supports { confirm: true }
       await api.delete("/api/customer/me", { data: { confirm: true } });
       setShowDelete(false);
       setToast({ kind: "success", msg: "Your account has been deleted" });
@@ -237,16 +231,12 @@ export default function Profile() {
   }
 
   return (
-    // ⬇️ make the page a column so the Footer sits at the bottom naturally
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-slate-100">
-      {/* main content keeps your original padding & spacing */}
       <main className="flex-1 pb-12">
         <div className="max-w-6xl mx-auto px-4 pt-8">
 
-          {/* Header card */}
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 mb-6">
             <div className="flex flex-col md:flex-row items-start gap-6">
-              {/* Avatar */}
               <div className="relative">
                 <div className="relative">
                   {avatar ? (
@@ -270,7 +260,6 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Intro */}
               <div className="flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div>
@@ -287,7 +276,6 @@ export default function Profile() {
                   </span>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex overflow-x-auto scrollbar-hide">
                   <div className="inline-flex gap-1 bg-slate-100 rounded-xl p-1">
                     {TABS.map(({ id, icon: Icon }) => (
@@ -311,9 +299,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Body */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left summary */}
             <div className="lg:col-span-1 space-y-6">
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
                 <h3 className="text-lg font-semibold text-slate-800 mb-4">Account Summary</h3>
@@ -327,10 +313,8 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Right content */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200 min-h-[455px]">
-                {/* Overview */}
                 {tab === "Overview" && (
                   <div className="space-y-6">
                     <div>
@@ -394,7 +378,6 @@ export default function Profile() {
                   </div>
                 )}
 
-                {/* Personal Info */}
                 {tab === "Personal Info" && (
                   <div>
                     <h3 className="text-xl font-semibold text-slate-800 mb-6">Personal Information</h3>
@@ -463,7 +446,6 @@ export default function Profile() {
                   </div>
                 )}
 
-                {/* Address */}
                 {tab === "Address" && (
                   <div>
                     <h3 className="text-xl font-semibold text-slate-800 mb-6">Delivery Address</h3>
@@ -494,7 +476,6 @@ export default function Profile() {
                   </div>
                 )}
 
-                {/* Security */}
                 {tab === "Security" && (
                   <div>
                     <h3 className="text-xl font-semibold text-slate-800 mb-6">Change Password</h3>
@@ -539,7 +520,6 @@ export default function Profile() {
                       </button>
                     </div>
 
-                    {/* 🔴 Danger Zone (Delete Account) – appended below without changing your layout above */}
                     <div className="mt-10 rounded-2xl border border-red-200 bg-red-50 p-5">
                       <div className="flex items-center justify-between gap-4">
                         <div>
@@ -571,15 +551,12 @@ export default function Profile() {
 
       <Footer />
 
-      {/* 🔴 Modern confirmation modal (no external libs) */}
       {showDelete && (
         <div className="fixed inset-0 z-[60]">
-          {/* backdrop */}
           <div
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             onClick={() => setShowDelete(false)}
           />
-          {/* dialog */}
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-[fadeIn_120ms_ease-out]">
               <div className="px-6 py-5 border-b bg-gradient-to-r from-red-50 to-rose-50">

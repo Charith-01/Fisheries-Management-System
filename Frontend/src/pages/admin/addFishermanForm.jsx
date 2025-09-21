@@ -7,7 +7,6 @@ import { CheckCircle2, User2, Anchor, Shield, X } from "lucide-react";
 export default function AddFishermanForm({ darkMode }) {
   const navigate = useNavigate();
 
-  // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName]   = useState("");
   const [email, setEmail]         = useState("");
@@ -15,7 +14,7 @@ export default function AddFishermanForm({ darkMode }) {
   const [address, setAddress]     = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [boatNumber, setBoatNumber]       = useState("");
-  const [position, setPosition]   = useState("crew"); // crew | skipper
+  const [position, setPosition]   = useState("crew");
   const [password, setPassword]   = useState("");
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
@@ -48,7 +47,6 @@ export default function AddFishermanForm({ darkMode }) {
       position,
       isEmailVerified: Boolean(isEmailVerified),
       isDisabled: Boolean(isDisabled),
-      // createdAt will be set by backend default; you can pass one if needed.
     };
 
     try {
@@ -81,10 +79,8 @@ export default function AddFishermanForm({ darkMode }) {
             : "ring-slate-200 bg-white shadow-lg"
         }`}
       >
-        {/* Top accent */}
         <div className="h-1 w-full bg-gradient-to-r from-cyan-500 to-blue-600" />
 
-        {/* Header */}
         <div className="px-6 pt-6">
           <h1 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>
             Add Fisherman
@@ -93,7 +89,6 @@ export default function AddFishermanForm({ darkMode }) {
             Fill in the details below to register a new fisherman.
           </p>
 
-          {/* Live status pills */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
@@ -134,10 +129,8 @@ export default function AddFishermanForm({ darkMode }) {
           </div>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* First name */}
             <FormField label="First Name *" darkMode={darkMode}>
               <input
                 value={firstName}
@@ -149,7 +142,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Last name */}
             <FormField label="Last Name *" darkMode={darkMode}>
               <input
                 value={lastName}
@@ -161,7 +153,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Email */}
             <FormField label="Email *" darkMode={darkMode}>
               <input
                 value={email}
@@ -173,7 +164,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Phone */}
             <FormField label="Phone *" darkMode={darkMode}>
               <input
                 value={phone}
@@ -185,7 +175,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Address */}
             <FormField label="Address *" darkMode={darkMode} full>
               <textarea
                 value={address}
@@ -197,7 +186,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* License Number */}
             <FormField label="License Number *" darkMode={darkMode}>
               <input
                 value={licenseNumber}
@@ -209,7 +197,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Boat Number */}
             <FormField label="Boat Number *" darkMode={darkMode}>
               <input
                 value={boatNumber}
@@ -221,7 +208,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Position */}
             <FormField label="Position *" darkMode={darkMode}>
               <select
                 value={position}
@@ -234,7 +220,6 @@ export default function AddFishermanForm({ darkMode }) {
               </select>
             </FormField>
 
-            {/* Password */}
             <FormField label="Password *" darkMode={darkMode}>
               <input
                 value={password}
@@ -247,7 +232,6 @@ export default function AddFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Toggles */}
             <FormField label="Verification & Status" darkMode={darkMode} full>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div
@@ -293,7 +277,6 @@ export default function AddFishermanForm({ darkMode }) {
             </FormField>
           </div>
 
-          {/* Actions */}
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <Link
               to="/admin/fishermen"
@@ -319,7 +302,6 @@ export default function AddFishermanForm({ darkMode }) {
   );
 }
 
-/* ---------- Small presentational helper ---------- */
 function FormField({ label, hint, children, full, darkMode }) {
   return (
     <div className={full ? "md:col-span-2" : ""}>

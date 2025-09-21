@@ -9,7 +9,6 @@ import NotFoundPage from "./client/notFoundPage";
 import Footer from "../components/footer";
 import Profile from "./client/profile";
 
-/* --------------------- Shared centered section header --------------------- */
 function SectionHeader({ title, subtitle }) {
   return (
     <div className="mb-10">
@@ -80,12 +79,10 @@ function HeroSection() {
 
   return (
     <section className="relative isolate overflow-hidden">
-      {/* soft gradient blobs */}
       <div className="pointer-events-none absolute -top-32 -right-24 h-96 w-96 rounded-full bg-sky-300/40 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-cyan-300/30 blur-3xl" />
 
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 px-4 py-12 md:grid-cols-2 md:py-16 lg:px-8">
-        {/* Left: copy + CTA */}
         <div className="z-10">
           <h1 className="mt-4 text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl lg:text-6xl">
             Ocean-fresh seafood,
@@ -116,8 +113,6 @@ function HeroSection() {
               See Reviews
             </button>
           </div>
-
-          {/* trust stats */}
           <div className="mt-8 grid max-w-lg grid-cols-3 gap-4">
             {[
               { k: "10+", v: "Boats" },
@@ -134,8 +129,6 @@ function HeroSection() {
             ))}
           </div>
         </div>
-
-        {/* Right: slider with promo overlays */}
         <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-xl">
           {slides.map((s, i) => (
             <div
@@ -153,14 +146,12 @@ function HeroSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-              {/* top-left discount ribbon */}
               <div className="absolute left-4 top-4">
                 <div className="rounded-xl bg-rose-600 px-3 py-1.5 text-sm font-bold text-white shadow-lg">
                   {s.discount}
                 </div>
               </div>
 
-              {/* bottom promo panel */}
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="rounded-2xl bg-white/90 p-4 backdrop-blur shadow">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -187,7 +178,6 @@ function HeroSection() {
             </div>
           ))}
 
-          {/* dots */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <div className="flex items-center gap-2">
               {slides.map((_, i) => (
@@ -205,7 +195,6 @@ function HeroSection() {
         </div>
       </div>
 
-      {/* divider wave */}
       <svg className="block w-full text-sky-50" viewBox="0 0 1440 80" preserveAspectRatio="none">
         <path
           fill="currentColor"
@@ -236,7 +225,6 @@ function CategorySection() {
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <SectionHeader title="BROWSE OUR CATEGORIES" />
 
-        {/* Circular tiles, single line labels */}
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-10 md:gap-14">
           {categories.map((c) => (
             <Link
@@ -340,7 +328,6 @@ function TrendingSection() {
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <SectionHeader title="TRENDING TODAY" subtitle={refreshedAt ? `Freshest best-sellers • updated ${refreshedAt}` : "Freshest best-sellers"} />
 
-        {/* Centered "View all" under title for consistency */}
         <div className="flex justify-center">
           <Link
             to="/products"
@@ -350,7 +337,6 @@ function TrendingSection() {
           </Link>
         </div>
 
-        {/* Loader */}
         {!loaded && (
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -366,14 +352,12 @@ function TrendingSection() {
           </div>
         )}
 
-        {/* Error */}
         {loaded && err && (
           <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {err}
           </div>
         )}
 
-        {/* Products */}
         {loaded && !err && (
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {items.map((p) => {
@@ -386,7 +370,6 @@ function TrendingSection() {
                   key={p.id}
                   className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
-                  {/* Badges */}
                   <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
                     <span className="inline-flex items-center gap-1 rounded-full bg-rose-600/90 px-2 py-0.5 text-[10px] font-bold text-white shadow">
                       <span className="animate-pulse">🔥</span> Trending
@@ -573,25 +556,20 @@ function ReviewsSection() {
 function LandingPage() {
   return (
     <main className="animate-[fadeIn_0.5s_ease]">
-      {/* Hero */}
       <section id="hero">
         <HeroSection />
       </section>
 
-      {/* Categories */}
       <section>
         <CategorySection />
       </section>
 
-      {/* Trending */}
       <section id="trending">
         <TrendingSection />
       </section>
 
-      {/* Contact */}
       <ContactSection />
 
-      {/* Reviews */}
       <ReviewsSection />
 
       <style>{`
