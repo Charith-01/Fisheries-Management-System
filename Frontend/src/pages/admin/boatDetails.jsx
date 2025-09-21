@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { Ship, ArrowLeft, Edit, Trash2, Tag, Users, Calendar, Clock, Download } from "lucide-react";
@@ -102,29 +100,42 @@ export default function BoatDetails({ darkMode }) {
                                 toast.error("No boat details to export");
                                 return;
                             }
-                            // Prepare data for Excel
-                            const data = [{
-                                "Boat Number": boat.boatNumber,
-                                "Name": boat.name,
-                                "Capacity": boat.capacity,
-                                "Status": boat.status,
-                                "Equipment": boat.equipmentID && boat.equipmentID.length > 0 ? boat.equipmentID.map(eid => {
-                                    const eq = equipmentList.find(eq => eq._id === eid || eq.equipmentID === eid);
-                                    return eq ? `${eq.name} (${eq.equipmentID})` : eid;
-                                }).join(", ") : "None"
-                            }];
-                            const worksheet = XLSX.utils.json_to_sheet(data);
-                            const workbook = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(workbook, worksheet, "Boat Details");
-                            const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-                            const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-                            saveAs(blob, `boat_${boat.boatNumber}.xlsx`);
+                            const headers = ["Boat Number", "Name", "Capacity", "Status", "Equipment"];
+                            const escapeCSV = (str) => {
+                                if (str == null) return "";
+                                str = String(str);
+                                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                                    return '"' + str.replace(/"/g, '""') + '"';
+                                }
+                                return str;
+                            };
+                            const equipmentStr = boat.equipmentID && boat.equipmentID.length > 0 ? boat.equipmentID.map(eid => {
+                                const eq = equipmentList.find(eq => eq._id === eid || eq.equipmentID === eid);
+                                return eq ? `${eq.name} (${eq.equipmentID})` : eid;
+                            }).join(", ") : "None";
+                            const row = [
+                                escapeCSV(boat.boatNumber),
+                                escapeCSV(boat.name),
+                                escapeCSV(boat.capacity),
+                                escapeCSV(boat.status),
+                                escapeCSV(equipmentStr)
+                            ];
+                            const csv = [headers.join(","), row.join(",")].join("\n");
+                            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `boat_${boat.boatNumber}_${new Date().toISOString().slice(0, 10)}.csv`;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
                         }}
                         type="button"
                         className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
                             darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
                         }`}
-                        title="Export boat details as Excel"
+                        title="Export boat details as CSV"
                     >
                         <Download className="h-4 w-4" />
                         Export

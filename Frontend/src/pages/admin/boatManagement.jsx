@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { Ship, Trash2, Edit, PlusCircle, Download } from "lucide-react";
@@ -40,25 +38,37 @@ export default function BoatsManagement({ darkMode }) {
         }
     };
 
-    // Export boats to Excel
-    const handleExportExcel = () => {
+    // Export boats to CSV
+    const handleExportCSV = () => {
         if (!boats.length) {
             toast.error("No boats to export");
             return;
         }
-        // Prepare data for Excel (exclude images, include main fields)
-        const data = boats.map(({ boatNumber, name, capacity, status }) => ({
-            "Boat Number": boatNumber,
-            "Name": name,
-            "Capacity": capacity,
-            "Status": status,
-        }));
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Boats");
-        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-        const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-        saveAs(blob, "boats.xlsx");
+        const headers = ["Boat Number", "Name", "Capacity", "Status"];
+        const escapeCSV = (str) => {
+            if (str == null) return "";
+            str = String(str);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        };
+        const rows = boats.map((boat) => [
+            escapeCSV(boat.boatNumber),
+            escapeCSV(boat.name),
+            escapeCSV(boat.capacity),
+            escapeCSV(boat.status)
+        ]);
+        const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `boats_report_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -67,12 +77,12 @@ export default function BoatsManagement({ darkMode }) {
                 <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-300' : 'text-blue-800'}`}>Boat Management</h1>
                 <div className="flex gap-2">
                     <button
-                        onClick={handleExportExcel}
+                        onClick={handleExportCSV}
                         type="button"
                         className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
                             darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
                         }`}
-                        title="Export all boats as Excel"
+                        title="Export all boats as CSV"
                     >
                         <Download className="h-4 w-4" />
                         Export
