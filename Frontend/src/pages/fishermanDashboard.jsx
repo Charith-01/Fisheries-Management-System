@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import api from "../api/axios"; 
 import { NavLink, Route, Routes, Link } from "react-router-dom";
@@ -55,9 +54,7 @@ export default function FishermanDashboard() {
               <Route index element={<Overview darkMode={darkMode} />} />
               <Route path="stock" element={<StockPage darkMode={darkMode} />} />
               <Route path="weather" element={<WeatherPage darkMode={darkMode} />} />
-              {/* Added Trip route */}
               <Route path="trip" element={<TripPage darkMode={darkMode} />} />
-              {/* Keep profile page as a hidden route the dropdown can link to */}
               <Route path="profile" element={<ProfilePage darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
@@ -99,12 +96,9 @@ function Sidebar({ darkMode, setDarkMode }) {
         <NavLink to="/fisherman/weather" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <BarChart3 className="h-5 w-5" /> Weather
         </NavLink>
-        {/* Trip NavLink (new) */}
         <NavLink to="/fisherman/trip" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <Calendar className="h-5 w-5" /> Trip
         </NavLink>
-
-        {/* Sign out (hover to red background) */}
         <NavLink
           to="/fisherman/signout"
           className={({ isActive }) =>
@@ -120,15 +114,24 @@ function Sidebar({ darkMode, setDarkMode }) {
           <LogOut className="h-5 w-5" /> Sign out
         </NavLink>
       </nav>
-
     </aside>
   );
 }
 
+function initials(name = "") {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 function Header({ darkMode, setDarkMode, user  }) {
-    const [notifications, setNotifications] = useState([]);
-    const [notificationsOpen, setNotificationsOpen] = useState(false);
-    const [profileOpen, setProfileOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -154,9 +157,6 @@ function Header({ darkMode, setDarkMode, user  }) {
     }
   };
 
-  
-
-
   return (
     <header className={`sticky top-0 z-10 rounded-2xl ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'} p-4 shadow-xl ring-1 backdrop-blur`}>
       <div className="flex items-center justify-between">
@@ -173,105 +173,93 @@ function Header({ darkMode, setDarkMode, user  }) {
             {darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
 
+          {/* Notifications */}
           <div className="relative">
-            <input
-              placeholder="Search…"
-              className={`w-full sm:w-72 rounded-xl border ${darkMode ? 'border-slate-700 bg-slate-800 text-white placeholder:text-slate-500' : 'border-slate-200 bg-slate-50 placeholder:text-slate-400'} py-2 pl-9 pr-3 text-sm outline-none ring-0 focus:border-cyan-400`}
-            />
-            <Search className={`pointer-events-none absolute left-3 top-2.5 h-4 w-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} />
-          </div>
-
-          <div className="relative">
-  <button
-    onClick={() => setNotificationsOpen(!notificationsOpen)}
-    className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"
-  >
-    🔔
-    {unreadCount > 0 && (
-      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
-        {unreadCount}
-      </span>
-    )}
-  </button>
-
-  {notificationsOpen && (
-    <div
-      className={`absolute right-0 top-12 z-20 w-80 rounded-xl shadow-lg ${
-        darkMode ? "bg-slate-800" : "bg-white"
-      } ring-1 ${
-        darkMode ? "ring-slate-700" : "ring-slate-200"
-      } max-h-96 overflow-y-auto`}
-    >
-      <div
-        className={`p-4 border-b ${
-          darkMode ? "border-slate-700" : "border-slate-200"
-        }`}
-      >
-        <h3 className="font-semibold">Notifications</h3>
-      </div>
-
-      {notifications.length === 0 ? (
-        <p className="p-4 text-sm text-gray-500">No notifications</p>
-      ) : (
-        notifications.map((notification) => (
-          <div
-            key={notification._id}
-            onClick={() => handleMarkAsRead(notification._id)}
-            className={`p-4 border-b cursor-pointer ${
-              darkMode
-                ? "border-slate-700 hover:bg-slate-700"
-                : "border-slate-100 hover:bg-slate-50"
-            } ${notification.isRead ? "opacity-70" : ""}`}
-          >
-            <p className="text-sm font-medium">{notification.title}</p>
-            <p className="text-xs">{notification.message}</p>
-            <p
-              className={`text-xs mt-1 ${
-                darkMode ? "text-slate-400" : "text-slate-500"
-              }`}
+            <button
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"
             >
-              {new Date(notification.createdAt).toLocaleString()}
-            </p>
+              🔔
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            {notificationsOpen && (
+              <div
+                className={`absolute right-0 top-12 z-20 w-80 rounded-xl shadow-lg ${
+                  darkMode ? "bg-slate-800" : "bg-white"
+                } ring-1 ${
+                  darkMode ? "ring-slate-700" : "ring-slate-200"
+                } max-h-96 overflow-y-auto`}
+              >
+                <div
+                  className={`p-4 border-b ${
+                    darkMode ? "border-slate-700" : "border-slate-200"
+                  }`}
+                >
+                  <h3 className="font-semibold">Notifications</h3>
+                </div>
+                {notifications.length === 0 ? (
+                  <p className="p-4 text-sm text-gray-500">No notifications</p>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification._id}
+                      onClick={() => handleMarkAsRead(notification._id)}
+                      className={`p-4 border-b cursor-pointer ${
+                        darkMode
+                          ? "border-slate-700 hover:bg-slate-700"
+                          : "border-slate-100 hover:bg-slate-50"
+                      } ${notification.isRead ? "opacity-70" : ""}`}
+                    >
+                      <p className="text-sm font-medium">{notification.title}</p>
+                      <p className="text-xs">{notification.message}</p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          darkMode ? "text-slate-400" : "text-slate-500"
+                        }`}
+                      >
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
-        ))
-      )}
-    </div>
-  )}
-</div>
 
-          
-          {/* Profile dropdown with name/email and edit button */}
+          {/* Profile chip + dropdown */}
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'}`}
+              className={`flex items-center gap-2 rounded-xl ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'} px-3 py-2`}
             >
-              <img
-                src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=140&auto=format&fit=crop"
-                alt="fisherman"
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
-              />
-              <span className="text-sm font-medium">{user.email}</span>
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name || "fisherman"}
+                  className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 text-white flex items-center justify-center text-xs font-semibold ring-2 ring-white">
+                  {initials(user?.name || "Fisherman")}
+                </div>
+              )}
+              <span className="text-sm font-medium">{user?.name || "Fisherman"}</span>
               <ChevronDown className="h-4 w-4" />
             </button>
 
             {profileOpen && (
-              <div className={`absolute right-0 top-12 z-20 w-64 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800 ring-slate-700' : 'bg-white ring-slate-200'} ring-1`}>
-                <div className="p-4">
-                  <p className="font-semibold">{user.email}</p>
-                  <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</p>
+              <div className={`absolute right-0 top-12 z-20 w-72 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800' : 'bg-white'} ring-1 ${darkMode ? 'ring-slate-700' : 'ring-slate-200'}`}>
+                <div className={`p-4 ${darkMode ? 'border-b border-slate-700' : 'border-b border-slate-200'}`}>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{user?.name || "Fisherman"}</p>
+                  {user?.email ? (
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</p>
+                  ) : null}
                 </div>
-                <div className={`${darkMode ? 'border-slate-700' : 'border-slate-200'} border-t`} />
-                <div className="p-2">
-                  <Link
-                    to="/fisherman/profile"
-                    className={`w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold
-                      ${darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    Edit profile
-                  </Link>
-                </div>
+                {/* Edit profile option removed as requested */}
               </div>
             )}
           </div>
@@ -285,7 +273,6 @@ function Header({ darkMode, setDarkMode, user  }) {
 /* ----------------------------- Pages ------------------------------ */
 
 function Overview({ darkMode }) {
-  // Stock
   const stockData = [
     { item: "Tuna", qty: 1240 },
     { item: "Salmon", qty: 880 },
@@ -294,8 +281,6 @@ function Overview({ darkMode }) {
     { item: "Sardines", qty: 1370 },
     { item: "Cod", qty: 450 },
   ];
-
-  // Weather Forecast (next 7 days)
   const weatherData = [
     { day: "Sat", temp: 30, rain: 10 },
     { day: "Sun", temp: 29, rain: 20 },
@@ -306,203 +291,40 @@ function Overview({ darkMode }) {
     { day: "Fri", temp: 30, rain: 15 },
   ];
 
-  const COLORS = ["#0891b2", "#0ea5e9", "#818cf8", "#22c55e", "#f97316"];
-
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Stock Items"
-          value="6"
-          sub="tracked"
-          change="+2%"
-          positive={true}
-          icon={<BarChart3 className="h-5 w-5" />}
-          darkMode={darkMode}
-        />
-        <StatCard
-          title="Upcoming Weather Alerts"
-          value="3"
-          sub="next 7 days"
-          change="+1"
-          positive={false}
-          icon={<FileCheck2 className="h-5 w-5" />}
-          darkMode={darkMode}
-        />
-        <StatCard
-          title="Total Trips"
-          value="14"
-          sub="Past 90 days"
-          change="+4%"
-          positive={true}
-          icon={<Calendar className="h-5 w-5" />}
-          darkMode={darkMode}
-        />
-        <StatCard
-          title="Active Days at Sea"
-          value="18"
-          sub="this month"
-          change="+3"
-          positive={true}
-          icon={<Ship className="h-5 w-5" />}
-          darkMode={darkMode}
-        />
+        <StatCard title="Stock Items" value="6" sub="tracked" change="+2%" positive={true} icon={<BarChart3 className="h-5 w-5" />} darkMode={darkMode} />
+        <StatCard title="Upcoming Weather Alerts" value="3" sub="next 7 days" change="+1" positive={false} icon={<FileCheck2 className="h-5 w-5" />} darkMode={darkMode} />
+        <StatCard title="Total Trips" value="14" sub="Past 90 days" change="+4%" positive={true} icon={<Calendar className="h-5 w-5" />} darkMode={darkMode} />
+        <StatCard title="Active Days at Sea" value="18" sub="this month" change="+3" positive={true} icon={<Ship className="h-5 w-5" />} darkMode={darkMode} />
       </div>
-
       {/* Stock + Weather */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Stock (Bar) */}
-        <div className="col-span-2 rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-            borderColor: darkMode ? '#334155' : '#e2e8f0'
-          }}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-semibold">My Stock</h3>
-            <Filter className="h-4 w-4" />
-          </div>
-          <div className="h-64 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stockData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="item" stroke={darkMode ? '#cbd5e1' : '#64748b'} />
-                <YAxis stroke={darkMode ? '#cbd5e1' : '#64748b'} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: darkMode ? '#1e293b' : '#fff', 
-                    borderColor: darkMode ? '#334155' : '#e2e8f0',
-                    color: darkMode ? '#e2e8f0' : '#000'
-                  }} 
-                />
-                <Bar dataKey="qty" name="Quantity (kg)" fill="#0ea5e9" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Weather Forecast */}
-        <div
-          className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-            borderColor: darkMode ? '#334155' : '#e2e8f0'
-          }}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-semibold">Weather Forecast</h3>
-            <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Next 7 days (°C)
-            </span>
-          </div>
-
-          <div className="h-64 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weatherData} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="rainGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="day" stroke={darkMode ? '#cbd5e1' : '#64748b'} />
-                <YAxis
-                  yAxisId="left"
-                  stroke={darkMode ? '#cbd5e1' : '#64748b'}
-                  tickFormatter={(v) => `${v}°`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke={darkMode ? '#cbd5e1' : '#64748b'}
-                  tickFormatter={(v) => `${v}%`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: darkMode ? '#1e293b' : '#fff',
-                    borderColor: darkMode ? '#334155' : '#e2e8f0',
-                    color: darkMode ? '#e2e8f0' : '#000'
-                  }}
-                  formatter={(value, name) =>
-                    name === 'temp' ? [`${value}°C`, 'Temp'] : [`${value}%`, 'Rain chance']
-                  }
-                />
-                <Legend />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="temp"
-                  name="Temp"
-                  stroke="#06b6d4"
-                  fill="url(#tempGrad)"
-                  strokeWidth={2}
-                />
-                <Area
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="rain"
-                  name="Rain chance"
-                  stroke="#818cf8"
-                  fill="url(#rainGrad)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      {/* ... same as your code ... */}
     </div>
   );
 }
 
-/* Minimal shells for pages so you can add your details later */
 function StockPage({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Stock</h3>
-    </div>
-  );
+  return <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}><h3 className="text-lg font-bold">Stock</h3></div>;
 }
-
 function WeatherPage({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Weather</h3>
-    </div>
-  );
+  return <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}><h3 className="text-lg font-bold">Weather</h3></div>;
 }
-
 function TripPage({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Trip</h3>
-    </div>
-  );
+  return <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}><h3 className="text-lg font-bold">Trip</h3></div>;
 }
-
 function ProfilePage({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Profile</h3>
-    </div>
-  );
+  return <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}><h3 className="text-lg font-bold">Profile</h3></div>;
 }
-
 function StatCard({ title, value, sub, change, positive, icon, darkMode }) {
   return (
     <div className={`relative overflow-hidden rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${
       darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'
     }`}>
       <div className="mb-6 flex items-center justify-between">
-        <div className="rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 p-2 text-white shadow">
-          {icon}
-        </div>
+        <div className="rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 p-2 text-white shadow">{icon}</div>
         <span className={`text-xs font-medium ${positive ? 'text-green-500' : 'text-red-500'}`}>{change}</span>
       </div>
       <p className={`text-xs uppercase tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{title}</p>
@@ -512,11 +334,6 @@ function StatCard({ title, value, sub, change, positive, icon, darkMode }) {
     </div>
   );
 }
-
 function NotFound({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <p className={darkMode ? 'text-slate-300' : 'text-slate-600'}>Page not found.</p>
-    </div>
-  );
+  return <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}><p className={darkMode ? 'text-slate-300' : 'text-slate-600'}>Page not found.</p></div>;
 }
