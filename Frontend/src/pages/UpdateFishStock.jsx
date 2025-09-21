@@ -6,24 +6,37 @@ import toast from "react-hot-toast";
 export default function UpdateFishStock() {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    const [name, setName] = useState("");
     const [type, setType] = useState("");
     const [weight, setWeight] = useState("");
+    const [unit, setUnit] = useState("kg");
     const [quality, setQuality] = useState("Grade A");
     const [catchDate, setCatchDate] = useState("");
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchFishStock();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     async function fetchFishStock() {
         try {
             const response = await fishStockService.getFishStockById(id);
             const stock = response.data;
-            setType(stock.type);
-            setWeight(stock.weight);
-            setQuality(stock.quality);
-            setCatchDate(stock.catchDate.split('T')[0]);
+
+            setName(stock.name || "");
+            setType(stock.type || "");
+            setWeight(
+                typeof stock.weight === "number" ? String(stock.weight) : stock.weight || ""
+            );
+            setUnit(stock.unit || "kg");
+            setQuality(stock.quality || "Grade A");
+            setCatchDate(
+                stock.catchDate
+                    ? String(stock.catchDate).split("T")[0]
+                    : ""
+            );
         } catch (error) {
             toast.error(error.message || "Failed to load fish stock");
             navigate("/fishstock");
@@ -31,16 +44,24 @@ export default function UpdateFishStock() {
     }
 
     async function handleSubmit() {
-        if (!type || !weight) {
+        const w = parseFloat(weight);
+
+        if (!name || !type || !weight) {
             toast.error("Please fill all required fields");
+            return;
+        }
+        if (Number.isNaN(w) || w <= 0) {
+            toast.error("Weight must be a positive number");
             return;
         }
 
         setLoading(true);
         try {
             await fishStockService.updateFishStock(id, {
+                name,
                 type,
-                weight: parseFloat(weight),
+                weight: w,
+                unit,
                 quality,
                 catchDate
             });
@@ -61,29 +82,59 @@ export default function UpdateFishStock() {
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-gray-700 mb-2">Fish Type *</label>
-                         <select
+                        <label className="block text-gray-700 mb-2">Name *</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter Seafood name"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-700 mb-2">Type *</label>
+                        <select
                             value={type}
                             onChange={(e) => setType(e.target.value)}
                             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="Balaya">Balaya</option>
-                            <option value="Tuna">Tuna</option>
-                            <option value="Salaya">Salaya</option>
-                            <option value="Bolla">Bolla</option>
+                            <option value="">-- Select Type --</option>
+                            <option value="fish">Fish</option>
+                            <option value="crab">Crab</option>
+                            <option value="shellfish">Shellfish</option>
+                            <option value="prawn">Prawn</option>
+                            <option value="lobster">Lobster</option>
+                            <option value="squid">Squid</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
 
                     <div>
-                        <label className="block text-gray-700 mb-2">Weight (kg) *</label>
+                        <label className="block text-gray-700 mb-2">Weight *</label>
                         <input
                             type="number"
                             value={weight}
                             onChange={(e) => setWeight(e.target.value)}
                             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter weight"
                             step="0.1"
                             min="0.1"
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-700 mb-2">Unit</label>
+                        <select
+                            value={unit}
+                            onChange={(e) => setUnit(e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="g">Grams (g)</option>
+                            <option value="lbs">Pounds (lbs)</option>
+                            <option value="pieces">Pieces</option>
+                        </select>
                     </div>
 
                     <div>
@@ -119,7 +170,7 @@ export default function UpdateFishStock() {
                             {loading ? "Updating..." : "Update Fish Stock"}
                         </button>
                         <button
-                            onClick={() => navigate("/fishstock")}
+                            onClick={() => navigate("/admin/stock")}
                             className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                         >
                             Cancel
