@@ -1,8 +1,5 @@
-
-
-
-import React, { useState } from "react";
-import { NavLink, Route, Routes, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, Route, Routes, Link, useNavigate } from "react-router-dom";
 import TripsManagement from "./TripsManagement.jsx";
 import AddTripForm from "./AddTripForm.jsx";
 import EditTripForm from "./EditTripForm.jsx";
@@ -58,13 +55,49 @@ import EquipmentManagement from "./admin/equipmentManagement.jsx";
 import AddEquipmentForm from "./admin/addEquipmentForm.jsx";
 import EditEquipmentForm from "./admin/editEquipmentForm.jsx";
 import EquipmentDetails from "./admin/equipmentDetails.jsx";
+
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
-  
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const navigate = useNavigate();
+
+  // minimal, safe auth clear (doesn't touch other app state)
+  function clearAuthFromStorage() {
+    const keys = [
+      "customer",
+      "user",
+      "auth",
+      "auth_user",
+      "token",
+      "authToken",
+      "access_token",
+      "jwt",
+      "refresh_token",
+    ];
+    let changed = false;
+    for (const k of keys) {
+      if (localStorage.getItem(k) !== null) {
+        localStorage.removeItem(k);
+        changed = true;
+      }
+    }
+    if (changed) {
+      try {
+        window.dispatchEvent(new StorageEvent("storage", { key: "auth", newValue: null }));
+      } catch {}
+    }
+  }
+
+  const handleLogoutConfirm = () => {
+    clearAuthFromStorage();
+    setShowLogoutConfirm(false);
+    navigate("/login");
+  };
+
   return (
     <div className={`min-h-screen w-full ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-50 text-slate-800'}`}>
       <div className="mx-auto flex flex-col lg:flex-row max-w-[1400px] gap-2 sm:gap-4 p-2 sm:p-4">
-        <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} />
+        <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} onLogoutRequest={() => setShowLogoutConfirm(true)} />
         <main className="flex-1 min-w-0">
           <Header darkMode={darkMode} setDarkMode={setDarkMode} />
           {/* Content Area */}
@@ -78,7 +111,7 @@ export default function AdminDashboard() {
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
               <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
               <Route path="stock" element={<FishStockList darkMode={darkMode} />}/>
-             
+              
               {/* You can add boats, equipment, trip, notifications, reviews pages later */}
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
@@ -97,13 +130,48 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Logout confirmation modal (modern, minimal) */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className={`relative w-full max-w-md rounded-2xl shadow-xl ring-1 ${
+            darkMode ? 'bg-slate-800 ring-slate-700' : 'bg-white ring-slate-200'
+          }`}>
+            <div className={`p-5 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                Sign out?
+              </h3>
+              <p className={`${darkMode ? 'text-slate-300' : 'text-slate-600'} text-sm mt-1`}>
+                You’ll be logged out of the admin dashboard and redirected to the login page.
+              </p>
+            </div>
+            <div className="p-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className={`rounded-xl px-4 py-2 text-sm font-medium ${
+                  darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogoutConfirm}
+                className="rounded-xl px-4 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-500"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ----------------------------- UI Pieces ------------------------------ */
 
-function Sidebar({ darkMode, setDarkMode }) {
+function Sidebar({ darkMode, setDarkMode, onLogoutRequest }) {
   const linkBase =
     "group flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all duration-300 hover:translate-x-1";
   const active = "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md";
@@ -126,9 +194,15 @@ function Sidebar({ darkMode, setDarkMode }) {
         <NavLink to="/admin" end className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <LayoutDashboard className="h-5 w-5" /> Overview
         </NavLink>
+
         <NavLink to="/admin/users" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <UsersIcon className="h-5 w-5" /> Users
+          <UsersIcon className="h-5 w-5" /> Customers
         </NavLink>
+
+        <NavLink to="/admin/fishermen" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+          <UsersIcon className="h-5 w-5" /> Fishermen
+        </NavLink>
+
         <NavLink to="/admin/stock" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <BarChart3 className="h-5 w-5" /> Stock
         </NavLink>
@@ -163,6 +237,10 @@ function Sidebar({ darkMode, setDarkMode }) {
         
         <NavLink
           to="/admin/signout"
+          onClick={(e) => {
+            e.preventDefault();
+            onLogoutRequest && onLogoutRequest();
+          }}
           className={({ isActive }) =>
             `group flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all duration-300
             ${isActive 
@@ -177,18 +255,77 @@ function Sidebar({ darkMode, setDarkMode }) {
         </NavLink>
       </nav>
     </aside>
-
   );
 }
 
+
 function Header({ darkMode, setDarkMode }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false); // NEW: profile dropdown state
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  // Fake user details for dropdown
-  const userName = "Admin User";
-  const userEmail = "admin@example.com";
-  
+  const [userInfo, setUserInfo] = useState({
+    name: "",
+    email: "",
+    avatar: ""
+  });
+
+  useEffect(() => {
+    // Try multiple common keys and shapes to get admin details
+    const tryKeys = ["admin", "user", "auth_user", "auth"];
+    let raw = null;
+    for (const k of tryKeys) {
+      const v = localStorage.getItem(k);
+      if (v) { raw = v; break; }
+    }
+    let obj = null;
+    try {
+      obj = raw ? JSON.parse(raw) : null;
+    } catch {
+      obj = null;
+    }
+
+    // Some apps store inside nested fields (e.g., { user: {...} } or { data: {...} })
+    const candidate =
+      obj?.user || obj?.admin || obj?.data || obj || null;
+
+    const first = candidate?.firstName || candidate?.firstname || "";
+    const last = candidate?.lastName || candidate?.lastname || "";
+    const combinedName =
+      candidate?.name ||
+      candidate?.fullName ||
+      `${first} ${last}`.trim() ||
+      candidate?.username ||
+      "";
+
+    const email =
+      candidate?.email ||
+      candidate?.mail ||
+      candidate?.userEmail ||
+      "";
+
+    const avatar =
+      candidate?.avatar ||
+      candidate?.photoURL ||
+      candidate?.image ||
+      candidate?.profilePic ||
+      candidate?.avatarUrl ||
+      "";
+
+    setUserInfo({
+      name: combinedName || "Admin",
+      email: email || "",
+      avatar: avatar || ""
+    });
+  }, []);
+
+  const initials = (name) =>
+    (name || "")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase())
+      .join("") || "A";
+
   const notifications = [
     { id: 1, message: "New order received from Marine Foods", time: "10 mins ago", read: false },
     { id: 2, message: "Inventory low on Atlantic Salmon", time: "2 hours ago", read: false },
@@ -265,31 +402,30 @@ function Header({ darkMode, setDarkMode }) {
               onClick={() => setProfileOpen(!profileOpen)}
               className={`flex items-center gap-2 rounded-xl ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'} px-3 py-2`}
             >
-              <img
-                src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=140&auto=format&fit=crop"
-                alt="admin"
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
-              />
-              <span className="text-sm font-medium">Admin</span>
+              {userInfo.avatar ? (
+                <img
+                  src={userInfo.avatar}
+                  alt={userInfo.name || "admin"}
+                  className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 text-white flex items-center justify-center text-xs font-semibold ring-2 ring-white">
+                  {initials(userInfo.name)}
+                </div>
+              )}
+              <span className="text-sm font-medium">{userInfo.name || "Admin"}</span>
               <ChevronDown className="h-4 w-4" />
             </button>
 
             {profileOpen && (
               <div className={`absolute right-0 top-12 z-20 w-72 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800' : 'bg-white'} ring-1 ${darkMode ? 'ring-slate-700' : 'ring-slate-200'}`}>
-                <div className={`p-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{userName}</p>
-                  <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{userEmail}</p>
+                <div className={`p-4 ${darkMode ? 'border-b border-slate-700' : 'border-b border-slate-200'}`}>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{userInfo.name || "Admin"}</p>
+                  {userInfo.email ? (
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{userInfo.email}</p>
+                  ) : null}
                 </div>
-                <div className="p-2">
-                  <Link
-                    to="/admin/profile"
-                    className={`w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold
-                      ${darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit profile
-                  </Link>
-                </div>
+                {/* Edit profile option removed as requested */}
               </div>
             )}
           </div>
