@@ -59,7 +59,7 @@ export default function AdminCustomersPage({ darkMode }) {
     }
 
     if (status !== "all") {
-      const want = status === "active" ? false : true; // active => isDisabled === false
+      const want = status === "active" ? false : true;
       list = list.filter((c) => Boolean(c?.isDisabled) === want);
     }
 
@@ -103,7 +103,6 @@ export default function AdminCustomersPage({ darkMode }) {
     URL.revokeObjectURL(url);
   };
 
-  // -------- Delete action only ----------
   const handleDelete = async (customer) => {
     const name =
       (customer?.firstName || "") + (customer?.lastName ? " " + customer.lastName : "");
@@ -118,7 +117,7 @@ export default function AdminCustomersPage({ darkMode }) {
       return;
     }
 
-    const id = customer?._id; // backend expects :id
+    const id = customer?._id;
     if (!id) {
       toast.error("Customer id is missing");
       return;
@@ -146,7 +145,6 @@ export default function AdminCustomersPage({ darkMode }) {
         darkMode ? "bg-slate-800/90 ring-slate-700" : "bg-white/80 ring-slate-100"
       }`}
     >
-      {/* Header / Actions */}
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto]">
         <div className="flex items-center justify-between">
           <div>
@@ -174,7 +172,6 @@ export default function AdminCustomersPage({ darkMode }) {
         </div>
       </div>
 
-      {/* Filters */}
       <div
         className={`mb-4 grid gap-2 rounded-xl p-3 ring-1 ${
           darkMode ? "ring-slate-700 bg-slate-900/20" : "ring-slate-200 bg-slate-50"
@@ -240,14 +237,12 @@ export default function AdminCustomersPage({ darkMode }) {
         </div>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className={`rounded-xl ${darkMode ? "bg-slate-900/30" : "bg-slate-50"}`}>
         <TableSkeleton darkMode={darkMode} />
         </div>
       )}
 
-      {/* Error */}
       {!loading && error && (
         <div
           className={`mb-2 rounded-xl border p-3 text-sm ${
@@ -258,7 +253,6 @@ export default function AdminCustomersPage({ darkMode }) {
         </div>
       )}
 
-      {/* Empty */}
       {!loading && !error && filtered.length === 0 && (
         <div className={`grid place-items-center rounded-xl p-10 text-center ${darkMode ? "bg-slate-900/30" : "bg-slate-50"}`}>
           <ShieldAlert className={`mb-2 h-8 w-8 ${darkMode ? "text-slate-300" : "text-slate-500"}`} />
@@ -268,7 +262,6 @@ export default function AdminCustomersPage({ darkMode }) {
         </div>
       )}
 
-      {/* Table */}
       {!loading && !error && filtered.length > 0 && (
         <div
           className={`overflow-x-auto rounded-xl ring-1 ${
@@ -330,7 +323,6 @@ export default function AdminCustomersPage({ darkMode }) {
                   <Td className="whitespace-nowrap">{fmtDate(c.createdAt)}</Td>
                   <Td className="whitespace-nowrap">{fmtDate(c.lastLogin)}</Td>
 
-                  {/* Actions (Delete only) */}
                   <Td className="whitespace-nowrap">
                     <div className="flex items-center justify-end">
                       <button
@@ -398,7 +390,6 @@ function TableSkeleton({ darkMode }) {
   );
 }
 
-// Tiny helper to avoid importing Fragment
 function FragmentLike({ children }) {
   return children;
 }

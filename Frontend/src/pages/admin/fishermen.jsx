@@ -118,11 +118,9 @@ export default function AdminFishermenPage({ darkMode }) {
   };
 
   const handleEdit = (row) => {
-    // Navigate with current fisherman data (same pattern used elsewhere)
     navigate("/admin/updateFisherman", { state: row });
   };
 
-  // Delete action (admin)
   const handleDelete = async (row) => {
     const name = (row?.firstName || "") + (row?.lastName ? " " + row.lastName : "");
     const ok = window.confirm(
@@ -163,7 +161,6 @@ export default function AdminFishermenPage({ darkMode }) {
         darkMode ? "bg-slate-800/90 ring-slate-700" : "bg-white/80 ring-slate-100"
       }`}
     >
-      {/* Header / Actions */}
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto]">
         <div className="flex items-center justify-between">
           <div>
@@ -202,7 +199,6 @@ export default function AdminFishermenPage({ darkMode }) {
         </div>
       </div>
 
-      {/* Filters */}
       <div
         className={`mb-4 grid gap-2 rounded-xl p-3 ring-1 ${
           darkMode ? "ring-slate-700 bg-slate-900/20" : "ring-slate-200 bg-slate-50"
@@ -282,14 +278,12 @@ export default function AdminFishermenPage({ darkMode }) {
         </div>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className={`rounded-xl ${darkMode ? "bg-slate-900/30" : "bg-slate-50"}`}>
           <TableSkeleton darkMode={darkMode} />
         </div>
       )}
 
-      {/* Error */}
       {!loading && error && (
         <div
           className={`mb-2 rounded-xl border p-3 text-sm ${
@@ -300,7 +294,6 @@ export default function AdminFishermenPage({ darkMode }) {
         </div>
       )}
 
-      {/* Empty */}
       {!loading && !error && filtered.length === 0 && (
         <div className={`grid place-items-center rounded-xl p-10 text-center ${darkMode ? "bg-slate-900/30" : "bg-slate-50"}`}>
           <ShieldAlert className={`mb-2 h-8 w-8 ${darkMode ? "text-slate-300" : "text-slate-500"}`} />
@@ -310,7 +303,6 @@ export default function AdminFishermenPage({ darkMode }) {
         </div>
       )}
 
-      {/* Table */}
       {!loading && !error && filtered.length > 0 && (
         <div className={`overflow-x-auto rounded-xl ring-1 ${darkMode ? "ring-slate-700" : "ring-slate-200"}`}>
           <table className={`min-w-full text-sm ${darkMode ? "text-slate-200" : "text-slate-800"}`}>
@@ -403,7 +395,6 @@ export default function AdminFishermenPage({ darkMode }) {
   );
 }
 
-/* ---------- Subcomponents / utils ---------- */
 
 function Th({ children, className = "" }) {
   return (
@@ -446,7 +437,6 @@ function TableSkeleton({ darkMode }) {
   );
 }
 
-// Tiny helper to avoid importing Fragment
 function FragmentLike({ children }) {
   return children;
 }

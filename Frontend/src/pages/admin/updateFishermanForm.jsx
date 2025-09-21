@@ -8,13 +8,11 @@ export default function UpdateFishermanForm({ darkMode }) {
   const locationData = useLocation();
   const navigate = useNavigate();
 
-  // Guard: require fisherman state
   if (locationData.state == null) {
     toast.error("Please select a fisherman to edit");
     window.location.href = "/admin/fishermen";
   }
 
-  // Pull from location state (sanely default)
   const s = locationData.state || {};
   const [id] = useState(s?._id || "");
   const [firstName, setFirstName] = useState(s?.firstName || "");
@@ -28,7 +26,6 @@ export default function UpdateFishermanForm({ darkMode }) {
   const [isEmailVerified, setIsEmailVerified] = useState(Boolean(s?.isEmailVerified));
   const [isDisabled, setIsDisabled] = useState(Boolean(s?.isDisabled));
 
-  // Optional password change (only sent if provided)
   const [password, setPassword] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -52,7 +49,6 @@ export default function UpdateFishermanForm({ darkMode }) {
       return;
     }
 
-    // Build payload; only include password if provided
     const payload = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -97,10 +93,8 @@ export default function UpdateFishermanForm({ darkMode }) {
             : "ring-slate-200 bg-white shadow-lg"
         }`}
       >
-        {/* Top accent */}
         <div className="h-1 w-full bg-gradient-to-r from-cyan-500 to-blue-600" />
 
-        {/* Header */}
         <div className="px-6 pt-6">
           <h1 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>
             Edit Fisherman
@@ -109,7 +103,6 @@ export default function UpdateFishermanForm({ darkMode }) {
             Update the fields below and save your changes.
           </p>
 
-          {/* Live status pills */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
@@ -148,15 +141,12 @@ export default function UpdateFishermanForm({ darkMode }) {
           </div>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ID (read-only) */}
             <FormField label="Fisherman ID" darkMode={darkMode}>
               <input value={id} disabled type="text" className={inputClass(darkMode)} />
             </FormField>
 
-            {/* Position */}
             <FormField label="Position *" darkMode={darkMode}>
               <select
                 value={position}
@@ -169,7 +159,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               </select>
             </FormField>
 
-            {/* First name */}
             <FormField label="First Name *" darkMode={darkMode}>
               <input
                 value={firstName}
@@ -181,7 +170,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Last name */}
             <FormField label="Last Name *" darkMode={darkMode}>
               <input
                 value={lastName}
@@ -193,7 +181,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Email */}
             <FormField label="Email *" darkMode={darkMode}>
               <input
                 value={email}
@@ -206,7 +193,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Phone */}
             <FormField label="Phone *" darkMode={darkMode}>
               <input
                 value={phone}
@@ -218,7 +204,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Address */}
             <FormField label="Address *" darkMode={darkMode} full>
               <textarea
                 value={address}
@@ -230,7 +215,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* License Number */}
             <FormField label="License Number *" darkMode={darkMode}>
               <input
                 value={licenseNumber}
@@ -242,7 +226,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Boat Number */}
             <FormField label="Boat Number *" darkMode={darkMode}>
               <input
                 value={boatNumber}
@@ -254,7 +237,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Optional: change password */}
             <FormField label="New Password (optional)" darkMode={darkMode}>
               <input
                 value={password}
@@ -266,7 +248,6 @@ export default function UpdateFishermanForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Toggles */}
             <FormField label="Verification & Status" darkMode={darkMode} full>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div
@@ -312,7 +293,6 @@ export default function UpdateFishermanForm({ darkMode }) {
             </FormField>
           </div>
 
-          {/* Actions */}
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <Link
               to="/admin/fishermen"
@@ -338,7 +318,6 @@ export default function UpdateFishermanForm({ darkMode }) {
   );
 }
 
-/* ---------- Small presentational helper ---------- */
 function FormField({ label, hint, children, full, darkMode }) {
   return (
     <div className={full ? "md:col-span-2" : ""}>
