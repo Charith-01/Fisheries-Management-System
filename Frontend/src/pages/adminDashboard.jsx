@@ -58,7 +58,6 @@ import EquipmentManagement from "./admin/equipmentManagement.jsx";
 import AddEquipmentForm from "./admin/addEquipmentForm.jsx";
 import EditEquipmentForm from "./admin/editEquipmentForm.jsx";
 import EquipmentDetails from "./admin/equipmentDetails.jsx";
-
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
   
@@ -79,7 +78,7 @@ export default function AdminDashboard() {
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
               <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
               <Route path="stock" element={<FishStockList darkMode={darkMode} />}/>
-               
+             
               {/* You can add boats, equipment, trip, notifications, reviews pages later */}
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
@@ -161,6 +160,7 @@ function Sidebar({ darkMode, setDarkMode }) {
         <NavLink to="/admin/reviews" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <CreditCard className="h-5 w-5" /> Reviews
         </NavLink>
+        
         <NavLink
           to="/admin/signout"
           className={({ isActive }) =>
