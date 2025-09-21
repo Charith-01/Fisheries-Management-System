@@ -234,11 +234,18 @@ function ProductCard({ product, darkMode }) {
     description = "",
   } = product || {};
 
+  // Use FishStock-derived values if present
+  const effectiveCategory = product?.stockType || category;
+  const effectiveUnit = product?.stockUnit || unit;
+
   const img = Array.isArray(images) && images.length > 0 ? images[0] : "";
   const hasDiscount = typeof labeledPrice === "number" && typeof price === "number" && labeledPrice > price;
 
-  async function deleteProduct(id) {
+  // Prefer dynamic stockWeight from FishStock; fallback to static product.stock
+  const effectiveStock =
+    typeof product?.stockWeight === "number" ? product.stockWeight : stock;
 
+  async function deleteProduct(id) {
     const ok = window.confirm(
       `Are you sure you want to delete "${name}" (ID: ${id})?\nThis action cannot be undone.`
     );
@@ -284,7 +291,7 @@ function ProductCard({ product, darkMode }) {
             darkMode ? "bg-slate-900/80 text-slate-100" : "bg-white/90 text-slate-700"
           }`}
         >
-          {category}
+          {effectiveCategory}
         </span>
         <span
           className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold shadow ${
@@ -317,7 +324,7 @@ function ProductCard({ product, darkMode }) {
 
         <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
           <p className="text-xl font-extrabold text-blue-600">
-            Rs.{toMoney(price)} <span className="text-xs font-medium text-blue-600/80">/{unit}</span>
+            Rs.{toMoney(price)} <span className="text-xs font-medium text-blue-600/80">/{effectiveUnit}</span>
           </p>
           {hasDiscount && (
             <p className={`text-sm line-through ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Rs.{toMoney(labeledPrice)}</p>
@@ -328,7 +335,7 @@ function ProductCard({ product, darkMode }) {
 
         <div className="mt-2 flex items-center justify-between">
           <span className={`text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-            Stock: <span className={`${darkMode ? "text-slate-200" : "text-slate-700"} font-semibold`}>{stock} {unit}</span>
+            Stock: <span className={`${darkMode ? "text-slate-200" : "text-slate-700"} font-semibold`}>{effectiveStock} {effectiveUnit}</span>
           </span>
         </div>
 

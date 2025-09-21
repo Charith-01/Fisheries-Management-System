@@ -12,6 +12,11 @@ export default function ProductCard(props) {
     ? Math.round(((product.labeledPrice - product.price) / product.labeledPrice) * 100)
     : 0;
 
+  const stockWeight =
+    typeof product.stockWeight === "number" && !Number.isNaN(product.stockWeight)
+      ? product.stockWeight
+      : 0;
+
   return (
     <Link
       to={`/overview/${product.productId}`}
@@ -20,7 +25,7 @@ export default function ProductCard(props) {
       {/* Product image */}
       <div className="relative h-[180px] w-full overflow-hidden">
         <img
-          src={product.images[0]}
+          src={product.images?.[0]}
           alt={product.name}
           onError={(e) => {
             e.currentTarget.src =
@@ -57,10 +62,24 @@ export default function ProductCard(props) {
 
           {product.altNames?.length > 0 && (
             <p className="text-[15px] text-slate-500 line-clamp-1">
-               {product.altNames.slice(0, 2).join(", ")}
+              {product.altNames.slice(0, 2).join(", ")}
               {product.altNames.length > 2 ? "…" : ""}
             </p>
           )}
+
+          {/* In stock from FishStock aggregation */}
+          <p
+            className={`mt-2 text-sm font-medium ${
+              stockWeight > 0 ? "text-emerald-600" : "text-rose-600"
+            }`}
+            title="Total recorded stock from fish stocks"
+          >
+            {stockWeight > 0 ? (
+              <>In stock: {stockWeight} {product.unit}</>
+            ) : (
+              <>Out of stock</>
+            )}
+          </p>
         </div>
 
         {/* Price only */}
