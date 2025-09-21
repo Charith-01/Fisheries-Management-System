@@ -17,9 +17,32 @@ export default function RegistrationPage() {
 
   const navigate = useNavigate();
 
+  function validatePassword(pwd) {
+    const rules = [
+      { regex: /.{8,}/, msg: "At least 8 characters" },
+      { regex: /[A-Z]/, msg: "At least one uppercase letter" },
+      { regex: /[a-z]/, msg: "At least one lowercase letter" },
+      { regex: /[0-9]/, msg: "At least one number" },
+      { regex: /[^A-Za-z0-9]/, msg: "At least one special character" },
+    ];
+
+    for (let r of rules) {
+      if (!r.regex.test(pwd)) {
+        return r.msg;
+      }
+    }
+    return null;
+  }
+
   async function handleRegister() {
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
+      return;
+    }
+
+    const pwdError = validatePassword(password);
+    if (pwdError) {
+      toast.error(`Password requirement: ${pwdError}`);
       return;
     }
 
@@ -45,7 +68,6 @@ export default function RegistrationPage() {
 
   return (
     <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row md:overflow-hidden">
-      {/* LEFT: independently scrollable on desktop */}
       <div className="w-full md:w-[40%] h-full bg-white flex flex-col overflow-visible md:overflow-y-auto min-h-0">
         <div className="w-full max-w-[480px] mx-auto px-5 py-8 md:py-10">
           <div className="w-[170px] h-[70px] bg-[url(/icon-512.png)] bg-cover bg-center bg-no-repeat mb-5 mx-auto" />
@@ -115,7 +137,6 @@ export default function RegistrationPage() {
         </div>
       </div>
 
-      {/* RIGHT: sticky full-height on desktop, sensible height on mobile */}
       <div className="w-full md:w-[60%] h-[40vh] md:h-full md:sticky md:top-0 overflow-hidden">
         <LoginImageSlider />
       </div>
