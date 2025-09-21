@@ -674,26 +674,35 @@ function Overview({ darkMode }) {
             borderColor: darkMode ? '#334155' : '#e2e8f0'
           }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold">Income & Expenses</h3>
-            {isLoading && (
-              <div className="text-xs text-cyan-500 animate-pulse">
-                Updating...
-              </div>
-            )}
-          </div>
+          <h3 className="mb-4 text-base font-semibold">Income & Expenses</h3>
           <div className="h-64 sm:h-72">
-            {isLoading ? (
-              <div className="h-full flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={financeData} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
-                  {/* ... chart configuration (same as before) ... */}
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={finance} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="inc" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="exp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e2e8f0'} />
+                <XAxis dataKey="month" stroke={darkMode ? '#cbd5e1' : '#64748b'} />
+                <YAxis stroke={darkMode ? '#cbd5e1' : '#64748b'} />
+                <Tooltip 
+                  contentStyle={{ 
+                    background: darkMode ? '#1e293b' : '#fff', 
+                    borderColor: darkMode ? '#334155' : '#e2e8f0',
+                    color: darkMode ? '#e2e8f0' : '#000'
+                  }} 
+                />
+                <Legend />
+                <Area type="monotone" dataKey="income" name="Income" stroke="#22c55e" fill="url(#inc)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#f97316" fill="url(#exp)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
