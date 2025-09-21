@@ -20,10 +20,6 @@ import {
   Calendar,
   Download,
   Filter,
-  Eye,
-  Edit,
-  Trash2,
-  Plus
 } from "lucide-react";
 import {
   AreaChart,
@@ -55,6 +51,11 @@ import EquipmentManagement from "./admin/equipmentManagement.jsx";
 import AddEquipmentForm from "./admin/addEquipmentForm.jsx";
 import EditEquipmentForm from "./admin/editEquipmentForm.jsx";
 import EquipmentDetails from "./admin/equipmentDetails.jsx";
+import AdminCustomersPage from "./admin/customers.jsx";
+import AdminFishermenPage from "./admin/fishermen.jsx";
+import AddFishermanForm from "./admin/addFishermanForm.jsx";
+import UpdateFishermanForm from "./admin/updateFishermanForm.jsx";
+import axios from "axios";
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
@@ -104,15 +105,16 @@ export default function AdminDashboard() {
           <div className="mt-4">
             <Routes>
               <Route index element={<Overview darkMode={darkMode} />} />
-              <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
+              <Route path="users" element={<AdminCustomersPage darkMode={darkMode} />} />
+              <Route path="fishermen" element={<AdminFishermenPage darkMode={darkMode} />} />
               <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
+              <Route path="addFisherman" element={<AddFishermanForm darkMode={darkMode} />} />
+              <Route path="updateFisherman" element={<UpdateFishermanForm darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
               <Route path="trip" element={<TripsManagement darkMode={darkMode} />} />
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
               <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
-              <Route path="stock" element={<FishStockList darkMode={darkMode} />}/>
-              
-              {/* You can add boats, equipment, trip, notifications, reviews pages later */}
+              <Route path="stock" element={<FishStockList darkMode={darkMode} />} />
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
               <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
@@ -438,6 +440,43 @@ function Header({ darkMode, setDarkMode }) {
 /* ----------------------------- Pages ------------------------------ */
 
 function Overview({ darkMode }) {
+  // Live counts
+  const [customerCount, setCustomerCount] = useState(0);
+  const [fishermanCount, setFishermanCount] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    const fetchCounts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: "Bearer " + token } : undefined;
+
+        const [custRes, fishRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/customer/all`, { headers }),
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/fisherman/all`, { headers }),
+        ]);
+
+        const custList = Array.isArray(custRes?.data?.customers) ? custRes.data.customers : [];
+        const fishList = Array.isArray(fishRes?.data?.fishermen)
+          ? fishRes.data.fishermen
+          : Array.isArray(fishRes?.data)
+          ? fishRes.data
+          : [];
+
+        setCustomerCount(custList.length);
+        setFishermanCount(fishList.length);
+      } catch (err) {
+        // Silent fail to avoid UX noise on dashboard
+        console.error("Failed to fetch counts", err);
+      }
+    };
+
+    fetchCounts();
+    // Poll every 30s for "real-time-ish" updates
+    timer = setInterval(fetchCounts, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Orders
   const ordersWeekly = [
     { day: "Sat", orders: 24 },
@@ -487,17 +526,6 @@ function Overview({ darkMode }) {
     { name: "1★", value: 2 },
   ];
 
-  // Weather Forecast (next 7 days)
-  const weatherData = [
-    { day: "Sat", temp: 30, rain: 10 },
-    { day: "Sun", temp: 29, rain: 20 },
-    { day: "Mon", temp: 31, rain: 5 },
-    { day: "Tue", temp: 28, rain: 40 },
-    { day: "Wed", temp: 27, rain: 60 },
-    { day: "Thu", temp: 29, rain: 25 },
-    { day: "Fri", temp: 30, rain: 15 },
-  ];
-
   const COLORS = ["#0891b2", "#0ea5e9", "#818cf8", "#22c55e", "#f97316"];
 
   return (
@@ -505,10 +533,19 @@ function Overview({ darkMode }) {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Users"
-          value="234"
-          sub="this week"
-          change="+12%"
+          title="Customers"
+          value={String(customerCount)}
+          sub="total registered"
+          change=""
+          positive={true}
+          icon={<UsersIcon className="h-5 w-5" />}
+          darkMode={darkMode}
+        />
+        <StatCard
+          title="Fishermen"
+          value={String(fishermanCount)}
+          sub="total registered"
+          change=""
           positive={true}
           icon={<UsersIcon className="h-5 w-5" />}
           darkMode={darkMode}
@@ -529,15 +566,6 @@ function Overview({ darkMode }) {
           change="+18%"
           positive={true}
           icon={<CreditCard className="h-5 w-5" />}
-          darkMode={darkMode}
-        />
-        <StatCard
-          title="Weather Alerts"
-          value="3"
-          sub="active now"
-          change="+1"
-          positive={false}
-          icon={<BarChart3 className="h-5 w-5" />}
           darkMode={darkMode}
         />
       </div>
@@ -730,7 +758,7 @@ function Overview({ darkMode }) {
           </div>
         </div>
 
-        {/* Weather Forecast */}
+        {/* Weather Forecast (kept charts below, only the StatCard was removed above) */}
         <div
           className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
           style={{
@@ -747,7 +775,15 @@ function Overview({ darkMode }) {
 
           <div className="h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weatherData} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
+              <AreaChart data={[
+                { day: "Sat", temp: 30, rain: 10 },
+                { day: "Sun", temp: 29, rain: 20 },
+                { day: "Mon", temp: 31, rain: 5 },
+                { day: "Tue", temp: 28, rain: 40 },
+                { day: "Wed", temp: 27, rain: 60 },
+                { day: "Thu", temp: 29, rain: 25 },
+                { day: "Fri", temp: 30, rain: 15 },
+              ]} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.35} />
@@ -809,15 +845,6 @@ function Overview({ darkMode }) {
   );
 }
 
-/* Minimal shells for pages so you can add CRUDs later */
-function ManageUsers({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Users</h3>
-    </div>
-  );
-}
-
 function ViewOrders({ darkMode }) {
   return (
     <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
@@ -835,7 +862,9 @@ function StatCard({ title, value, sub, change, positive, icon, darkMode }) {
         <div className="rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 p-2 text-white shadow">
           {icon}
         </div>
-        <span className={`text-xs font-medium ${positive ? 'text-green-500' : 'text-red-500'}`}>{change}</span>
+        {change ? (
+          <span className={`text-xs font-medium ${positive ? 'text-green-500' : 'text-red-500'}`}>{change}</span>
+        ) : <span />}
       </div>
       <p className={`text-xs uppercase tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{title}</p>
       <p className={`text-2xl font-extrabold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{value}</p>

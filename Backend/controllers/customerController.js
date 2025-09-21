@@ -135,13 +135,6 @@ export async function changePassword(req, res) {
   }
 }
 
-/* -------------------------------------------------------------
-   NEW: Delete my account (profile) - appended without changing
-   existing code or structure.
-   Accepts either:
-   - { currentPassword } to verify before deletion, OR
-   - { confirm: true } for clients that already confirmed.
--------------------------------------------------------------- */
 export async function deleteMe(req, res) {
   try {
     if (!req.user?.email) {
@@ -150,7 +143,6 @@ export async function deleteMe(req, res) {
 
     const { currentPassword, confirm } = req.body || {};
 
-    // If a current password is provided, verify it.
     if (currentPassword) {
       const customer = await Customer.findOne({ email: req.user.email });
       if (!customer) {
@@ -161,7 +153,7 @@ export async function deleteMe(req, res) {
         return res.status(401).json({ message: "Current password is incorrect" });
       }
     } else {
-      // Otherwise require an explicit confirm flag.
+
       if (!confirm) {
         return res.status(400).json({
           message:
@@ -175,10 +167,81 @@ export async function deleteMe(req, res) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    // Note: token invalidation/blacklisting is not handled here.
     return res.json({ message: "Account deleted successfully" });
   } catch (err) {
     console.error("deleteMe error:", err);
     return res.status(500).json({ message: "Failed to delete account" });
+  }
+}
+
+export async function getAllCustomers(req, res) {
+  try {
+    const docs = await Customer.find({});
+    const customers = docs.map(sanitizeCustomer);
+    return res.json({ customers });
+  } catch (err) {
+    console.error("getAllCustomers error:", err);
+    return res.status(500).json({ message: "Failed to fetch customers" });
+  }
+}
+
+export async function adminDeleteCustomer(req, res) {
+  if (req.user == null) {
+    res.status(403).json({
+      message: "You need to log in to continue",
+    });
+    return;
+  }
+
+  if (req.user.role !== "admin") {
+    res.status(403).json({
+      message: "You do not have permission to perform this action",
+    });
+    return;
+  }
+
+  try {
+    await Customer.findOneAndDelete({ _id: req.params.id });
+
+    res.json({
+      message: "Customer deleted successfully",
+    });
+  } catch (err) {
+    console.error("adminDeleteCustomer error:", err);
+    res.status(500).json({
+      message: "Customer not deleted",
+    });
+  }
+}
+
+export async function adminUpdateCustomer(req, res) {
+  if (req.user == null) {
+    res.status(403).json({
+      message: "You need to log in to continue",
+    });
+    return;
+  }
+
+  if (req.user.role !== "admin") {
+    res.status(403).json({
+      message: "You do not have permission to perform this action",
+    });
+    return;
+  }
+
+  try {
+    await Customer.findOneAndUpdate(
+      { _id: req.params.id },
+      req.body
+    );
+
+    res.json({
+      message: "Customer updated successfully",
+    });
+  } catch (err) {
+    console.error("adminUpdateCustomer error:", err);
+    res.status(500).json({
+      message: "Customer not updated",
+    });
   }
 }
