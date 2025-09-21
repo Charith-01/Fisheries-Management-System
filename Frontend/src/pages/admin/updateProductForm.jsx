@@ -9,29 +9,23 @@ export default function UpdateProductForm({ darkMode }) {
   const locationData = useLocation();
   const navigate = useNavigate();
 
-  // Guard: require product state
   if (locationData.state == null) {
     toast.error("Please select a product to edit");
     window.location.href = "/admin/products";
   }
 
-  // Prefill from location state
   const [productId, setProductId] = useState(locationData.state?.productId || "");
   const [name, setName] = useState(locationData.state?.name || "");
   const [altName, setAltName] = useState(locationData.state?.altNames?.join(", ") || "");
   const [price, setPrice] = useState(locationData.state?.price ?? "");
   const [labeledPrice, setLabeledPrice] = useState(locationData.state?.labeledPrice ?? "");
-  const [stock, setStock] = useState(locationData.state?.stock ?? "");
-  const [category, setCategory] = useState(locationData.state?.category || "fish");
-  const [unit, setUnit] = useState(locationData.state?.unit || "kg");
   const [description, setDescription] = useState(locationData.state?.description || "");
-  const [images, setImages] = useState([]); // newly added files only
+  const [images, setImages] = useState([]);
   const [isActive, setIsActive] = useState(
     typeof locationData.state?.isActive === "boolean" ? locationData.state.isActive : true
   );
   const [submitting, setSubmitting] = useState(false);
 
-  // Derived UI states (kept consistent with AddProductForm)
   const discountPct = useMemo(() => {
     const p = Number(price);
     const lp = Number(labeledPrice);
@@ -49,7 +43,6 @@ export default function UpdateProductForm({ darkMode }) {
     [altName]
   );
 
-  // File pick/preview helpers (same behavior as AddProductForm)
   function onFilesPicked(fileList) {
     const next = Array.from(fileList || []);
     setImages((prev) => [...prev, ...next]);
@@ -62,20 +55,12 @@ export default function UpdateProductForm({ darkMode }) {
     if (e) e.preventDefault();
     setSubmitting(true);
 
-    // Keep your existing uploader approach
-    const promisesArray = [];
-    for (let i = 0; i < images.length; i++) {
-      const promise = meadiaUpload(images[i]);
-      promisesArray[i] = promise;
-    }
+    const uploadPromises = images.map((f) => meadiaUpload(f));
 
     try {
-      let result = await Promise.all(promisesArray);
-
-      // Preserve existing images if no new files were selected
+      let uploaded = await Promise.all(uploadPromises);
       if (images.length === 0) {
-        // NOTE: use existing product images from location state
-        result = locationData.state?.images || [];
+        uploaded = locationData.state?.images || [];
       }
 
       const altNamesInArray = altName
@@ -89,11 +74,8 @@ export default function UpdateProductForm({ darkMode }) {
         altNames: altNamesInArray,
         price: Number(price),
         labeledPrice: Number(labeledPrice),
-        stock: Number(stock),
-        category: category.trim(),
-        unit: unit.trim(),
         description: description.trim(),
-        images: result,
+        images: uploaded,
         isActive: Boolean(isActive),
       };
 
@@ -104,15 +86,10 @@ export default function UpdateProductForm({ darkMode }) {
         return;
       }
 
-      // Keep original logic (PUT), but fix path to include slash
       await axios.put(
         `${import.meta.env.VITE_BACKEND_URL}/api/product/update/${productId}`,
         product,
-        {
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-        }
+        { headers: { Authorization: "Bearer " + token } }
       );
 
       toast.success("Product updated successfully");
@@ -125,7 +102,6 @@ export default function UpdateProductForm({ darkMode }) {
     }
   }
 
-  // Existing images from state (for display when editing)
   const existingImages = Array.isArray(locationData.state?.images)
     ? locationData.state.images
     : [];
@@ -143,10 +119,8 @@ export default function UpdateProductForm({ darkMode }) {
             : "ring-slate-200 bg-white shadow-lg"
         }`}
       >
-        {/* Top accent */}
         <div className="h-1 w-full bg-gradient-to-r from-cyan-500 to-blue-600" />
 
-        {/* Header */}
         <div className="px-6 pt-6">
           <h1 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>
             Edit Product
@@ -155,7 +129,6 @@ export default function UpdateProductForm({ darkMode }) {
             Update the fields below and save your changes.
           </p>
 
-          {/* Live hints row: discount + status */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {discountPct > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-600/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-600 dark:bg-blue-600/20">
@@ -179,7 +152,6 @@ export default function UpdateProductForm({ darkMode }) {
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Product ID (disabled) */}
             <FormField label="Product ID" darkMode={darkMode}>
               <input
                 value={productId}
@@ -190,7 +162,6 @@ export default function UpdateProductForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Status toggle */}
             <FormField label="Status" darkMode={darkMode}>
               <div
                 className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
@@ -213,7 +184,6 @@ export default function UpdateProductForm({ darkMode }) {
               </div>
             </FormField>
 
-            {/* Name */}
             <FormField label="Product Name *" darkMode={darkMode}>
               <input
                 value={name}
@@ -225,40 +195,6 @@ export default function UpdateProductForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Category */}
-            <FormField label="Category *" darkMode={darkMode}>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                required
-                className={inputClass(darkMode)}
-              >
-                <option value="fish">Fish</option>
-                <option value="crab">Crab</option>
-                <option value="shellfish">Shellfish</option>
-                <option value="prawn">Prawn</option>
-                <option value="lobster">Lobster</option>
-                <option value="squid">Squid</option>
-                <option value="other">Other</option>
-              </select>
-            </FormField>
-
-            {/* Unit */}
-            <FormField label="Unit *" darkMode={darkMode}>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                required
-                className={inputClass(darkMode)}
-              >
-                <option value="kg">kg</option>
-                <option value="g">g</option>
-                <option value="lbs">lbs</option>
-                <option value="pieces">pieces</option>
-              </select>
-            </FormField>
-
-            {/* Price */}
             <FormField label="Price (sell) *" darkMode={darkMode}>
               <input
                 value={price}
@@ -272,7 +208,6 @@ export default function UpdateProductForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Labeled Price */}
             <FormField label="Labeled Price *" darkMode={darkMode}>
               <input
                 value={labeledPrice}
@@ -286,20 +221,6 @@ export default function UpdateProductForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Stock */}
-            <FormField label="Stock *" darkMode={darkMode}>
-              <input
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                type="number"
-                min="0"
-                required
-                placeholder="0"
-                className={inputClass(darkMode)}
-              />
-            </FormField>
-
-            {/* Alternate Names */}
             <FormField label="Alternate Names" darkMode={darkMode} full>
               <input
                 value={altName}
@@ -324,7 +245,6 @@ export default function UpdateProductForm({ darkMode }) {
               )}
             </FormField>
 
-            {/* Description */}
             <FormField label="Description" darkMode={darkMode} full>
               <textarea
                 value={description}
@@ -338,7 +258,6 @@ export default function UpdateProductForm({ darkMode }) {
               </div>
             </FormField>
 
-            {/* Existing Images (read-only preview) */}
             {existingImages.length > 0 && (
               <FormField label="Current Images" darkMode={darkMode} full>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -349,8 +268,7 @@ export default function UpdateProductForm({ darkMode }) {
                         darkMode ? "ring-slate-700 bg-slate-800" : "ring-slate-200 bg-white"
                       }`}
                     >
-                      {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                      <img src={url} className="h-28 w-full object-cover" />
+                      <img src={url} className="h-28 w-full object-cover" alt="" />
                     </div>
                   ))}
                 </div>
@@ -360,7 +278,6 @@ export default function UpdateProductForm({ darkMode }) {
               </FormField>
             )}
 
-            {/* Upload new Images */}
             <FormField label="Upload New Images" darkMode={darkMode} full>
               <label
                 className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-sm transition ${
@@ -371,23 +288,14 @@ export default function UpdateProductForm({ darkMode }) {
               >
                 <ImageIcon className="h-5 w-5" />
                 <span>Click to select images (JPG/PNG) or drop files here</span>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => onFilesPicked(e.target.files)}
-                  className="hidden"
-                />
+                <input type="file" multiple onChange={(e) => onFilesPicked(e.target.files)} className="hidden" />
               </label>
 
               {images.length > 0 && (
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {images.map((file, idx) => {
                     let url = "";
-                    try {
-                      url = URL.createObjectURL(file);
-                    } catch {
-                      url = "";
-                    }
+                    try { url = URL.createObjectURL(file); } catch { url = ""; }
                     return (
                       <div
                         key={idx}
@@ -403,9 +311,7 @@ export default function UpdateProductForm({ darkMode }) {
                             onLoad={() => URL.revokeObjectURL?.(url)}
                           />
                         ) : (
-                          <div className="h-28 grid place-items-center text-xs opacity-70">
-                            No preview
-                          </div>
+                          <div className="h-28 grid place-items-center text-xs opacity-70">No preview</div>
                         )}
 
                         <button
@@ -432,7 +338,6 @@ export default function UpdateProductForm({ darkMode }) {
             </FormField>
           </div>
 
-          {/* Actions */}
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <Link
               to="/admin/products"
@@ -458,7 +363,6 @@ export default function UpdateProductForm({ darkMode }) {
   );
 }
 
-/* ---------- Small presentational helper ---------- */
 function FormField({ label, hint, children, full, darkMode }) {
   return (
     <div className={full ? "md:col-span-2" : ""}>
@@ -471,9 +375,7 @@ function FormField({ label, hint, children, full, darkMode }) {
       </label>
       {children}
       {hint && (
-        <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-          {hint}
-        </p>
+        <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>{hint}</p>
       )}
     </div>
   );
