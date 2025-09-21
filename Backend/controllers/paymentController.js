@@ -91,7 +91,7 @@ export const confirmPayment = async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to confirm this payment' });
     }
     
-    // ✅ CREATE INCOME RECORD FOR SUCCESSFUL PAYMENTS
+    //  CREATE INCOME RECORD FOR SUCCESSFUL PAYMENTS
     if (paymentIntent.status === 'succeeded') {
       try {
         // Check if income record already exists to avoid duplicates
