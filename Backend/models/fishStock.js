@@ -6,16 +6,25 @@ const fishStockSchema = new mongoose.Schema({
     unique: true,
     required: false
   },
+  name: {
+    type: String,
+    required: true
+  },
   type: {
     type: String,
     required: true,
-    enum: ['Balaya', ' Tuna', 'Salaya', 'Bolla'],
-    default: 'Balaya'
+    enum: ["fish", "crab", "shellfish", "prawn", "lobster", "squid", "other"],
+    default: 'fish'
   },
   weight: {
-    type: Number,
-    required: true,
-    min: 0
+      type : Number,
+      required : true
+  },
+  unit : {
+      type : String,
+      required : true,
+      default : "kg",
+      enum : ["kg", "g", "lbs", "pieces"]
   },
   quality: {
     type: String,
