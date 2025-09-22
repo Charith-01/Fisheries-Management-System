@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import {
   Ship,
-  PlusCircle,
-  Trash2,
-  Edit as EditIcon,
   CalendarClock,
   MapPin,
   User2,
@@ -15,14 +11,12 @@ import {
   LifeBuoy,
   Info,
   Download,
-  XCircle,
 } from "lucide-react";
 
-export default function TripsManagement({ darkMode = false, readOnly = false }) {
+export default function FishermanTrips({ darkMode = false }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("total");
-  const navigate = useNavigate();
 
   const [boatsById, setBoatsById] = useState({});
   const [fishById, setFishById] = useState({});
@@ -104,41 +98,6 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     fetchLookups();
   }, []);
 
-  async function handleDelete(tripId) {
-    if (!window.confirm("Delete this trip?")) return;
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`/api/trip/${encodeURIComponent(tripId)}`, {
-        headers: { Authorization: "Bearer " + token },
-      });
-      toast.success("Trip deleted");
-      setTrips((prev) => prev.filter((t) => t.tripId !== tripId));
-    } catch (e) {
-      console.error(e);
-      toast.error(e.response?.data?.message || "Delete failed");
-    }
-  }
-
-  async function handleCancel(tripId) {
-    if (!window.confirm("Cancel this trip?")) return;
-    try {
-      const token = localStorage.getItem("token");
-      const { data } = await axios.patch(
-        `/api/trip/${encodeURIComponent(tripId)}`,
-        { status: "cancelled" },
-        { headers: { Authorization: "Bearer " + token } }
-      );
-      const updated = data && typeof data === "object" ? data : null;
-      setTrips((prev) =>
-        prev.map((t) => (t.tripId === tripId ? { ...t, ...(updated || {}), status: "cancelled" } : t))
-      );
-      toast.success("Trip cancelled");
-    } catch (e) {
-      console.error(e);
-      toast.error(e.response?.data?.message || "Cancel failed");
-    }
-  }
-
   const { upcoming, ongoing, others, completed, overdue, cancelled, counts } = useMemo(() => {
     const u = [], o = [], ot = [], comp = [], over = [], can = [];
     const c = { total: 0, upcoming: 0, ongoing: 0, completed: 0, overdue: 0, cancelled: 0 };
@@ -146,18 +105,9 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     for (const t of trips) {
       c.total++;
       const s = (t.status || "upcoming").toLowerCase();
-      if (s === "upcoming") {
-        c.upcoming++;
-        u.push(t);
-      } else if (s === "ongoing") {
-        c.ongoing++;
-        o.push(t);
-      } else {
-        ot.push(t);
-        if (s === "completed") { c.completed++; comp.push(t); }
-        if (s === "overdue")   { c.overdue++;   over.push(t); }
-        if (s === "cancelled") { c.cancelled++; can.push(t); }
-      }
+      if (s === "upcoming") { c.upcoming++; u.push(t); }
+      else if (s === "ongoing") { c.ongoing++; o.push(t); }
+      else { ot.push(t); if (s === "completed") comp.push(t); if (s === "overdue") over.push(t); if (s === "cancelled") can.push(t); }
     }
     u.sort((a, b) => new Date(a.departureDateTime) - new Date(b.departureDateTime));
     o.sort((a, b) => new Date(a.plannedReturnAt) - new Date(b.plannedReturnAt));
@@ -233,8 +183,8 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
         <div className="flex items-center gap-2">
           <CalendarClock className="h-7 w-7 text-sky-500" />
           <div>
-            <h1 className={`text-2xl font-bold ${headerTitle}`}>Trip Schedule</h1>
-            <p className={`text-xs ${subtitleText}`}>Manage and review your trips</p>
+            <h1 className={`text-2xl font-bold ${headerTitle}`}>Trips</h1>
+            <p className={`text-xs ${subtitleText}`}>View assigned and active trips</p>
           </div>
         </div>
 
@@ -250,16 +200,6 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
             <Download className="h-4 w-4" />
             Report
           </button>
-
-          {!readOnly && (
-            <button
-              onClick={() => navigate("/admin/trip/add")}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white shadow hover:bg-blue-700"
-            >
-              <PlusCircle className="h-5 w-5" />
-              Add Trip
-            </button>
-          )}
         </div>
       </div>
 
@@ -295,13 +235,10 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
                   <TripCard
                     key={t.tripId}
                     trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
                     darkMode={darkMode}
                     boatNameOf={boatNameOf}
                     personFirstOf={personFirstOf}
                     peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
                   />
                 ))}
               </CardGrid>
@@ -319,13 +256,10 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
                   <TripCard
                     key={t.tripId}
                     trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
                     darkMode={darkMode}
                     boatNameOf={boatNameOf}
                     personFirstOf={personFirstOf}
                     peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
                   />
                 ))}
               </CardGrid>
@@ -343,13 +277,10 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
                   <TripCard
                     key={t.tripId}
                     trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
                     darkMode={darkMode}
                     boatNameOf={boatNameOf}
                     personFirstOf={personFirstOf}
                     peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
                   />
                 ))}
               </CardGrid>
@@ -385,13 +316,10 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
                   <TripCard
                     key={t.tripId}
                     trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
                     darkMode={darkMode}
                     boatNameOf={boatNameOf}
                     personFirstOf={personFirstOf}
                     peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
                   />
                 ))
               )}
@@ -448,7 +376,7 @@ function EmptyRow({ text, darkMode }) {
   );
 }
 
-function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstOf, peopleListFirstNames, readOnly = false }) {
+function TripCard({ trip, darkMode, boatNameOf, personFirstOf, peopleListFirstNames }) {
   const boatLabel = boatNameOf(trip.boat);
   const skipperLabel = personFirstOf(trip.skipper ?? trip.captain);
   const fishermenLabel = peopleListFirstNames(trip.fishermen);
@@ -456,8 +384,6 @@ function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstO
 
   const shell = darkMode ? "bg-slate-800/90 ring-slate-700 hover:ring-sky-700" : "bg-white/90 ring-slate-200 hover:ring-sky-200";
   const fadeFrom = darkMode ? "from-slate-900" : "from-white";
-
-  const status = (trip.status || "").toLowerCase();
 
   return (
     <div className={`group relative overflow-hidden rounded-2xl p-5 ring-1 shadow-sm transition-all duration-300 hover:shadow-lg ${shell}`}>
@@ -501,42 +427,6 @@ function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstO
       </div>
 
       <div className={`pointer-events-none absolute inset-x-0 bottom-14 h-8 bg-gradient-to-t ${fadeFrom} to-transparent opacity-0`} />
-
-      {!readOnly && (
-        <div className="mt-5 flex items-center justify-end gap-2">
-          <Link
-            to={`/admin/trip/edit/${encodeURIComponent(trip.tripId)}`}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
-            ${darkMode ? "text-sky-300 ring-sky-800 hover:bg-sky-600/20 hover:text-white" : "text-blue-700 ring-blue-200 hover:bg-blue-600 hover:text-white"}`}
-            title="Edit"
-          >
-            <EditIcon className="h-4 w-4" />
-            Edit
-          </Link>
-
-          {status === "upcoming" ? (
-            <button
-              onClick={() => onCancel(trip.tripId)}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
-              ${darkMode ? "text-amber-300 ring-amber-800 hover:bg-amber-600/20 hover:text-white" : "text-amber-700 ring-amber-200 hover:bg-amber-500 hover:text-white"}`}
-              title="Cancel trip"
-            >
-              <XCircle className="h-4 w-4" />
-              Cancel
-            </button>
-          ) : status === "ongoing" ? null : (
-            <button
-              onClick={() => onDelete(trip.tripId)}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
-              ${darkMode ? "text-rose-300 ring-rose-800 hover:bg-rose-600/20 hover:text-white" : "text-rose-700 ring-rose-200 hover:bg-rose-600 hover:text-white"}`}
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

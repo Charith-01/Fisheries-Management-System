@@ -14,6 +14,8 @@ import loginController from './controllers/loginController.js';
 import paymentRouter from './routes/paymentRouter.js';
 import equipmentRouter from './routes/equipmentRouter.js';
 import productRouter from './routes/productRouter.js';
+import weatherRouter from './routes/weatherRouter.js';
+
 
 import expenseRoutes from './routes/expenseRoutes.js'
 
@@ -52,6 +54,7 @@ app.use("/api/boat", boatRouter)
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRouter);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/weather", weatherRouter);
 
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/payment/webhook") {

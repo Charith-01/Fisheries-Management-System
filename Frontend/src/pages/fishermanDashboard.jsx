@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios"; 
 import { NavLink, Route, Routes, Link } from "react-router-dom";
+import FishermanTrips from "./admin/fishermanTrips";
+import Weather from "./Weather";
 import {
   Fish,
   Ship,
@@ -54,9 +56,9 @@ export default function FishermanDashboard() {
             <Routes>
               <Route index element={<Overview darkMode={darkMode} />} />
               <Route path="stock" element={<StockPage darkMode={darkMode} />} />
-              <Route path="weather" element={<WeatherPage darkMode={darkMode} />} />
-              {/* Added Trip route */}
-              <Route path="trip" element={<TripPage darkMode={darkMode} />} />
+              <Route path="weather" element={<Weather darkMode={darkMode} />} />
+              
+              <Route path="trip" element={<FishermanTrips  darkMode={darkMode} />} />
               {/* Keep profile page as a hidden route the dropdown can link to */}
               <Route path="profile" element={<ProfilePage darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
