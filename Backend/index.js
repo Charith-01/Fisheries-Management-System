@@ -13,6 +13,7 @@ import notificationRoutes from './routes/notificationRoutes.js'
 import loginController from './controllers/loginController.js';
 
  import fishStockRouter from './routes/fishStockRouter.js';
+ import reviewRouter from './routes/reviewRouter.js';
 
 import paymentRouter from './routes/paymentRouter.js';
 import equipmentRouter from './routes/equipmentRouter.js';
@@ -21,6 +22,7 @@ import productRouter from './routes/productRouter.js';
 import expenseRoutes from './routes/expenseRoutes.js'
 
 import orderRouter from './routes/orderRouter.js';
+
 
 
 
@@ -54,7 +56,7 @@ app.use("/api/fisherman", fishermanRouter);
 app.use("/api/trip", tripRouter);
 app.use("/api/boat", boatRouter)
 app.use("/api/notifications", notificationRoutes);
-
+app.use("/api/review", reviewRouter);
 app.use("/api/fishstock", fishStockRouter);
 
 
