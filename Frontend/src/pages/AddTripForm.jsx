@@ -10,13 +10,13 @@ export default function AddTripForm({ darkMode = false }) {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [boats, setBoats] = useState([]);
-  const [skippers, setSkippers] = useState([]);   
-  const [fishermen, setFishermen] = useState([]);  
+  const [skippers, setSkippers] = useState([]);    // ⬅️ skippers
+  const [fishermen, setFishermen] = useState([]);  // ⬅️ crew list
 
   const [form, setForm] = useState({
     tripId: "",
     boat: "",
-    skipper: "",            
+    skipper: "",            // ⬅️ skipper instead of captain
     fishermen: [],
     departureDateTime: "",
     plannedReturnAt: "",
