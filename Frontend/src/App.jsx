@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminDashboard from "./pages/adminDashboard";
 import LoginPage from "./pages/loginPage";
 import { Toaster } from 'react-hot-toast'
 import RegistrationPage from "./pages/client/registrationPage";
+
+
 
 
 import FishStockList from "./pages/FishStockList";
@@ -14,6 +15,7 @@ import FishermanDashboard from "./pages/fishermanDashboard";
 import PaymentPage from "./pages/client/PaymentPage";
 import SuccessPage from "./pages/client/SuccessPage";
 import HomePage from "./pages/homePage";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import NotFoundPage from "./pages/client/notFoundPage";
 
 
