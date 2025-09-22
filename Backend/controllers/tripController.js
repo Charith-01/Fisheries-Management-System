@@ -1,3 +1,4 @@
+// controllers/tripController.js
 import Trip from "../models/trip.js";
 import Notification from "../models/notification.js"; // Import Notification model
 
@@ -27,7 +28,7 @@ const createTripNotification = async (trip) => {
   }
 };
 
-
+/** Create */
 export async function createTrip(req, res) {
   if (!req.user) return res.status(403).json({ message: "You need to login first" });
   if (req.user.role !== "admin") return res.status(403).json({ message: "You are not authorized to create trip" });
@@ -35,7 +36,7 @@ export async function createTrip(req, res) {
   try {
     const body = req.body || {};
 
-    
+    // keep/derive status
     if (body.status !== 'cancelled' && body.status !== 'completed') {
       body.status = Trip.deriveStatus({
         departureDateTime: body.departureDateTime,
@@ -44,6 +45,7 @@ export async function createTrip(req, res) {
       });
     }
 
+    // Expect body.skipper and body.fishermen (ObjectId strings of Fisherman)
     const trip = new Trip(body);
     await trip.save();
     
@@ -62,7 +64,7 @@ export async function createTrip(req, res) {
   }
 }
 
-
+/** List all */
 export async function getTrip(req, res) {
   try {
     try {
@@ -83,7 +85,7 @@ export async function getTrip(req, res) {
   }
 }
 
-
+/** Read by tripId */
 export async function getTripById(req, res) {
   try {
     const { tripId } = req.params;
@@ -106,7 +108,7 @@ export async function getTripById(req, res) {
   }
 }
 
-
+/** Update by tripId */
 export async function updateTrip(req, res) {
   if (!req.user) return res.status(403).json({ message: "You need to login first" });
   if (req.user.role !== "admin") return res.status(403).json({ message: "You are not authorized to update trip" });
@@ -137,6 +139,7 @@ export async function updateTrip(req, res) {
   }
 }
 
+/** Delete by tripId */
 export async function deleteTrip(req, res) {
   if (!req.user) return res.status(403).json({ message: "You need to login first" });
   if (req.user.role !== "admin") return res.status(403).json({ message: "You are not authorized to delete trip" });

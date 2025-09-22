@@ -15,18 +15,19 @@ import {
   LifeBuoy,
   Info,
   Download,
-  XCircle,
 } from "lucide-react";
 
-export default function TripsManagement({ darkMode = false, readOnly = false }) {
+export default function TripsManagement({ darkMode = false }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("total");
   const navigate = useNavigate();
 
+  // NEW: lookup maps for names when API returns only IDs
   const [boatsById, setBoatsById] = useState({});
-  const [fishById, setFishById] = useState({});
+  const [fishById, setFishById] = useState({}); // fishermen + skippers share Fisherman model
 
+  // ---------- helpers ----------
   const idOf = (x) =>
     typeof x === "string" ? x : (x && (x._id || x.id)) ? String(x._id || x.id) : "";
 
@@ -35,6 +36,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     if (typeof boat === "object") {
       return boat.name || boat.boatName || boat.boatNumber || boat.registrationNumber || idOf(boat);
     }
+    // string id → try map
     return boatsById[boat]?.name || boatsById[boat]?.boatName || boatsById[boat]?.boatNumber || boat;
   };
 
@@ -43,14 +45,19 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     if (typeof p === "object") {
       return p.firstName || p.name || p.email || idOf(p);
     }
+    // string id → try map
     return fishById[p]?.firstName || fishById[p]?.name || fishById[p]?.email || p;
   };
 
   const peopleListFirstNames = (arr) => {
     const list = Array.isArray(arr) ? arr : [];
-    return list.map((v) => personFirstOf(v)).filter(Boolean).join(", ");
+    return list
+      .map((v) => personFirstOf(v))
+      .filter(Boolean)
+      .join(", ");
   };
 
+  // ---------- data fetching ----------
   async function fetchTrips() {
     try {
       const token = localStorage.getItem("token");
@@ -66,6 +73,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     }
   }
 
+  // Fetch boats and fishermen/ skippers lists to resolve names when IDs only
   async function fetchLookups() {
     try {
       const token = localStorage.getItem("token");
@@ -96,6 +104,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
       setFishById(fishMap);
     } catch (e) {
       console.error(e);
+      // not fatal
     }
   }
 
@@ -119,26 +128,6 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     }
   }
 
-  async function handleCancel(tripId) {
-    if (!window.confirm("Cancel this trip?")) return;
-    try {
-      const token = localStorage.getItem("token");
-      const { data } = await axios.patch(
-        `/api/trip/${encodeURIComponent(tripId)}`,
-        { status: "cancelled" },
-        { headers: { Authorization: "Bearer " + token } }
-      );
-      const updated = data && typeof data === "object" ? data : null;
-      setTrips((prev) =>
-        prev.map((t) => (t.tripId === tripId ? { ...t, ...(updated || {}), status: "cancelled" } : t))
-      );
-      toast.success("Trip cancelled");
-    } catch (e) {
-      console.error(e);
-      toast.error(e.response?.data?.message || "Cancel failed");
-    }
-  }
-
   const { upcoming, ongoing, others, completed, overdue, cancelled, counts } = useMemo(() => {
     const u = [], o = [], ot = [], comp = [], over = [], can = [];
     const c = { total: 0, upcoming: 0, ongoing: 0, completed: 0, overdue: 0, cancelled: 0 };
@@ -146,18 +135,9 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     for (const t of trips) {
       c.total++;
       const s = (t.status || "upcoming").toLowerCase();
-      if (s === "upcoming") {
-        c.upcoming++;
-        u.push(t);
-      } else if (s === "ongoing") {
-        c.ongoing++;
-        o.push(t);
-      } else {
-        ot.push(t);
-        if (s === "completed") { c.completed++; comp.push(t); }
-        if (s === "overdue")   { c.overdue++;   over.push(t); }
-        if (s === "cancelled") { c.cancelled++; can.push(t); }
-      }
+      if (s === "upcoming") { c.upcoming++; u.push(t); }
+      else if (s === "ongoing") { c.ongoing++; o.push(t); }
+      else { ot.push(t); if (s === "completed") comp.push(t); if (s === "overdue") over.push(t); if (s === "cancelled") can.push(t); }
     }
     u.sort((a, b) => new Date(a.departureDateTime) - new Date(b.departureDateTime));
     o.sort((a, b) => new Date(a.plannedReturnAt) - new Date(b.plannedReturnAt));
@@ -251,18 +231,17 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
             Report
           </button>
 
-          {!readOnly && (
-            <button
-              onClick={() => navigate("/admin/trip/add")}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white shadow hover:bg-blue-700"
-            >
-              <PlusCircle className="h-5 w-5" />
-              Add Trip
-            </button>
-          )}
+          <button
+            onClick={() => navigate("/admin/trip/add")}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white shadow hover:bg-blue-700"
+          >
+            <PlusCircle className="h-5 w-5" />
+            Add Trip
+          </button>
         </div>
       </div>
 
+      {/* Filter cards */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {[
           ["total", "Total", counts.total, "slate"],
@@ -284,6 +263,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
         ))}
       </div>
 
+      {/* Content */}
       <div className={`rounded-2xl p-4 ring-1 ${softPanel}`}>
         {showBlocks.includes("upcoming") && filter === "total" && (
           <Section darkMode={darkMode} title="Upcoming" subtitle="Trips that haven't started yet">
@@ -292,17 +272,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
             ) : (
               <CardGrid>
                 {upcoming.map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
+                  <TripCard key={t.tripId} trip={t} onDelete={handleDelete} darkMode={darkMode} boatNameOf={boatNameOf} personFirstOf={personFirstOf} peopleListFirstNames={peopleListFirstNames} />
                 ))}
               </CardGrid>
             )}
@@ -316,17 +286,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
             ) : (
               <CardGrid>
                 {ongoing.map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
+                  <TripCard key={t.tripId} trip={t} onDelete={handleDelete} darkMode={darkMode} boatNameOf={boatNameOf} personFirstOf={personFirstOf} peopleListFirstNames={peopleListFirstNames} />
                 ))}
               </CardGrid>
             )}
@@ -340,17 +300,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
             ) : (
               <CardGrid>
                 {others.map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
+                  <TripCard key={t.tripId} trip={t} onDelete={handleDelete} darkMode={darkMode} boatNameOf={boatNameOf} personFirstOf={personFirstOf} peopleListFirstNames={peopleListFirstNames} />
                 ))}
               </CardGrid>
             )}
@@ -382,17 +332,7 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
                 : filter === "completed" ? completed
                 : filter === "overdue" ? overdue
                 : cancelled).map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
+                  <TripCard key={t.tripId} trip={t} onDelete={handleDelete} darkMode={darkMode} boatNameOf={boatNameOf} personFirstOf={personFirstOf} peopleListFirstNames={peopleListFirstNames} />
                 ))
               )}
             </CardGrid>
@@ -448,7 +388,7 @@ function EmptyRow({ text, darkMode }) {
   );
 }
 
-function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstOf, peopleListFirstNames, readOnly = false }) {
+function TripCard({ trip, onDelete, darkMode, boatNameOf, personFirstOf, peopleListFirstNames }) {
   const boatLabel = boatNameOf(trip.boat);
   const skipperLabel = personFirstOf(trip.skipper ?? trip.captain);
   const fishermenLabel = peopleListFirstNames(trip.fishermen);
@@ -456,8 +396,6 @@ function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstO
 
   const shell = darkMode ? "bg-slate-800/90 ring-slate-700 hover:ring-sky-700" : "bg-white/90 ring-slate-200 hover:ring-sky-200";
   const fadeFrom = darkMode ? "from-slate-900" : "from-white";
-
-  const status = (trip.status || "").toLowerCase();
 
   return (
     <div className={`group relative overflow-hidden rounded-2xl p-5 ring-1 shadow-sm transition-all duration-300 hover:shadow-lg ${shell}`}>
@@ -502,41 +440,26 @@ function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstO
 
       <div className={`pointer-events-none absolute inset-x-0 bottom-14 h-8 bg-gradient-to-t ${fadeFrom} to-transparent opacity-0`} />
 
-      {!readOnly && (
-        <div className="mt-5 flex items-center justify-end gap-2">
-          <Link
-            to={`/admin/trip/edit/${encodeURIComponent(trip.tripId)}`}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
+      <div className="mt-5 flex items-center justify-end gap-2">
+        <Link
+          to={`/admin/trip/edit/${encodeURIComponent(trip.tripId)}`}
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
             ${darkMode ? "text-sky-300 ring-sky-800 hover:bg-sky-600/20 hover:text-white" : "text-blue-700 ring-blue-200 hover:bg-blue-600 hover:text-white"}`}
-            title="Edit"
-          >
-            <EditIcon className="h-4 w-4" />
-            Edit
-          </Link>
-
-          {status === "upcoming" ? (
-            <button
-              onClick={() => onCancel(trip.tripId)}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
-              ${darkMode ? "text-amber-300 ring-amber-800 hover:bg-amber-600/20 hover:text-white" : "text-amber-700 ring-amber-200 hover:bg-amber-500 hover:text-white"}`}
-              title="Cancel trip"
-            >
-              <XCircle className="h-4 w-4" />
-              Cancel
-            </button>
-          ) : status === "ongoing" ? null : (
-            <button
-              onClick={() => onDelete(trip.tripId)}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
-              ${darkMode ? "text-rose-300 ring-rose-800 hover:bg-rose-600/20 hover:text-white" : "text-rose-700 ring-rose-200 hover:bg-rose-600 hover:text-white"}`}
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
-          )}
-        </div>
-      )}
+          title="Edit"
+        >
+          <EditIcon className="h-4 w-4" />
+          Edit
+        </Link>
+        <button
+          onClick={() => onDelete(trip.tripId)}
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
+            ${darkMode ? "text-rose-300 ring-rose-800 hover:bg-rose-600/20 hover:text-white" : "text-rose-700 ring-rose-200 hover:bg-rose-600 hover:text-white"}`}
+          title="Delete"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
