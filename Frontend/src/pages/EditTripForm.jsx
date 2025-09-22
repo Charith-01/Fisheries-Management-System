@@ -32,7 +32,6 @@ export default function EditTripForm({ darkMode = false }) {
     actualReturnAt: "",
   });
 
-  // ---------- helpers ----------
   const idOf = (x) =>
     typeof x === "string" ? x : (x && (x._id || x.id)) ? String(x._id || x.id) : "";
 
@@ -42,12 +41,11 @@ export default function EditTripForm({ darkMode = false }) {
     return full || u.email || idOf(u) || "";
   };
 
-  // ensure current selected value(s) exist in dropdown lists
+  // ensure current selected value exist in dropdown lists
   const ensureSkipperPresent = (list, skipperId, skipperObj) => {
     if (!skipperId) return list;
     const exists = list.some((u) => String(u._id) === String(skipperId));
     if (exists) return list;
-    // inject a minimal option so the select shows current value
     const label = skipperObj ? nameOfFisherman(skipperObj) : skipperId;
     return [{ _id: skipperId, firstName: label }, ...list];
   };
@@ -66,7 +64,7 @@ export default function EditTripForm({ darkMode = false }) {
     return [...inject, ...list];
   };
 
-  // ---------- load data ----------
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     const headers = { Authorization: "Bearer " + token };
@@ -75,7 +73,7 @@ export default function EditTripForm({ darkMode = false }) {
       try {
         // 1) Load trip
         const t = await axios.get(`/api/trip/${encodeURIComponent(tripId)}`, { headers });
-        // API might return raw doc or {trip: doc}
+        
         const trip = t.data?.trip || t.data;
         if (!trip) {
           toast.error("Trip not found");
@@ -89,7 +87,7 @@ export default function EditTripForm({ darkMode = false }) {
         const skipperObj = trip.skipper || trip.captain || null;
         const skipperId = idOf(skipperObj);
 
-        // fishermen could be Fisherman[] or User[]
+        // fishermen could be Fisherman
         const fishermenObjs = Array.isArray(trip.fishermen) ? trip.fishermen : [];
         const fishermenIds = fishermenObjs.map(idOf).filter(Boolean);
 
@@ -106,7 +104,7 @@ export default function EditTripForm({ darkMode = false }) {
           actualReturnAt: toInputDT(trip.actualReturnAt) || "",
         });
 
-        // 2) Load dropdown sources
+        // Load dropdown sources
         const [boatsRes, skRes, fishRes] = await Promise.allSettled([
           axios.get("/api/boat", { headers }),
           axios.get("/api/fisherman?position=skipper", { headers }),
@@ -196,7 +194,6 @@ export default function EditTripForm({ darkMode = false }) {
     }
   }
 
-  // ---------- UI ----------
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
