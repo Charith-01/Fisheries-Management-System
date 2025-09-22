@@ -45,7 +45,6 @@ export default function LoginPage() {
 
   return (
     <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row md:overflow-hidden">
-      {/* LEFT: same width as registration; centered content, no extra scroll */}
       <div className="w-full md:w-[40%] h-auto md:h-full bg-white flex justify-center items-center">
         <div className="w-full max-w-[480px] px-5 py-8 md:py-10 flex justify-center items-center flex-col">
           <div className="w-[170px] h-[70px] bg-[url(/icon-512.png)] bg-cover bg-center bg-no-repeat mb-5"></div>
@@ -82,7 +81,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* RIGHT: same sizing behavior as registration (no extra scroll, fills side) */}
       <div className="w-full md:w-[60%] h-[40vh] md:h-full md:sticky md:top-0 overflow-hidden">
         <LoginImageSlider />
       </div>

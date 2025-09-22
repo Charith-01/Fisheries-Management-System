@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import { Ship, Trash2, Edit, PlusCircle } from "lucide-react";
+import { Ship, Trash2, Edit, PlusCircle, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function BoatsManagement({ darkMode }) {
@@ -38,17 +38,63 @@ export default function BoatsManagement({ darkMode }) {
         }
     };
 
+    // Export boats to CSV
+    const handleExportCSV = () => {
+        if (!boats.length) {
+            toast.error("No boats to export");
+            return;
+        }
+        const headers = ["Boat Number", "Name", "Capacity", "Status"];
+        const escapeCSV = (str) => {
+            if (str == null) return "";
+            str = String(str);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        };
+        const rows = boats.map((boat) => [
+            escapeCSV(boat.boatNumber),
+            escapeCSV(boat.name),
+            escapeCSV(boat.capacity),
+            escapeCSV(boat.status)
+        ]);
+        const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `boats_report_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className={`p-6 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-800'}`}>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-2">
                 <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-300' : 'text-blue-800'}`}>Boat Management</h1>
-                <button 
-                    onClick={() => navigate("/admin/boats/addBoat")}
-                    className={`flex items-center gap-2 ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800' : 'bg-blue-600 hover:bg-blue-700'} text-white py-2 px-4 rounded-lg transition-all`}
-                >
-                    <PlusCircle size={18} />
-                    Add New Boat
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleExportCSV}
+                        type="button"
+                        className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
+                            darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                        }`}
+                        title="Export all boats as CSV"
+                    >
+                        <Download className="h-4 w-4" />
+                        Export
+                    </button>
+                    <button 
+                        onClick={() => navigate("/admin/boats/addBoat")}
+                        className={`flex items-center gap-2 ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800' : 'bg-blue-600 hover:bg-blue-700'} text-white py-2 px-4 rounded-lg transition-all`}
+                    >
+                        <PlusCircle size={18} />
+                        Add New Boat
+                    </button>
+                </div>
             </div>
 
             {loading ? (

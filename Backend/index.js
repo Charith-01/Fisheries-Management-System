@@ -11,11 +11,15 @@ import tripRouter from './routes/tripRouter.js';
 import boatRouter from './routes/boatRouter.js';
 import notificationRoutes from './routes/notificationRoutes.js'
 import loginController from './controllers/loginController.js';
+import incomeRoutes from './routes/incomeRoutes.js';
+import paymentRoutes from './routes/paymentRouter.js';
+
 
  import fishStockRouter from './routes/fishStockRouter.js';
  import reviewRouter from './routes/reviewRouter.js';
 
 import paymentRouter from './routes/paymentRouter.js';
+
 import equipmentRouter from './routes/equipmentRouter.js';
 import productRouter from './routes/productRouter.js';
 
@@ -57,10 +61,13 @@ app.use("/api/trip", tripRouter);
 app.use("/api/boat", boatRouter)
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/review", reviewRouter);
+app.use('/api/income', incomeRoutes);
+app.use("/api/payment", paymentRoutes);
 app.use("/api/fishstock", fishStockRouter);
 
 
 app.use("/api/payment", paymentRouter);
+
 app.use("/api/expenses", expenseRoutes);
 
 app.use((req, res, next) => {

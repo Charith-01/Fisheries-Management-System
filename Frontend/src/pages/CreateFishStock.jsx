@@ -5,26 +5,37 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 export default function CreateFishStock() {
+    const [name, setName] = useState("");
     const [type, setType] = useState("");
     const [weight, setWeight] = useState("");
+    const [unit, setUnit] = useState("kg");
     const [quality, setQuality] = useState("Grade A");
     const [catchDate, setCatchDate] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-//weight hari type hari dala natnam error toast ekak pennanala function eka nawathwanawa
+
+    // name, type, weight required; show toast and stop if missing/invalid
     async function handleSubmit() {
-        if (!type || !weight) {
+        const w = parseFloat(weight);
+
+        if (!name || !type || !weight) {
             toast.error("Please fill all required fields");
+            return;
+        }
+        if (Number.isNaN(w) || w <= 0) {
+            toast.error("Weight must be a positive number");
             return;
         }
 
         setLoading(true);
         try {
             await fishStockService.createFishStock({
+                name,
                 type,
-                weight: parseFloat(weight),
+                weight: w,
+                unit,
                 quality,
-                catchDate: catchDate || new Date().toISOString().split('T')[0]
+                catchDate: catchDate || new Date().toISOString().split("T")[0],
             });
 
             toast.success("Fish stock created successfully");
@@ -43,21 +54,36 @@ export default function CreateFishStock() {
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-gray-700 mb-2">Fish Type *</label>
+                        <label className="block text-gray-700 mb-2">Name *</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter Seafood name"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-700 mb-2">Type *</label>
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value)}
                             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="Balaya">Balaya</option>
-                            <option value="Tuna">Tuna</option>
-                            <option value="Salaya">Salaya</option>
-                            <option value="Bolla">Bolla</option>
+                            <option value="">-- Select Type --</option>
+                            <option value="fish">Fish</option>
+                            <option value="crab">Crab</option>
+                            <option value="shellfish">Shellfish</option>
+                            <option value="prawn">Prawn</option>
+                            <option value="lobster">Lobster</option>
+                            <option value="squid">Squid</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
 
                     <div>
-                        <label className="block text-gray-700 mb-2">Weight (kg) *</label>
+                        <label className="block text-gray-700 mb-2">Weight *</label>
                         <input
                             type="number"
                             value={weight}
@@ -67,6 +93,20 @@ export default function CreateFishStock() {
                             step="0.1"
                             min="0.1"
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-700 mb-2">Unit</label>
+                        <select
+                            value={unit}
+                            onChange={(e) => setUnit(e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="g">Grams (g)</option>
+                            <option value="lbs">Pounds (lbs)</option>
+                            <option value="pieces">Pieces</option>
+                        </select>
                     </div>
 
                     <div>
@@ -102,7 +142,7 @@ export default function CreateFishStock() {
                             {loading ? "Creating..." : "Create Fish Stock"}
                         </button>
                         <button
-                            onClick={() => navigate("/fishstock")}
+                            onClick={() => navigate("/admin/stock")}
                             className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                         >
                             Cancel

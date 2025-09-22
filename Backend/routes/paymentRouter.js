@@ -1,15 +1,23 @@
-import express from "express";
-import { createPaymentIntent, handleStripeWebhook } from "../controllers/paymentController.js";
+import express from 'express';
+import {
+  createPaymentIntent,
+  confirmPayment,
+  getPaymentDetails,
+  handleWebhook
+} from '../controllers/paymentController.js';
 
-const Prouter = express.Router();
+const router = express.Router();
 
+// Create payment intent
+router.post('/create-intent', createPaymentIntent);
 
-Prouter.post("/createpaymentintent", createPaymentIntent);
+// Confirm payment
+router.post('/confirm', confirmPayment);
 
-Prouter.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  handleStripeWebhook
-);
+// Get payment details
+router.get('/details/:orderId', getPaymentDetails);
 
-export default Prouter;
+// Webhook handler (needs raw body for verification)
+router.post('/webhook', express.raw({ type: 'application/json' }), handleWebhook);
+
+export default router;

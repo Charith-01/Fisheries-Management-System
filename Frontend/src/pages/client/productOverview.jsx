@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import ProductImageSlider from "../../components/productImageSlider";
-import { addToCart } from "../../utils/cart"; // ⬅️ adjust path if needed
+import { addToCart } from "../../utils/cart";
 
 export default function ProductOverview(){
 
@@ -15,16 +15,27 @@ export default function ProductOverview(){
     }
 
     const [product, setProduct] = useState(null);
-    const [status, setStatus] = useState("loading"); // loading, error
+    const [status, setStatus] = useState("loading");
 
     useEffect(()=>{
-        if(status == "loading"){
+        if(status === "loading"){
             axios.get(import.meta.env.VITE_BACKEND_URL + "/api/product/get/" + encodeURIComponent(params.id))
-            .then((res)=>{
-                // your backend sends { product: {...} }
-                const data = res.data?.product ?? res.data?.data ?? res.data;
-                if (!data) throw new Error("Empty product payload");
-                setProduct(data);
+            .then(async (res)=>{
+                const base = res.data?.product ?? res.data?.data ?? res.data;
+                if (!base) throw new Error("Empty product payload");
+
+                try {
+                  const all = await axios.get(import.meta.env.VITE_BACKEND_URL + "/api/product/all");
+                  const arr = Array.isArray(all.data?.data) ? all.data.data : [];
+                  const match = arr.find(p => p?.productId === base?.productId);
+                  const merged = match
+                    ? { ...base, stockWeight: match.stockWeight, stockUnit: match.stockUnit, stockType: match.stockType }
+                    : base;
+                  setProduct(merged);
+                } catch {
+                  setProduct(base);
+                }
+
                 setStatus("loaded");
             }).catch((err)=>{
                 console.error(err);
@@ -32,17 +43,15 @@ export default function ProductOverview(){
                 setStatus("error");
             });
         }
-    }, [status, params.id]); // refetch if the route id changes
+    }, [status, params.id]);
 
     return(
         <div className="w-full h-full flex items-center justify-center">
             { status == "loading" && 
                 <div className="w-full h-full flex gap-6 p-6 animate-pulse">
-                    {/* Left: image area skeleton */}
                     <div className="w-[50%] h-full">
                         <div className="w-full aspect-square rounded-2xl bg-slate-200" />
                     </div>
-                    {/* Right: details skeleton */}
                     <div className="w-[50%] h-full">
                         <div className="h-full w-full p-6 md:p-8">
                             <div className="h-7 w-2/3 bg-slate-200 rounded mb-4" />
@@ -82,10 +91,8 @@ export default function ProductOverview(){
 
                     <div className="w-[50%] h-full">
                     <div className="h-full w-full p-6 md:p-8">
-                        {/* Title */}
                         <h1 className="text-3xl font-bold text-center mt-8 tracking-tight">{product?.name}</h1>
 
-                        {/* Alt names as chips */}
                         {Array.isArray(product?.altNames) && product.altNames.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2 justify-center">
                             {product.altNames.slice(0, 4).map((n, i) => (
@@ -105,82 +112,92 @@ export default function ProductOverview(){
                         </div>
                         )}
 
-                        {/* Pricing block (unit price + discount) */}
-                        <div className="mt-5 flex items-end justify-center gap-3">
-                        <div className="text-3xl font-extrabold text-slate-900">
-                            {typeof product?.price === "number"
-                            ? `Rs. ${product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                            : "—"}
-                            {product?.unit && (
-                            <span className="ml-2 text-sm font-medium text-slate-500">/{product.unit}</span>
-                            )}
-                        </div>
-                        {typeof product?.labeledPrice === "number" &&
-                            typeof product?.price === "number" &&
-                            product.labeledPrice > product.price && (
-                            <>
-                                <div className="text-sm line-through text-slate-400">
-                                Rs. {product.labeledPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                </div>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-semibold ring-1 ring-red-200">
-                                -{Math.round(((product.labeledPrice - product.price) / product.labeledPrice) * 100)}%
-                                </span>
-                            </>
-                            )}
-                        </div>
-
-                        {/* TOTAL (auto-updates with qty) */}
-                        <div className="mt-2 text-center">
                         {(() => {
-                            const u = (product?.unit || "").toLowerCase();
-                            const isWeight = ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(u);
-                            const step = isWeight ? 0.25 : 1;
-                            const price = typeof product?.price === "number" ? product.price : 0;
-                            const totalId = `total-${product?.productId ?? "p"}`;
-                            const initialTotal = price * step;
-                            return (
-                            <div className="inline-flex items-baseline gap-2 px-3 py-2 rounded-xl bg-slate-50 ring-1 ring-slate-200">
-                                <span className="text-sm text-slate-600">Total</span>
-                                <span id={totalId} className="text-xl font-semibold text-slate-900">
-                                {price ? `Rs. ${initialTotal.toLocaleString(undefined,{ minimumFractionDigits: 2 })}` : "—"}
+                          const effectiveUnit = product?.stockUnit || product?.unit;
+                          const effectiveStock = (typeof product?.stockWeight === "number")
+                            ? product.stockWeight
+                            : product?.stock;
+
+                          const hasDiscount =
+                            typeof product?.labeledPrice === "number" &&
+                            typeof product?.price === "number" &&
+                            product.labeledPrice > product.price;
+
+                          return (
+                            <>
+                              <div className="mt-5 flex items-end justify-center gap-3">
+                                <div className="text-3xl font-extrabold text-slate-900">
+                                  {typeof product?.price === "number"
+                                    ? `Rs. ${product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                                    : "—"}
+                                  {effectiveUnit && (
+                                    <span className="ml-2 text-sm font-medium text-slate-500">/{effectiveUnit}</span>
+                                  )}
+                                </div>
+                                {hasDiscount && (
+                                  <>
+                                    <div className="text-sm line-through text-slate-400">
+                                      Rs. {product.labeledPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </div>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-semibold ring-1 ring-red-200">
+                                      -{Math.round(((product.labeledPrice - product.price) / product.labeledPrice) * 100)}%
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+
+                              <div className="mt-2 text-center">
+                                {(() => {
+                                    const u = (effectiveUnit || "").toLowerCase();
+                                    const isWeight = ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(u);
+                                    const step = isWeight ? 0.25 : 1;
+                                    const price = typeof product?.price === "number" ? product.price : 0;
+                                    const totalId = `total-${product?.productId ?? "p"}`;
+                                    const initialTotal = price * step;
+                                    return (
+                                      <div className="inline-flex items-baseline gap-2 px-3 py-2 rounded-xl bg-slate-50 ring-1 ring-slate-200">
+                                          <span className="text-sm text-slate-600">Total</span>
+                                          <span id={totalId} className="text-xl font-semibold text-slate-900">
+                                            {price ? `Rs. ${initialTotal.toLocaleString(undefined,{ minimumFractionDigits: 2 })}` : "—"}
+                                          </span>
+                                      </div>
+                                    );
+                                })()}
+                              </div>
+
+                              <div className="mt-2 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ring-1 ${
+                                    product?.isActive
+                                      ? "bg-green-50 text-green-700 ring-green-200"
+                                      : "bg-slate-100 text-slate-600 ring-slate-200"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                      product?.isActive ? "bg-green-500" : "bg-slate-400"
+                                    }`}
+                                  />
+                                  {product?.isActive ? "In stock" : "Unavailable"}
+                                  {typeof effectiveStock === "number" && (
+                                    <span className="ml-1 text-slate-500">({effectiveStock} {effectiveUnit || product?.unit} left)</span>
+                                  )}
                                 </span>
-                            </div>
-                            );
+                              </div>
+                            </>
+                          );
                         })()}
-                        </div>
 
-                        {/* Availability / stock */}
-                        <div className="mt-2 text-center">
-                        <span
-                            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ring-1 ${
-                            product?.isActive
-                                ? "bg-green-50 text-green-700 ring-green-200"
-                                : "bg-slate-100 text-slate-600 ring-slate-200"
-                            }`}
-                        >
-                            <span
-                            className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                product?.isActive ? "bg-green-500" : "bg-slate-400"
-                            }`}
-                            />
-                            {product?.isActive ? "In stock" : "Unavailable"}
-                            {typeof product?.stock === "number" && (
-                            <span className="ml-1 text-slate-500">({product.stock} {product?.unit} left)</span>
-                            )}
-                        </span>
-                        </div>
-
-                        {/* Description */}
                         {product?.description && (
                         <p className="text-[15px] leading-6 text-slate-700 text-center mt-4 max-w-[42ch] mx-auto">
                             {product.description}
                         </p>
                         )}
 
-                        {/* ── Quantity selector (minus / input / plus) + TOTAL updater ─────────── */}
                         <div className="mt-5 flex items-stretch justify-center gap-2">
                         {(() => {
-                            const u = (product?.unit || "").toLowerCase();
+                            const effectiveUnit = product?.stockUnit || product?.unit;
+                            const u = (effectiveUnit || "").toLowerCase();
                             const isWeight = ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(u);
                             const step = isWeight ? 0.25 : 1;
                             const min = isWeight ? 0.25 : 1;
@@ -249,32 +266,31 @@ export default function ProductOverview(){
                                 </button>
 
                                 <span className="self-center text-sm text-slate-600 ml-1">
-                                {product?.unit ?? "unit"}
+                                {effectiveUnit ?? "unit"}
                                 </span>
                             </>
                             );
                         })()}
                         </div>
 
-                        {/* Actions */}
                         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                         <button
                             className="px-5 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99] transition shadow-sm inline-flex items-center gap-2"
                             onClick={() => {
+                              const effectiveUnit = product?.stockUnit || product?.unit;
                               const qtyId = `qty-${product?.productId ?? "p"}`;
                               const el = document.getElementById(qtyId);
                               let qty = parseFloat(el?.value || "0");
-                              const u = (product?.unit || "").toLowerCase();
+                              const u = (effectiveUnit || "").toLowerCase();
                               const isWeight = ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(u);
                               const min = isWeight ? 0.25 : 1;
                               if (isNaN(qty) || qty < min) qty = min;
 
-                              // persist to cart
-                              addToCart(product, qty);
+                              addToCart({ ...product, unit: effectiveUnit }, qty);
 
                               const price = typeof product?.price === "number" ? product.price : 0;
                               const total = qty * price;
-                              toast.success(`Added ${qty} ${product?.unit || ""} (Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}) to cart`);
+                              toast.success(`Added ${qty} ${effectiveUnit || ""} (Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}) to cart`);
                             }}
                             aria-label="Add to cart"
                         >
@@ -289,19 +305,19 @@ export default function ProductOverview(){
                         <button
                             className="px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.99] transition shadow-sm inline-flex items-center gap-2"
                             onClick={() => {
+                              const effectiveUnit = product?.stockUnit || product?.unit;
                               const qtyId = `qty-${product?.productId ?? "p"}`;
                               const el = document.getElementById(qtyId);
                               let qty = parseFloat(el?.value || "0");
-                              const u = (product?.unit || "").toLowerCase();
+                              const u = (effectiveUnit || "").toLowerCase();
                               const isWeight = ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(u);
                               const min = isWeight ? 0.25 : 1;
                               if (isNaN(qty) || qty < min) qty = min;
 
-                              // BUY NOW: store just this item, then go to checkout
                               const singleItem = {
                                 productId: product?.productId,
                                 name: product?.name,
-                                unit: product?.unit,
+                                unit: effectiveUnit,
                                 image: Array.isArray(product?.images) ? product.images[0] : product?.image || null,
                                 price: typeof product?.price === "number" ? product.price : 0,
                                 quantity: qty,
@@ -311,7 +327,7 @@ export default function ProductOverview(){
 
                               const price = typeof product?.price === "number" ? product.price : 0;
                               const total = qty * price;
-                              toast(`Checkout: ${qty} ${product?.unit || ""} • Total Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}`);
+                              toast(`Checkout: ${qty} ${effectiveUnit || ""} • Total Rs. ${total.toLocaleString(undefined,{ minimumFractionDigits: 2 })}`);
                             }}
                             aria-label="Buy now"
                         >
@@ -347,7 +363,6 @@ export default function ProductOverview(){
                         </button>
                         </div>
 
-                        {/* Quick specs */}
                         <div className="mt-6 grid grid-cols-2 gap-3 max-w-md mx-auto text-sm">
                         <div className="p-3 rounded-xl ring-1 ring-slate-200 bg-white">
                             <div className="text-[11px] uppercase tracking-wide text-slate-500">Product ID</div>

@@ -12,8 +12,11 @@ import UpdateFishStock from "./pages/UpdateFishStock";
 
 import NotificationDashboard from "./pages/admin/NotificationDashboard";
 import FishermanDashboard from "./pages/fishermanDashboard";
+import PaymentPage from "./pages/client/PaymentPage";
+import SuccessPage from "./pages/client/SuccessPage";
 import HomePage from "./pages/homePage";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import NotFoundPage from "./pages/client/notFoundPage";
 
 
 function App() {
@@ -21,7 +24,6 @@ function App() {
   return (
     <BrowserRouter>
     <Toaster position="top-right"/>
-
         <Routes path="/*">
           <Route path="/admin/*" element={<AdminDashboard/>}/>
           <Route path="/fisherman/*" element={<FishermanDashboard/>}/>
@@ -31,8 +33,9 @@ function App() {
           <Route path="/fishstock" element={<FishStockList />} />
           <Route path="/fishstock/create" element={<CreateFishStock />} />
           <Route path="/fishstock/edit/:id" element={<UpdateFishStock />} />
-        
-
+          <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/checkout/success" element={<SuccessPage />} />
+          <Route path="/*" element={<NotFoundPage />} />
         </Routes>
     </BrowserRouter>
   )

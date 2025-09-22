@@ -1,62 +1,60 @@
 import Order from "../models/order.js";
 
 export async function createOrder(req, res) {
+  try {
+    console.log("CREATE ORDER - User:", req.user);
+    console.log("CREATE ORDER - Request body:", req.body);
 
-    if(req.user == null){
-        res.status(403).json({
-            message : "You need to log in to continue"
-        })
-        return;
+    if (!req.user) {
+      return res.status(403).json({
+        message: "You need to log in to continue"
+      });
     }
 
     const body = req.body;
+    
+    const existingOrder = await Order.findOne({ orderId: body.orderId });
+    if (existingOrder) {
+      console.log("CREATE ORDER - Order ID already exists:", body.orderId);
+      return res.status(400).json({
+        message: "Order ID already exists"
+      });
+    }
+
     const orderData = {
-        orderId : "",
-        email : req.user.email,
-        name : body.name,
-        address : body.address,
-        phone : body.phone,
-        billItems : [],
-        total : 0
-    }
+      orderId: body.orderId,
+      email: req.user.email,
+      name: body.name,
+      address: body.address,
+      phone: body.phone,
+      billItems: body.billItems || [],
+      total: body.total || 0,
+      date: new Date()
+    };
 
-    const lastBills = await Order.find().sort({
-        date : -1
-    }).limit(1);
-
-    if(lastBills.length == 0){
-        orderData.orderId = "ORD0001";
-    }
-    else{
-        const lastBill = lastBills[0]; // Get the last bill
-
-        const lastOrderId = lastBill.orderId; //ORD0001
-        const lastOrderNumber = lastOrderId.replace("ORD",""); //0001
-        const lastOrderNumberInt = parseInt(lastOrderNumber); //1
-        const newOrderNumberInt = lastOrderNumberInt + 1; //2
-        const newOrderNumberStr = newOrderNumberInt.toString().padStart(4, '0'); //0002
-        orderData.orderId = "ORD" + newOrderNumberStr; //ORD0002
-    }
-
-    for(let i=0; i<body.billItems.length; i++){
-        const billItems = body.billItems[i];
-
-        //check if product exists
-    }
+    console.log("CREATE ORDER - Saving order:", orderData);
 
     const order = new Order(orderData);
+    const savedOrder = await order.save();
+    
+    console.log("CREATE ORDER - Order saved successfully. MongoDB ID:", savedOrder._id);
+    console.log("CREATE ORDER - Order ID:", savedOrder.orderId);
+    
+    const verifyOrder = await Order.findOne({ orderId: body.orderId });
+    console.log("CREATE ORDER - Verification find result:", verifyOrder);
 
-    try{
-        await order.save();
-        res.json({
-            message : "Order created successfully"
-        });
-    } catch(err){
-        console.error("Error saving order:", err);
-        res.status(500).json({
-            message : "Order not created"
-        });
-    }
+    res.json({
+      message: "Order created successfully",
+      orderId: body.orderId,
+      mongoId: savedOrder._id
+    });
+  } catch (err) {
+    console.error("CREATE ORDER - Error:", err);
+    res.status(500).json({
+      message: "Order not created",
+      error: err.message
+    });
+  }
 }
 
 export async function getOrders(req, res){
@@ -91,30 +89,50 @@ export async function getOrders(req, res){
     }
 }
 
-export async function getOrderById(req, res){
-    if(req.user == null){
-        res.status(403).json({
-            message : "You need to log in to continue"
-        })
-        return;
+export async function getOrderById(req, res) {
+  try {
+    console.log("GET ORDER - Looking for orderId:", req.params.orderId);
+    console.log("GET ORDER - Authenticated user:", req.user);
+
+    if (!req.user) {
+      return res.status(403).json({
+        message: "You need to log in to continue"
+      });
     }
 
-    try{
-        const order = await Order.findOne({ orderId: req.params.orderId });
-        if(!order){
-            res.status(404).json({ message: "Order not found" });
-            return;
-        }
+    const order = await Order.findOne({ orderId: req.params.orderId });
+    console.log("GET ORDER - Find result:", order);
 
-        if(req.user.role !== 'admin' && order.email !== req.user.email){
-            res.status(403).json({ message: "You do not have permission to view this order" });
-            return;
-        }
+    if (!order) {
+      console.log("GET ORDER - Trying alternative queries...");
+      
+      const allOrders = await Order.find({}).limit(5);
+      console.log("GET ORDER - First 5 orders in DB:", allOrders);
+      
+      const caseInsensitiveOrder = await Order.findOne({ 
+        orderId: { $regex: new RegExp(`^${req.params.orderId}$`, 'i') } 
+      });
+      console.log("GET ORDER - Case insensitive result:", caseInsensitiveOrder);
 
-        res.json(order);
-    } catch(err){
-        res.status(500).json({ message: "Error fetching order" });
+      return res.status(404).json({ message: "Order not found" });
     }
+
+    console.log("GET ORDER - Order found. Order email:", order.email, "User email:", req.user.email);
+
+    if (req.user.role !== 'admin' && order.email !== req.user.email) {
+      return res.status(403).json({ 
+        message: "You do not have permission to view this order" 
+      });
+    }
+
+    res.json(order);
+  } catch (err) {
+    console.error("GET ORDER - Error:", err);
+    res.status(500).json({ 
+      message: "Error fetching order",
+      error: err.message 
+    });
+  }
 }
 
 export async function updateOrder(req, res){
