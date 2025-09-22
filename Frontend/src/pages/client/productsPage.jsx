@@ -8,7 +8,6 @@ export default function ProductsPage() {
   const [productList, setProductList] = useState([])
   const [productsLoaded, setProductsLoaded] = useState(false)
 
-  // filter state
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("all")
   const [status, setStatus] = useState("all")
@@ -22,7 +21,6 @@ export default function ProductsPage() {
     }
   }, [productsLoaded])
 
-  // simple filter logic
   const filteredList = useMemo(() => {
     let list = productList
     const q = query.trim().toLowerCase()
@@ -44,7 +42,6 @@ export default function ProductsPage() {
 
   return (
     <div className="h-full w-full flex">
-      {/* ✅ Sidebar filters */}
       <div className="w-80 hidden md:block p-4">
         <ProductFilters
           query={query} setQuery={setQuery}
@@ -53,7 +50,6 @@ export default function ProductsPage() {
         />
       </div>
 
-      {/* ✅ Product list */}
       <div className="flex-1">
         {
           productsLoaded ? (
@@ -63,7 +59,6 @@ export default function ProductsPage() {
               ))}
             </div>
           ) : (
-            // 🔄 Modern loading skeleton (keeps same flex wrapper pattern)
             <div className="w-full h-full flex flex-wrap justify-start" aria-busy="true" aria-live="polite">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div

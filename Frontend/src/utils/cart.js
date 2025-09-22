@@ -13,10 +13,9 @@ export default function getCart(){
 }
 
 export function addToCart(product, qty){
-    let cart = getCart(); // was const; needs let because we may reassign after filter
-    const q = Number(qty) || 0; // ensure numeric
+    let cart = getCart();
+    const q = Number(qty) || 0;
 
-    // avoid shadowing: compare each item's id to the incoming product's id
     const productIndex = cart.findIndex((item) => item.productId === product.productId);
 
     if(productIndex === -1){
@@ -28,22 +27,20 @@ export function addToCart(product, qty){
                 price: product.price,
                 labeledPrice: product.labeledPrice,
                 unit: product.unit,
-                image: (product.images && product.images[0]) || null, // safe access
+                image: (product.images && product.images[0]) || null,
                 quantity: q
             }
         );
     }else{
-        // make sure current quantity is numeric before adding
         cart[productIndex].quantity = (Number(cart[productIndex].quantity) || 0) + q;
 
         if(cart[productIndex].quantity <= 0){
-            // remove this item if quantity is now zero/negative
+
             cart = cart.filter((item) => item.productId !== product.productId);
         }
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-    // 🔔 notify same-tab listeners (Cart page, Header badge, etc.)
     window.dispatchEvent(new Event("cart:updated"));
 
     return cart;
@@ -53,7 +50,6 @@ export function removeFromCart(productId){
     let cart = getCart();
     cart = cart.filter((item) => item.productId !== productId);
     localStorage.setItem("cart", JSON.stringify(cart));
-    // 🔔 notify same-tab listeners
     window.dispatchEvent(new Event("cart:updated"));
     return cart;
 }

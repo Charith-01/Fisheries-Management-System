@@ -1,18 +1,24 @@
-// src/pages/client/checkout.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-import getCart from "../../utils/cart"; // adjust path if needed
+import getCart from "../../utils/cart";
 
 export default function Checkout() {
   const navigate = useNavigate();
 
-  // ----------------- Cart -----------------
   const [cart, setCart] = useState([]);
 
   const readCart = () => {
     try {
+      const rawBuyNow = localStorage.getItem("buyNow");
+      if (rawBuyNow) {
+        const bn = JSON.parse(rawBuyNow);
+        if (Array.isArray(bn) && bn.length > 0) {
+          setCart(bn);
+          return;
+        }
+      }
       const data = getCart();
       setCart(Array.isArray(data) ? data : []);
     } catch {
@@ -22,7 +28,7 @@ export default function Checkout() {
 
   useEffect(() => {
     readCart();
-    const onStorage = (e) => { if (e.key === "cart") readCart(); };
+    const onStorage = (e) => { if (e.key === "cart" || e.key === "buyNow") readCart(); };
     const onCartUpdated = () => readCart();
     window.addEventListener("storage", onStorage);
     window.addEventListener("cart:updated", onCartUpdated);
@@ -35,23 +41,19 @@ export default function Checkout() {
   const fmt = (n) =>
     Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
-  // ----------------- Form state -----------------
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-
   const [addr1, setAddr1] = useState("");
   const [addr2, setAddr2] = useState("");
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [notes, setNotes] = useState("");
-
-  const [delivery, setDelivery] = useState("standard"); // affects shipping cost
+  const [delivery, setDelivery] = useState("express");
   const [agree, setAgree] = useState(false);
 
-  // Prefill from local cache (optional)
   useEffect(() => {
     try {
       const raw = localStorage.getItem("customer");
@@ -65,7 +67,6 @@ export default function Checkout() {
     } catch {}
   }, []);
 
-  // ----------------- Totals -----------------
   const subTotal = useMemo(
     () =>
       cart.reduce(
@@ -77,18 +78,16 @@ export default function Checkout() {
 
   const shippingCost = useMemo(() => {
     if (!cart.length) return 0;
-    return delivery === "express" ? 700 : 350;
+    return delivery === "express" ? 400 : 350;
   }, [delivery, cart.length]);
 
   const grandTotal = Math.max(0, subTotal + shippingCost);
 
-  // Distinct item count for display (not sum of quantities)
   const itemCount = useMemo(
     () => cart.filter((it) => (Number(it.quantity) || 0) > 0).length,
     [cart]
   );
 
-  // ----------------- Place Order -----------------
   const [placing, setPlacing] = useState(false);
 
   const validate = () => {
@@ -111,62 +110,104 @@ export default function Checkout() {
       .slice(2, 6)
       .toUpperCase()}`;
 
-  const handlePlaceOrder = async () => {
-    const err = validate();
-    if (err) {
-      toast.error(err);
+const handlePlaceOrder = async () => {
+  const err = validate();
+  if (err) {
+    toast.error(err);
+    return;
+  }
+
+  setPlacing(true);
+  try {
+    const orderId = generateOrderId();
+    const fullName = `${firstName} ${lastName}`.trim();
+    const fullAddress = `${addr1}${addr2 ? ", " + addr2 : ""}, ${city}, ${district} ${postalCode}${
+      notes ? ` (Notes: ${notes})` : ""
+    }`;
+
+    const billItems = cart.map((it) => ({
+      productId: it.productId,
+      productName: it.name,
+      image: it.image || null,
+      quantity: Number(it.quantity) || 0,
+      price: Number(it.price) || 0,
+      total: (Number(it.price) || 0) * (Number(it.quantity) || 0),
+    }));
+
+    const payload = {
+      orderId,
+      email,
+      name: fullName,
+      address: fullAddress,
+      status: "Pending",
+      phone,
+      billItems,
+      total: grandTotal,
+    };
+
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error("Please log in to complete your order");
+      navigate("/login");
       return;
     }
 
-    setPlacing(true);
-    try {
-      const orderId = generateOrderId();
-      const fullName = `${firstName} ${lastName}`.trim();
-      const fullAddress = `${addr1}${addr2 ? ", " + addr2 : ""}, ${city}, ${district} ${postalCode}${
-        notes ? ` (Notes: ${notes})` : ""
-      }`;
+    const response = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/order/create`,
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
 
-      const billItems = cart.map((it) => ({
-        productId: it.productId,
-        productName: it.name,
-        image: it.image || null,
-        quantity: Number(it.quantity) || 0,
-        price: Number(it.price) || 0,
-        total: (Number(it.price) || 0) * (Number(it.quantity) || 0),
-      }));
+    console.log("Order creation response:", response.data);
 
-      const payload = {
-        orderId,
-        email,
-        name: fullName,
-        address: fullAddress,
-        status: "Pending", // card payment to be completed
-        phone,
-        billItems,
-        total: grandTotal,
-      };
-
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/order/create`,
-        payload
-      );
-
+    if (response.data.message === "Order created successfully") {
       toast.success("Order created. Proceeding to card payment.");
 
-      // Clear cart then navigate to your payment step (route can be changed later)
+      localStorage.setItem('lastOrder', JSON.stringify({
+        orderId: orderId,
+        total: grandTotal,
+        status: "Pending",
+        date: new Date().toISOString(),
+        items: billItems,
+        shippingAddress: fullAddress,
+        customerName: fullName,
+        email: email,
+        phone: phone
+      }));
+
       localStorage.setItem("cart", JSON.stringify([]));
       window.dispatchEvent(new Event("cart:updated"));
+      localStorage.removeItem("buyNow"); 
 
-      navigate(`/checkout/success?orderId=${orderId}`);
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to create order. Please try again.");
-    } finally {
-      setPlacing(false);
+      setTimeout(() => {
+        navigate(`/payment?orderId=${orderId}`);
+      }, 300);
+      
+    } else {
+      toast.error("Failed to create order: " + (response.data.message || "Unknown error"));
     }
-  };
+    
+  } catch (e) {
+    console.error("Order creation error:", e.response?.data || e.message);
+    
+    if (e.response?.status === 403 || e.response?.status === 401) {
+      toast.error("Please log in to complete your order");
+      navigate("/login");
+    } else if (e.response?.data?.message) {
+      toast.error(e.response.data.message);
+    } else {
+      toast.error("Failed to create order. Please try again.");
+    }
+  } finally {
+    setPlacing(false);
+  }
+};
 
-  // ----------------- UI -----------------
   if (!cart || cart.length === 0) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center px-4">
@@ -194,9 +235,7 @@ export default function Checkout() {
   return (
     <div className="w-full min-h-[60vh] px-4 py-6 md:px-6">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT: Form */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Contact */}
           <section className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">Contact Information</h2>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -243,7 +282,6 @@ export default function Checkout() {
             </div>
           </section>
 
-          {/* Shipping */}
           <section className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">Shipping Address</h2>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -310,39 +348,24 @@ export default function Checkout() {
             </div>
           </section>
 
-          {/* Delivery (affects shipping) + Payment (card only) + Consent */}
           <section className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">Delivery</h2>
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-center gap-3 p-3 rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="standard"
-                  checked={delivery === "standard"}
-                  onChange={() => setDelivery("standard")}
-                />
+
+            <div className="mt-3 p-3 rounded-lg ring-1 ring-slate-200 bg-slate-50">
+              <div className="flex items-start gap-3">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor">
+                  <path d="M3 13h13l3.5-6H6.5L3 13z" strokeWidth="2" />
+                  <circle cx="7.5" cy="18.5" r="1.5" />
+                  <circle cx="16.5" cy="18.5" r="1.5" />
+                </svg>
                 <div className="flex-1">
-                  <div className="text-sm text-slate-900">Standard (3–5 days)</div>
-                  <div className="text-xs text-slate-600">Rs. 350</div>
+                  <div className="text-sm text-slate-900 font-medium">Fresh fish delivery — within 24 hours</div>
+                  <div className="text-xs text-slate-600">Fixed fast delivery (Rs. 400)</div>
                 </div>
-              </label>
-              <label className="flex items-center gap-3 p-3 rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="express"
-                  checked={delivery === "express"}
-                  onChange={() => setDelivery("express")}
-                />
-                <div className="flex-1">
-                  <div className="text-sm text-slate-900">Express (1–2 days)</div>
-                  <div className="text-xs text-slate-600">Rs. 700</div>
-                </div>
-              </label>
+              </div>
+              <input type="hidden" name="delivery" value={delivery} readOnly />
             </div>
 
-            {/* Payment method: Card only (UI + accepted brands) */}
             <div className="mt-5 rounded-xl ring-1 ring-slate-200 p-4">
               <div className="text-sm font-medium text-slate-900 mb-2">Payment method</div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 ring-1 ring-slate-200">
@@ -353,7 +376,6 @@ export default function Checkout() {
                 <div className="text-sm text-slate-800">Card (secured on next step)</div>
               </div>
 
-              {/* Accepted card brands (images from /public) */}
               <div className="mt-3">
                 <div className="text-xs text-slate-600 mb-1">We accept</div>
                 <div className="flex items-center gap-2">
@@ -365,7 +387,6 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Consent */}
             <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
@@ -382,13 +403,11 @@ export default function Checkout() {
           </section>
         </div>
 
-        {/* RIGHT: Summary */}
         <aside className="lg:col-span-1">
           <div className="sticky top-4">
             <div className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Order Summary</h2>
 
-              {/* Items list (compact) */}
               <div className="mt-3 max-h-64 overflow-auto divide-y divide-slate-100">
                 {cart.map((it) => (
                   <div key={it.productId} className="py-2 flex items-center justify-between gap-3">
@@ -410,7 +429,6 @@ export default function Checkout() {
                 ))}
               </div>
 
-              {/* Totals */}
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600">Items</span>

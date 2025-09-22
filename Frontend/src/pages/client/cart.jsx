@@ -6,7 +6,6 @@ export default function CartPage() {
   const [cart, setCart] = useState([]);
   const navigate = useNavigate();
 
-  // ---- helpers (JS only) ----
   const fmt = (n) =>
     Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
@@ -26,11 +25,9 @@ export default function CartPage() {
     }
   };
 
-  // ---- effects ----
   useEffect(() => {
     readCart();
 
-    // live updates: cross-tab changes, same-tab custom event, and tab visibility
     const onStorage = (e) => { if (e.key === "cart") readCart(); };
     const onCartUpdated = () => readCart();
     const onVisible = () => { if (!document.hidden) readCart(); };
@@ -48,8 +45,6 @@ export default function CartPage() {
     };
   }, []);
 
-  // ---- derived totals ----
-  // itemCount = number of distinct products (lines), not sum of quantities
   const { itemCount, subTotal } = useMemo(() => {
     const count = Array.isArray(cart)
       ? cart.filter((it) => (Number(it.quantity) || 0) > 0).length
@@ -60,16 +55,15 @@ export default function CartPage() {
     return { itemCount: count, subTotal: sub };
   }, [cart]);
 
-  // ---- actions ----
   const handleIncrease = (item) => {
     const s = stepFor(item.unit);
-    const updated = addToCart(item, s); // helper fires "cart:updated" if you added that
+    const updated = addToCart(item, s);
     setCart(updated);
   };
 
   const handleDecrease = (item) => {
     const s = stepFor(item.unit);
-    const updated = addToCart(item, -s); // removes if qty ≤ 0
+    const updated = addToCart(item, -s);
     setCart(updated);
   };
 
@@ -79,10 +73,10 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
-    navigate("/checkout"); // change if your route differs
+    localStorage.removeItem("buyNow");
+    navigate("/checkout");
   };
 
-  // ---- empty state ----
   if (!cart || cart.length === 0) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center px-4">
@@ -107,11 +101,9 @@ export default function CartPage() {
     );
   }
 
-  // ---- main UI ----
   return (
     <div className="w-full min-h-[60vh] px-4 py-6 md:px-6">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT: Items */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-slate-900">Your Cart</h1>
@@ -128,14 +120,12 @@ export default function CartPage() {
                   key={String(item.productId ?? item.name ?? idx)}
                   className="w-full rounded-xl ring-1 ring-slate-200 bg-white p-3 md:p-4 flex gap-3 md:gap-4"
                 >
-                  {/* Image */}
                   <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg bg-slate-100 overflow-hidden shrink-0">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     ) : null}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -145,7 +135,6 @@ export default function CartPage() {
                         </div>
                       </div>
 
-                      {/* Remove */}
                       <button
                         className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 ring-1 ring-transparent hover:ring-red-200 transition"
                         onClick={() => handleRemove(item.productId)}
@@ -159,7 +148,6 @@ export default function CartPage() {
                       </button>
                     </div>
 
-                    {/* Qty controls */}
                     <div className="mt-3 flex items-center justify-between">
                       <div className="inline-flex items-stretch rounded-xl ring-1 ring-slate-200 bg-white overflow-hidden">
                         <button
@@ -200,7 +188,6 @@ export default function CartPage() {
             })}
           </div>
 
-          {/* Continue Shopping */}
           <div className="mt-4">
             <Link
               to="/products"
@@ -214,7 +201,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* RIGHT: Summary */}
         <aside className="lg:col-span-1">
           <div className="sticky top-4">
             <div className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
@@ -233,7 +219,6 @@ export default function CartPage() {
                   <span className="text-slate-600">Discount</span>
                   <span className="font-medium text-slate-900">Rs. {fmt(0)}</span>
                 </div>
-                {/* Add delivery/tax rows here if needed */}
                 <div className="pt-2 flex items-center justify-between border-t border-slate-200 mt-2">
                   <span className="text-base font-semibold text-slate-900">Total</span>
                   <span className="text-base font-semibold text-slate-900">Rs. {fmt(subTotal)}</span>

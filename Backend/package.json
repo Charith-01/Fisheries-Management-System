@@ -22,6 +22,11 @@
     "mongoose": "^8.18.0",
     "nodemon": "^3.1.10",
     "react-router-dom": "^7.8.2",
-    "stripe": "^18.5.0"
+    "serialport": "^13.0.0",
+    "stripe": "^18.5.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
