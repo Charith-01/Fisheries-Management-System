@@ -49,6 +49,19 @@ export default function Checkout() {
     return ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(x);
   };
 
+  // Provinces dropdown options
+  const PROVINCES = [
+    "Central Province",
+    "Eastern Province",
+    "North Central Province",
+    "North Western Province",
+    "Northern Province",
+    "Sabaragamuwa Province",
+    "Southern Province",
+    "Uva Province",
+    "Western Province",
+  ];
+
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -240,7 +253,7 @@ export default function Checkout() {
   }
 
   return (
-<div className="w-full min-h-[60vh] px-4 py-6 md:px-6">
+    <div className="w-full min-h-[60vh] px-4 py-6 md:px-6">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <section className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
@@ -323,14 +336,17 @@ export default function Checkout() {
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-600">District / Province</label>
-                <input
-                  type="text"
+                <label className="text-sm text-slate-600">Province</label>
+                <select
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  className="mt-1 w-full rounded-lg ring-1 ring-slate-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Western Province"
-                />
+                  className="mt-1 w-full rounded-lg ring-1 ring-slate-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                >
+                  <option value="">Select province</option>
+                  {PROVINCES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-sm text-slate-600">Postal code</label>
