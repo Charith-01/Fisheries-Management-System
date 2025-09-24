@@ -11,7 +11,7 @@ const router = express.Router();
 // Create new fish stock
 router.post('/', createFishStock);
 
-//  Get all fish stocks
+// Get all fish stocks
 router.get('/', getAllFishStocks);
 
 // Get single fish stock by ID
@@ -19,5 +19,9 @@ router.get('/:id', getFishStockById);
 
 // Update fish stock (Admin only)
 router.put('/:id', updateFishStock);
+
+// Optional: explicit link/unlink product using same controller
+// expects { product: "<ObjectId>" } or { product: null }
+router.patch('/:id/link-product', updateFishStock);
 
 export default router;
