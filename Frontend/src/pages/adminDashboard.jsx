@@ -56,6 +56,7 @@ import AdminFishermenPage from "./admin/fishermen.jsx";
 import AddFishermanForm from "./admin/addFishermanForm.jsx";
 import UpdateFishermanForm from "./admin/updateFishermanForm.jsx";
 import axios from "axios";
+import AdminOrdersPage from "./admin/orders.jsx";
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
               <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
               <Route path="addFisherman" element={<AddFishermanForm darkMode={darkMode} />} />
               <Route path="updateFisherman" element={<UpdateFishermanForm darkMode={darkMode} />} />
-              <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
+              <Route path="orders" element={<AdminOrdersPage darkMode={darkMode} />} />
               <Route path="trip" element={<TripsManagement darkMode={darkMode} />} />
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
               <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
@@ -892,14 +893,6 @@ function Overview({ darkMode }) {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ViewOrders({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Orders</h3>
     </div>
   );
 }
