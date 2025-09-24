@@ -6,6 +6,13 @@ const fishStockSchema = new mongoose.Schema({
     unique: true,
     required: false
   },
+  // Safe link to Product by ObjectId
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: false,
+    index: true
+  },
   name: {
     type: String,
     required: true
@@ -17,14 +24,14 @@ const fishStockSchema = new mongoose.Schema({
     default: 'fish'
   },
   weight: {
-      type : Number,
-      required : true
+    type : Number,
+    required : true
   },
   unit : {
-      type : String,
-      required : true,
-      default : "kg",
-      enum : ["kg", "g", "lbs", "pieces"]
+    type : String,
+    required : true,
+    default : "kg",
+    enum : ["kg", "g", "lbs", "pieces"]
   },
   quality: {
     type: String,
