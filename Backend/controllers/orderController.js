@@ -1,4 +1,58 @@
 import Order from "../models/order.js";
+import mongoose from "mongoose";
+import Product from "../models/product.js";
+import FishStock from "../models/fishStock.js";
+
+// --- helper reused locally (light wrapper that calls the one in payment controller would also be fine)
+async function decrementStockForOrder(orderDoc) {
+  if (!orderDoc || orderDoc.stockAdjusted) return;
+
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const fresh = await Order.findById(orderDoc._id).session(session);
+      if (!fresh || fresh.stockAdjusted) return;
+
+      for (const item of fresh.billItems || []) {
+        const required = Number(item.quantity || 0);
+        if (!required || required <= 0) continue;
+
+        let productDoc = null;
+        if (item.productId) {
+          productDoc = await Product.findOne({ productId: item.productId }).session(session);
+        }
+
+        let query = {};
+        if (productDoc?._id) query = { product: productDoc._id };
+        else if (item.productName) query = { name: item.productName };
+        else continue;
+
+        const rows = await FishStock.find(query).sort({ catchDate: 1, createdAt: 1 }).session(session);
+
+        let remaining = required;
+        for (const row of rows) {
+          if (remaining <= 0) break;
+          const available = Number(row.weight || 0);
+          if (available <= 0) continue;
+
+          const take = Math.min(available, remaining);
+          await FishStock.updateOne({ _id: row._id }, { $inc: { weight: -take } }, { session });
+          remaining -= take;
+        }
+
+        if (remaining > 0) {
+          console.warn(`Stock shortfall while admin moved status for ${fresh.orderId}: missing ${remaining} of ${item.productName || item.productId}`);
+        }
+      }
+
+      fresh.stockAdjusted = true;
+      fresh.stockAdjustedAt = new Date();
+      await fresh.save({ session });
+    });
+  } finally {
+    session.endSession();
+  }
+}
 
 export async function createOrder(req, res) {
   try {
@@ -162,6 +216,16 @@ export async function updateOrderStatus(req, res) {
 
     if (!updated) {
       return res.status(404).json({ message: "Order not found" });
+    }
+
+    // **NEW**: if admin moves to "Paid" or "Processing" and payment already succeeded,
+    // try to decrement stock (idempotent).
+    if ((nextStatus === 'Paid' || nextStatus === 'Processing') && updated.paymentStatus === 'succeeded') {
+      try {
+        await decrementStockForOrder(updated);
+      } catch (e) {
+        console.error('Stock decrement during status change failed:', e);
+      }
     }
 
     res.json({ message: "Order status updated successfully" });

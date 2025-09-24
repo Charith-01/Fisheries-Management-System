@@ -19,15 +19,12 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  status: {
-    type: String,
-    required: true,
-    default: 'Pending'
-  },
   phone: {
     type: String,
     required: true
   },
+
+  // NOTE: your file had two "status" fields; keeping the single canonical one:
   status: {
     type: String,
     enum: [
@@ -42,14 +39,16 @@ const orderSchema = new mongoose.Schema({
     default: 'Pending',
     required: true
   },
+
   billItems: [{
-    productId: String,
+    productId: String,     // public product id (string)
     productName: String,
     image: String,
-    quantity: Number,
+    quantity: Number,      // assumed in the same unit as FishStock.unit (often "kg")
     price: Number,
     total: Number
   }],
+
   total: {
     type: Number,
     required: true
@@ -58,6 +57,7 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+
   paymentId: {
     type: String,
     default: null
@@ -73,6 +73,17 @@ const orderSchema = new mongoose.Schema({
   },
   stripePaymentIntentId: {
     type: String,
+    default: null
+  },
+
+  // NEW: idempotency flags for stock adjustment
+  stockAdjusted: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  stockAdjustedAt: {
+    type: Date,
     default: null
   }
 },{ timestamps: true });

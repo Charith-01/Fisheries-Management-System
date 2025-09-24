@@ -1,12 +1,14 @@
 import Stripe from "stripe";
 import dotenv from "dotenv";
-
 dotenv.config();
 
+import mongoose from "mongoose";
 import Income from '../models/income.js';
 import Order from '../models/order.js';
 import Notification from '../models/notification.js';
 import Payment from '../models/payment.js';
+import Product from '../models/product.js';
+import FishStock from '../models/fishStock.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -24,6 +26,100 @@ const createPaymentNotification = async (order, status, message) => {
     console.error('Error creating payment notification:', error);
   }
 };
+
+/**
+ * CORE: Decrement fish stock for a given order in a transaction (FIFO by catchDate).
+ * - Idempotent: will no-op if order.stockAdjusted is already true.
+ * - For each billItem, resolve Product by productId (public id) → find FishStock rows linked by product (preferred).
+ *   Fallback: if no product link found, try matching FishStock by name (productName).
+ */
+async function decrementStockForOrder(orderDoc) {
+  if (!orderDoc) return;
+  if (orderDoc.stockAdjusted) return; // idempotent guard
+
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      // Re-read inside the txn to avoid stale flag
+      const freshOrder = await Order.findById(orderDoc._id).session(session);
+      if (!freshOrder || freshOrder.stockAdjusted) return;
+
+      for (const item of freshOrder.billItems || []) {
+        const requiredQty = Number(item.quantity || 0);
+        if (!requiredQty || requiredQty <= 0) continue;
+
+        // Resolve Product by public productId (string)
+        let productDoc = null;
+        if (item.productId) {
+          productDoc = await Product.findOne({ productId: item.productId }).session(session);
+        }
+
+        // Find stock rows: Prefer product link; fallback to name match
+        let stockQuery = {};
+        if (productDoc?._id) {
+          stockQuery = { product: productDoc._id };
+        } else if (item.productName) {
+          stockQuery = { name: item.productName };
+        } else {
+          // No way to match → skip safely
+          continue;
+        }
+
+        // Pull stock rows FIFO by catchDate (oldest first)
+        const stockRows = await FishStock
+          .find(stockQuery)
+          .sort({ catchDate: 1, createdAt: 1 })
+          .session(session);
+
+        let remaining = requiredQty;
+
+        for (const row of stockRows) {
+          if (remaining <= 0) break;
+
+          const available = Number(row.weight || 0);
+          if (available <= 0) continue;
+
+          const take = Math.min(available, remaining);
+
+          // Decrement this row
+          await FishStock.updateOne(
+            { _id: row._id },
+            { $inc: { weight: -take } },
+            { session }
+          );
+
+          remaining -= take;
+        }
+
+        // Optional: If remaining > 0, we didn't have enough stock.
+        // We won't throw here (payment already succeeded), but you can log & notify admin:
+        if (remaining > 0) {
+          console.warn(
+            `Stock shortfall for order ${freshOrder.orderId} item ${item.productId || item.productName}: missing ${remaining}`
+          );
+          try {
+            await Notification.create([{
+              title: "Stock shortfall",
+              message: `Order ${freshOrder.orderId}: not enough stock for ${item.productName || item.productId}. Short by ${remaining}.`,
+              role: "admin",
+              targetEmails: [], // could target admin emails if you have them
+              isReadBy: []
+            }], { session });
+          } catch (e) {
+            console.error("Failed to notify admin about stock shortfall:", e);
+          }
+        }
+      }
+
+      // Mark as adjusted (idempotency)
+      freshOrder.stockAdjusted = true;
+      freshOrder.stockAdjustedAt = new Date();
+      await freshOrder.save({ session });
+    });
+  } finally {
+    session.endSession();
+  }
+}
 
 // Create payment intent (uses order.total, not client amount)
 export const createPaymentIntent = async (req, res) => {
@@ -125,7 +221,8 @@ export const confirmPayment = async (req, res) => {
         stripePaymentIntentId: paymentIntent.id,
         paymentId: paymentIntent.id,
         paymentDate: new Date(),
-        status: paymentIntent.status === 'succeeded' ? 'Paid' : (paymentIntent.status === 'requires_payment_method' ? 'Pending' : 'Payment Failed')
+        status: paymentIntent.status === 'succeeded' ? 'Paid' :
+                (paymentIntent.status === 'requires_payment_method' ? 'Pending' : 'Payment Failed')
       },
       { new: true }
     );
@@ -165,15 +262,18 @@ export const confirmPayment = async (req, res) => {
             description: `Payment for order ${orderId}`,
             date: new Date()
           });
-
-          await createPaymentNotification(
-            updatedOrder,
-            'Successful',
-            `Your payment for order #${orderId} was successful. Thank you for your purchase!`
-          );
         }
+
+        // **NEW**: decrement fish stock (idempotent)
+        await decrementStockForOrder(updatedOrder);
+
+        await createPaymentNotification(
+          updatedOrder,
+          'Successful',
+          `Your payment for order #${orderId} was successful. Thank you for your purchase!`
+        );
       } catch (incomeError) {
-        console.error('Error creating income record:', incomeError);
+        console.error('Post-payment tasks failed:', incomeError);
       }
     } else if (paymentIntent.status === 'requires_payment_method' || paymentIntent.status === 'canceled') {
       await createPaymentNotification(
@@ -260,6 +360,9 @@ export const handleWebhook = async (req, res) => {
                 date: new Date()
               });
             }
+
+            // **NEW**: decrement fish stock (idempotent)
+            await decrementStockForOrder(order);
 
             await createPaymentNotification(
               order,

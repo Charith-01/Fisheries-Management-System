@@ -14,7 +14,7 @@ export const createFishStock = async (req, res) => {
       });
     }
 
-    const { name, type, weight, unit, quality, catchDate } = req.body;
+    const { name, type, weight, unit, quality, catchDate, product } = req.body;
 
     // Required fields
     if (!name || !type || weight == null || !quality) {
@@ -45,15 +45,28 @@ export const createFishStock = async (req, res) => {
       });
     }
 
+    // Optional: product must be a valid ObjectId if provided
+    let productObjectId = null;
+    if (product) {
+      if (!mongoose.Types.ObjectId.isValid(product)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid product reference.'
+        });
+      }
+      productObjectId = product;
+    }
+
     const newFishStock = new FishStock({
       name: name.trim(),
       type: String(type).trim(),
       weight,
-      unit, // model default is "kg" if undefined
+      unit, // default "kg" if undefined
       quality,
       catchDate: catchDate || new Date(),
       addedBy: userId,
-      addedByModel: userRole === 'admin' ? 'Admin' : 'Fisherman'
+      addedByModel: userRole === 'admin' ? 'Admin' : 'Fisherman',
+      ...(productObjectId ? { product: productObjectId } : {})
     });
 
     const savedFishStock = await newFishStock.save();
@@ -114,6 +127,7 @@ export const getAllFishStocks = async (req, res) => {
 
     const fishStocks = await FishStock.find()
       .populate('addedBy', 'firstName lastName email')
+      .populate('product', 'productId name') // minimal product info
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -144,7 +158,8 @@ export const getFishStockById = async (req, res) => {
     }
 
     const fishStock = await FishStock.findById(req.params.id)
-      .populate('addedBy', 'firstName lastName email');
+      .populate('addedBy', 'firstName lastName email')
+      .populate('product', 'productId name');
 
     if (!fishStock) {
       return res.status(404).json({ 
@@ -187,7 +202,7 @@ export const updateFishStock = async (req, res) => {
       });
     }
 
-    const { name, type, weight, unit, quality, catchDate } = req.body;
+    const { name, type, weight, unit, quality, catchDate, product } = req.body;
     const updateData = {};
 
     if (name !== undefined) {
@@ -213,11 +228,26 @@ export const updateFishStock = async (req, res) => {
     if (quality !== undefined) updateData.quality = quality;
     if (catchDate !== undefined) updateData.catchDate = catchDate;
 
+    // ObjectId-only linking/unlinking
+    if (product === null) {
+      updateData.product = null; // explicit unlink
+    } else if (product !== undefined) {
+      if (!mongoose.Types.ObjectId.isValid(product)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid product reference.'
+        });
+      }
+      updateData.product = product;
+    }
+
     const updatedFishStock = await FishStock.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('addedBy', 'firstName lastName email');
+    )
+      .populate('addedBy', 'firstName lastName email')
+      .populate('product', 'productId name');
 
     if (!updatedFishStock) {
       return res.status(404).json({ 
