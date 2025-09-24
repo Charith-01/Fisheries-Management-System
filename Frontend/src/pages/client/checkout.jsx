@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import toast from "react-hot-toast";
 import getCart from "../../utils/cart";
+import api from "../../api/axios"; // ✅ use api instance
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -28,7 +28,9 @@ export default function Checkout() {
 
   useEffect(() => {
     readCart();
-    const onStorage = (e) => { if (e.key === "cart" || e.key === "buyNow") readCart(); };
+    const onStorage = (e) => {
+      if (e.key === "cart" || e.key === "buyNow") readCart();
+    };
     const onCartUpdated = () => readCart();
     window.addEventListener("storage", onStorage);
     window.addEventListener("cart:updated", onCartUpdated);
@@ -40,6 +42,12 @@ export default function Checkout() {
 
   const fmt = (n) =>
     Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+  // ⬇️ update #3: show weight quantities with decimals where needed
+  const isWeightUnit = (u = "") => {
+    const x = u.toLowerCase();
+    return ["kg","kilogram","kilograms","g","gram","grams","lb","lbs","pound","pounds"].includes(x);
+  };
 
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -110,117 +118,116 @@ export default function Checkout() {
       .slice(2, 6)
       .toUpperCase()}`;
 
-const handlePlaceOrder = async () => {
-  const err = validate();
-  if (err) {
-    toast.error(err);
-    return;
-  }
-
-  setPlacing(true);
-  try {
-    const orderId = generateOrderId();
-    const fullName = `${firstName} ${lastName}`.trim();
-    const fullAddress = `${addr1}${addr2 ? ", " + addr2 : ""}, ${city}, ${district} ${postalCode}${
-      notes ? ` (Notes: ${notes})` : ""
-    }`;
-
-    const billItems = cart.map((it) => ({
-      productId: it.productId,
-      productName: it.name,
-      image: it.image || null,
-      quantity: Number(it.quantity) || 0,
-      price: Number(it.price) || 0,
-      total: (Number(it.price) || 0) * (Number(it.quantity) || 0),
-    }));
-
-    const payload = {
-      orderId,
-      email,
-      name: fullName,
-      address: fullAddress,
-      status: "Pending",
-      phone,
-      billItems,
-      total: grandTotal,
-    };
-
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      toast.error("Please log in to complete your order");
-      navigate("/login");
+  const handlePlaceOrder = async () => {
+    const err = validate();
+    if (err) {
+      toast.error(err);
       return;
     }
 
-    const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/order/create`,
-      payload,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
-    );
+    setPlacing(true);
+    try {
+      const orderId = generateOrderId();
+      const fullName = `${firstName} ${lastName}`.trim();
+      const fullAddress = `${addr1}${addr2 ? ", " + addr2 : ""}, ${city}, ${district} ${postalCode}${
+        notes ? ` (Notes: ${notes})` : ""
+      }`;
 
-    console.log("Order creation response:", response.data);
-
-    if (response.data.message === "Order created successfully") {
-      toast.success("Order created. Proceeding to card payment.");
-
-      localStorage.setItem('lastOrder', JSON.stringify({
-        orderId: orderId,
-        total: grandTotal,
-        status: "Pending",
-        date: new Date().toISOString(),
-        items: billItems,
-        shippingAddress: fullAddress,
-        customerName: fullName,
-        email: email,
-        phone: phone
+      const billItems = cart.map((it) => ({
+        productId: it.productId,
+        productName: it.name,
+        image: it.image || null,
+        quantity: Number(it.quantity) || 0,
+        price: Number(it.price) || 0,
+        total: (Number(it.price) || 0) * (Number(it.quantity) || 0),
       }));
 
-      localStorage.setItem("cart", JSON.stringify([]));
-      window.dispatchEvent(new Event("cart:updated"));
-      localStorage.removeItem("buyNow"); 
+      const payload = {
+        orderId,
+        email,
+        name: fullName,
+        address: fullAddress,
+        status: "Pending",
+        phone,
+        billItems,
+        total: grandTotal,
+      };
 
-      setTimeout(() => {
-        navigate(`/payment?orderId=${orderId}`);
-      }, 300);
-      
-    } else {
-      toast.error("Failed to create order: " + (response.data.message || "Unknown error"));
+      const response = await api.post("/api/order/create", payload);
+
+      if (response.data.message === "Order created successfully") {
+        toast.success("Order created. Proceeding to card payment.");
+
+        localStorage.setItem(
+          "lastOrder",
+          JSON.stringify({
+            orderId: orderId,
+            total: grandTotal,
+            status: "Pending",
+            date: new Date().toISOString(),
+            items: billItems,
+            shippingAddress: fullAddress,
+            customerName: fullName,
+            email: email,
+            phone: phone,
+          })
+        );
+
+        localStorage.setItem("cart", JSON.stringify([]));
+        window.dispatchEvent(new Event("cart:updated"));
+        localStorage.removeItem("buyNow");
+
+        setTimeout(() => {
+          navigate(`/payment?orderId=${orderId}`);
+        }, 300);
+      } else {
+        toast.error(
+          "Failed to create order: " + (response.data.message || "Unknown error")
+        );
+      }
+    } catch (e) {
+      console.error("Order creation error:", e.response?.data || e.message);
+
+      if (e.response?.status === 403 || e.response?.status === 401) {
+        toast.error("Please log in to complete your order");
+        navigate("/login");
+      } else if (e.response?.data?.message) {
+        toast.error(e.response.data.message);
+      } else {
+        toast.error("Failed to create order. Please try again.");
+      }
+    } finally {
+      setPlacing(false);
     }
-    
-  } catch (e) {
-    console.error("Order creation error:", e.response?.data || e.message);
-    
-    if (e.response?.status === 403 || e.response?.status === 401) {
-      toast.error("Please log in to complete your order");
-      navigate("/login");
-    } else if (e.response?.data?.message) {
-      toast.error(e.response.data.message);
-    } else {
-      toast.error("Failed to create order. Please try again.");
-    }
-  } finally {
-    setPlacing(false);
-  }
-};
+  };
 
   if (!cart || cart.length === 0) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-7 h-7 text-slate-500" fill="none" stroke="currentColor">
-              <path d="M3 3h2l.4 2M7 13h10l3-8H6.4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              viewBox="0 0 24 24"
+              className="w-7 h-7 text-slate-500"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                d="M3 3h2l.4 2M7 13h10l3-8H6.4"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
               <circle cx="9" cy="19" r="1.6" />
               <circle cx="17" cy="19" r="1.6" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-slate-900">Your cart is empty</h2>
-          <p className="mt-1 text-slate-600">Add items before proceeding to checkout.</p>
+          <h2 className="text-xl font-semibold text-slate-900">
+            Your cart is empty
+          </h2>
+          <p className="mt-1 text-slate-600">
+            Add items before proceeding to checkout.
+          </p>
           <Link
             to="/products"
             className="inline-flex items-center justify-center mt-5 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
@@ -233,7 +240,7 @@ const handlePlaceOrder = async () => {
   }
 
   return (
-    <div className="w-full min-h-[60vh] px-4 py-6 md:px-6">
+<div className="w-full min-h-[60vh] px-4 py-6 md:px-6">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <section className="rounded-2xl ring-1 ring-slate-200 bg-white p-5 shadow-sm">
@@ -418,7 +425,8 @@ const handlePlaceOrder = async () => {
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-slate-900 truncate">{it.name}</div>
                         <div className="text-xs text-slate-600">
-                          {Number(it.quantity)} {it.unit || "unit"} × Rs. {fmt(it.price)}
+                          {isWeightUnit(it.unit) ? Number(it.quantity).toFixed(2) : Number(it.quantity)}{" "}
+                          {it.unit || "unit"} × Rs. {fmt(it.price)}
                         </div>
                       </div>
                     </div>
