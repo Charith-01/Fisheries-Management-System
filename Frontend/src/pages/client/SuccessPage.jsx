@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import axios from "axios";
-import toast from "react-hot-toast";
+import api from "../../api/axios"; // ✅ use api instance
 
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
@@ -11,8 +10,7 @@ export default function SuccessPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // First try to get order from localStorage
-    const lastOrder = localStorage.getItem('lastOrder');
+    const lastOrder = localStorage.getItem("lastOrder");
     if (lastOrder) {
       try {
         const orderData = JSON.parse(lastOrder);
@@ -26,7 +24,6 @@ export default function SuccessPage() {
       }
     }
 
-    // If not in localStorage, try to fetch from API
     const fetchOrder = async () => {
       if (!orderId) {
         setError("No order specified");
@@ -35,31 +32,14 @@ export default function SuccessPage() {
       }
 
       try {
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          setError("Please log in to view order details");
-          setLoading(false);
-          return;
-        }
-
-        const response = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/order/${orderId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-        
+        const response = await api.get(`/api/order/${encodeURIComponent(orderId)}`); // 🔒 safe
         setOrder(response.data);
       } catch (err) {
         console.error("Error fetching order:", err);
-        
         if (err.response?.status === 403) {
-          setError("You don't have permission to view this order. Please log in with the correct account.");
+          setError("You don't have permission to view this order.");
         } else if (err.response?.status === 404) {
-          setError("Order not found. It may have been deleted or there might be a system error.");
+          setError("Order not found. It may have been deleted.");
         } else {
           setError("Failed to load order details. Please try again later.");
         }
@@ -70,6 +50,9 @@ export default function SuccessPage() {
 
     fetchOrder();
   }, [orderId]);
+
+  const fmtMoney = (n) =>
+    Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
   if (loading) {
     return (
@@ -84,15 +67,10 @@ export default function SuccessPage() {
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="container mx-auto px-4 max-w-2xl">
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-              </svg>
-            </div>
-            
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Access Issue</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Order Access Issue
+            </h1>
             <p className="text-gray-600 mb-6">{error}</p>
-            
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/orders"
@@ -144,7 +122,7 @@ export default function SuccessPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Amount:</span>
-                  <span className="font-medium">Rs. {order.total?.toFixed(2)}</span>
+                  <span className="font-medium">Rs. {fmtMoney(order.total)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
