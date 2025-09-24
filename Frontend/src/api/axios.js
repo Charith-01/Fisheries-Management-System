@@ -5,11 +5,24 @@ const api = axios.create({
   withCredentials: false,
 });
 
-// attach token on protected calls (not needed for login, but handy later)
+// Attach token if available
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// Handle expired tokens globally
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response && err.response.status === 401) {
+      localStorage.removeItem("token");
+      // optional: redirect to login page
+      // window.location.href = "/login";
+    }
+    return Promise.reject(err);
+  }
+);
 
 export default api;

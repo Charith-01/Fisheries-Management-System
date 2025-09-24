@@ -16,6 +16,13 @@ export default function CartPage() {
 
   const stepFor = (u) => (isWeightUnit(u) ? 0.25 : 1);
 
+  // prevent float drift when using fractional steps (0.25, 0.5, etc.)
+  const roundToStep = (qty, step) => {
+    if (!step || step <= 0) return Math.max(0, Number(qty) || 0);
+    const factor = Math.round(1 / step);
+    return Math.max(0, Math.round((Number(qty) || 0) * factor) / factor);
+  };
+
   const readCart = () => {
     try {
       const data = getCart();
@@ -58,13 +65,32 @@ export default function CartPage() {
   const handleIncrease = (item) => {
     const s = stepFor(item.unit);
     const updated = addToCart(item, s);
-    setCart(updated);
+    // clamp to step just in case util doesn't
+    setCart((Array.isArray(updated) ? updated : []).map((it) =>
+      it.productId === item.productId
+        ? { ...it, quantity: roundToStep(Number(it.quantity) || 0, s) }
+        : it
+    ));
   };
 
   const handleDecrease = (item) => {
     const s = stepFor(item.unit);
+    const current = Number(item.quantity) || 0;
+
+    // ⬇️ update #1: auto-remove instead of going negative/zero
+    if (current <= s) {
+      const updated = removeFromCart(item.productId);
+      setCart(updated);
+      return;
+    }
+
     const updated = addToCart(item, -s);
-    setCart(updated);
+    // clamp to step
+    setCart((Array.isArray(updated) ? updated : []).map((it) =>
+      it.productId === item.productId
+        ? { ...it, quantity: roundToStep(Number(it.quantity) || 0, s) }
+        : it
+    ));
   };
 
   const handleRemove = (productId) => {

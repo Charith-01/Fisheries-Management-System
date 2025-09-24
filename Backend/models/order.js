@@ -28,6 +28,20 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  status: {
+    type: String,
+    enum: [
+      'Pending',
+      'Paid',
+      'Processing',
+      'Shipped',
+      'Delivered',
+      'Cancelled',
+      'Payment Failed'
+    ],
+    default: 'Pending',
+    required: true
+  },
   billItems: [{
     productId: String,
     productName: String,
@@ -47,9 +61,21 @@ const orderSchema = new mongoose.Schema({
   paymentId: {
     type: String,
     default: null
+  },
+  paymentStatus: {
+    type: String,
+    enum: [null, 'pending', 'succeeded', 'failed'],
+    default: null
+  },
+  paymentDate: {
+    type: Date,
+    default: null
+  },
+  stripePaymentIntentId: {
+    type: String,
+    default: null
   }
-});
+},{ timestamps: true });
 
-// Make sure the collection name is correct
 const Order = mongoose.model('Order', orderSchema);
 export default Order;

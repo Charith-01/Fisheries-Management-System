@@ -8,6 +8,7 @@ import Checkout from "./client/checkout";
 import NotFoundPage from "./client/notFoundPage";
 import Footer from "../components/footer";
 import Profile from "./client/profile";
+import MyOrdersPage from "./client/orders";
 
 function SectionHeader({ title, subtitle }) {
   return (
@@ -593,6 +594,7 @@ export default function HomePage() {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/orders" element={<MyOrdersPage />} />
           <Route path="/*" element={<NotFoundPage />} />
         </Routes>
       </div>
