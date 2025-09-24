@@ -56,9 +56,77 @@ export async function getProducts(req, res){
       return;
     }
 
-    const names = Array.from(new Set(products.map(p => normName(p.name)).filter(Boolean)));
+    // Build product id arrays/maps
+    const productIdMap = {};
+    const productIds = [];
+    for (const p of products) {
+      productIdMap[String(p._id)] = p;
+      productIds.push(p._id);
+    }
 
-    const byUnitAgg = await FishStock.aggregate([
+    // Reference-based aggregations (preferred)
+    const byUnitAggRef = await FishStock.aggregate([
+      { $match: { product: { $in: productIds } } },
+      {
+        $group: {
+          _id: { product: "$product", unit: "$unit" },
+          totalWeight: { $sum: "$weight" }
+        }
+      }
+    ]);
+
+    const byTypeAggRef = await FishStock.aggregate([
+      { $match: { product: { $in: productIds } } },
+      {
+        $group: {
+          _id: { product: "$product", type: "$type" },
+          count: { $sum: 1 },
+          totalWeight: { $sum: "$weight" }
+        }
+      }
+    ]);
+
+    const unitMapByProduct = {};
+    for (const row of byUnitAggRef) {
+      const pid = String(row._id?.product || "");
+      const u = row._id?.unit || "";
+      const w = row.totalWeight || 0;
+      if (!unitMapByProduct[pid]) unitMapByProduct[pid] = {};
+      unitMapByProduct[pid][u] = (unitMapByProduct[pid][u] || 0) + w;
+    }
+
+    const bestUnitByProduct = {};
+    for (const [pid, mp] of Object.entries(unitMapByProduct)) {
+      let bestU = undefined;
+      let bestW = -1;
+      for (const [u, w] of Object.entries(mp)) {
+        if (w > bestW) {
+          bestW = w;
+          bestU = u;
+        }
+      }
+      bestUnitByProduct[pid] = bestU;
+    }
+
+    const typeStatsByProduct = {};
+    for (const row of byTypeAggRef) {
+      const pid = String(row._id?.product || "");
+      const t = row._id?.type || "";
+      const c = row.count || 0;
+      const tw = row.totalWeight || 0;
+      if (!typeStatsByProduct[pid]) typeStatsByProduct[pid] = [];
+      typeStatsByProduct[pid].push({ type: t, count: c, totalWeight: tw });
+    }
+
+    const bestTypeByProduct = {};
+    for (const [pid, arr] of Object.entries(typeStatsByProduct)) {
+      arr.sort((a, b) => (b.count - a.count) || (b.totalWeight - a.totalWeight));
+      bestTypeByProduct[pid] = arr[0]?.type;
+    }
+
+    // (Optional) keep your legacy name-based as fallback for rows without ref
+    const names = Array.from(new Set(products.map(p => normName(p.name)).filter(Boolean)));
+    const byUnitAggName = await FishStock.aggregate([
       {
         $group: {
           _id: { name: { $toLower: "$name" }, unit: "$unit" },
@@ -67,8 +135,7 @@ export async function getProducts(req, res){
       },
       { $match: { "_id.name": { $in: names } } }
     ]);
-
-    const byTypeAgg = await FishStock.aggregate([
+    const byTypeAggName = await FishStock.aggregate([
       {
         $group: {
           _id: { name: { $toLower: "$name" }, type: "$type" },
@@ -78,16 +145,14 @@ export async function getProducts(req, res){
       },
       { $match: { "_id.name": { $in: names } } }
     ]);
-
     const unitMapByName = {}; 
-    for (const row of byUnitAgg) {
+    for (const row of byUnitAggName) {
       const n = row._id?.name || "";
       const u = row._id?.unit || "";
       const w = row.totalWeight || 0;
       if (!unitMapByName[n]) unitMapByName[n] = {};
       unitMapByName[n][u] = (unitMapByName[n][u] || 0) + w;
     }
-
     const bestUnitByName = {}; 
     for (const [n, mp] of Object.entries(unitMapByName)) {
       let bestU = undefined;
@@ -100,9 +165,8 @@ export async function getProducts(req, res){
       }
       bestUnitByName[n] = bestU;
     }
-
     const typeStatsByName = {}; 
-    for (const row of byTypeAgg) {
+    for (const row of byTypeAggName) {
       const n = row._id?.name || "";
       const t = row._id?.type || "";
       const c = row.count || 0;
@@ -110,16 +174,21 @@ export async function getProducts(req, res){
       if (!typeStatsByName[n]) typeStatsByName[n] = [];
       typeStatsByName[n].push({ type: t, count: c, totalWeight: tw });
     }
-
     const bestTypeByName = {}; 
     for (const [n, arr] of Object.entries(typeStatsByName)) {
       arr.sort((a, b) => (b.count - a.count) || (b.totalWeight - a.totalWeight));
       bestTypeByName[n] = arr[0]?.type;
     }
 
+    // Hydrate products; prefer reference-based, fallback to name-based
     const hydrated = products.map(p => {
       const n = normName(p.name);
-      const perUnit = unitMapByName[n] || {};
+      const pid = String(p._id);
+
+      const perUnitRef = unitMapByProduct[pid];
+      const perUnitName = unitMapByName[n];
+      const perUnit = perUnitRef || perUnitName || {};
+
       const preferredUnit = "kg";
       let stockWeight = perUnit[preferredUnit];
 
@@ -127,11 +196,21 @@ export async function getProducts(req, res){
         stockWeight = Object.values(perUnit).reduce((a, b) => a + (b || 0), 0);
       }
 
+      const stockUnit =
+        bestUnitByProduct[pid] ||
+        bestUnitByName[n] ||
+        "kg";
+
+      const stockType =
+        bestTypeByProduct[pid] ||
+        bestTypeByName[n] ||
+        "fish";
+
       return {
         ...p,
         stockWeight: Number(stockWeight || 0),
-        stockUnit: bestUnitByName[n] || "kg",
-        stockType: bestTypeByName[n] || "fish",
+        stockUnit,
+        stockType,
       };
     });
 
