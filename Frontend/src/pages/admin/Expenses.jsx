@@ -84,7 +84,7 @@ export default function FinancialManagement({ darkMode }) {
       setLoading(false);
     }
   };
-    // Load both expenses and incomes when component mounts
+    // Load both expenses and incomes when navigation
   useEffect(() => {
     const loadInitialData = async () => {
       try {
