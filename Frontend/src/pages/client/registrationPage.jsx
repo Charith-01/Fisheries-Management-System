@@ -1,21 +1,47 @@
 // src/pages/client/registrationPage.jsx
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import LoginImageSlider from "../../components/LoginImageSlider";
 
 export default function RegistrationPage() {
   const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [password, setPassword] = useState("");
+  const [lastName, setLastName]   = useState("");
+  const [email, setEmail]         = useState("");
+  const [phone, setPhone]         = useState("");
+  const [address, setAddress]     = useState("");
+  const [password, setPassword]   = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]     = useState(false);
 
   const navigate = useNavigate();
+
+  const BACKEND = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
+  // --- Capture backend redirect (?token=...&user=...) and finish login ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("token");
+    const u = params.get("user");
+    if (t && u) {
+      try {
+        localStorage.setItem("token", t);
+        const user = JSON.parse(u);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        const r = user?.role;
+        if (r === "admin") navigate("/admin");
+        else if (r === "fisherman") navigate("/fisherman");
+        else navigate("/");
+
+        // Clean the query string from the URL
+        window.history.replaceState({}, "", "/register");
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }, [navigate]);
 
   function validatePassword(pwd) {
     const rules = [
@@ -25,12 +51,7 @@ export default function RegistrationPage() {
       { regex: /[0-9]/, msg: "At least one number" },
       { regex: /[^A-Za-z0-9]/, msg: "At least one special character" },
     ];
-
-    for (let r of rules) {
-      if (!r.regex.test(pwd)) {
-        return r.msg;
-      }
-    }
+    for (let r of rules) if (!r.regex.test(pwd)) return r.msg;
     return null;
   }
 
@@ -39,7 +60,6 @@ export default function RegistrationPage() {
       toast.error("Passwords do not match");
       return;
     }
-
     const pwdError = validatePassword(password);
     if (pwdError) {
       toast.error(`Password requirement: ${pwdError}`);
@@ -48,7 +68,7 @@ export default function RegistrationPage() {
 
     setLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/customer/register`, {
+      await axios.post(`${BACKEND}/api/customer/register`, {
         firstName,
         lastName,
         email,
@@ -56,13 +76,33 @@ export default function RegistrationPage() {
         address,
         password,
       });
-
       toast.success("Registration successful");
       navigate("/login");
     } catch (error) {
       toast.error(error?.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // --- Google sign-up (same as sign-in; first login creates the account) ---
+  function handleGoogleSignupClick() {
+    /* global google */
+    // Try Google prompt (if SDK loaded); otherwise fall back to server redirect
+    if (window.google?.accounts?.id) {
+      let shown = false;
+      try {
+        google.accounts.id.prompt((n) => {
+          if (n?.isDisplayed && n.isDisplayed()) shown = true;
+        });
+      } catch {}
+      setTimeout(() => {
+        if (!shown) {
+          window.location.href = BACKEND + "/api/auth/google/start";
+        }
+      }, 1000);
+    } else {
+      window.location.href = BACKEND + "/api/auth/google/start";
     }
   }
 
@@ -124,6 +164,26 @@ export default function RegistrationPage() {
             className="w-full h-[50px] bg-blue-500 rounded-lg text-white cursor-pointer mt-5 hover:bg-blue-600"
           >
             {loading ? "Registering..." : "Register"}
+          </button>
+
+          {/* Divider */}
+          <div className="flex items-center w-full my-4">
+            <div className="flex-grow h-px bg-gray-300"></div>
+            <span className="px-3 text-gray-500 text-sm">or</span>
+            <div className="flex-grow h-px bg-gray-300"></div>
+          </div>
+
+          {/* Google Signup Button (same look as login page) */}
+          <button
+            onClick={handleGoogleSignupClick}
+            className="w-full h-[50px] flex items-center justify-center gap-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <img
+              src="https://developers.google.com/identity/images/g-logo.png"
+              alt="Google"
+              className="w-5 h-5"
+            />
+            <span className="text-gray-700 font-medium">Continue with Google</span>
           </button>
 
           <p className="text-gray-700 mt-3 text-center">
