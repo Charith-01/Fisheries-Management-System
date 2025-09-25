@@ -489,7 +489,7 @@ export default function NotificationDashboard() {
         </div>
       )}
 
-      {/* Delete confirm */}
+      {/* Delete confirmation */}
       {deletingId && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="w-[95%] max-w-[520px] bg-white rounded-2xl p-5">
