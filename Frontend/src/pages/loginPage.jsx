@@ -170,7 +170,7 @@ export default function LoginPage() {
 
           <button
             onClick={handleLogin}
-            className="w-full h-[50px] bg-blue-500 rounded-lg text-white cursor-pointer m-[15px] hover:bg-blue-600"
+            className="w-full h-[50px] bg-blue-500 rounded-lg text-white cursor-pointer mt-5 hover:bg-blue-600"
             disabled={loading}
           >
             {loading ? "Loading..." : "Login"}
@@ -196,7 +196,7 @@ export default function LoginPage() {
             <span className="text-gray-700 font-medium">Continue with Google</span>
           </button>
 
-          <p className="text-gray-700 m-[5px]">
+          <p className="text-gray-700 mt-3">
             Don't have an account?&nbsp;
             <span className="text-blue-500 cursor-pointer hover:text-blue-700 font-medium">
               <Link to={"/register"}>Register Now</Link>
