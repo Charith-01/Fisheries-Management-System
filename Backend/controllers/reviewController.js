@@ -1,184 +1,216 @@
-import Review from '../models/review.js';
+import mongoose from "mongoose";
+import Product from "../models/product.js";
+import Review from "../models/review.js";
+import Order from "../models/order.js";
+import Customer from "../models/customer.js";
 
-// Create review - Customer only
-export const createReview = async (req, res) => {
+/** recompute avg & count */
+async function recomputeProductRating(productObjectId) {
+  const stats = await Review.aggregate([
+    { $match: { product: new mongoose.Types.ObjectId(productObjectId) } },
+    { $group: { _id: "$product", avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+  ]);
+
+  const avg = stats[0]?.avg ?? 0;
+  const count = stats[0]?.count ?? 0;
+
+  await Product.updateOne(
+    { _id: productObjectId },
+    { $set: { averageRating: Number(avg.toFixed(2)), reviewCount: count } }
+  );
+}
+
+/** resolve user identity */
+async function getUserIdentity(req) {
+  const u = req.user || {};
+  let userId = u._id || u.id || u.userId || null;
+  let email = u.email || null;
+
+  if (!userId && email) {
+    const cust = await Customer.findOne({ email }).select("_id").lean();
+    if (cust) userId = cust._id;
+  }
+  if (userId && !email) {
+    const cust = await Customer.findById(userId).select("email").lean();
+    if (cust) email = cust.email;
+  }
+  return { userId, email };
+}
+
+/** POST/PUT: create or update one review per (product, user, order) */
+export async function addOrUpdateReview(req, res) {
   try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.role) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
-      });
+    if (!req.user) {
+      return res.status(403).json({ message: "You need to log in to continue" });
     }
 
-    // Check if user is customer
-    if (req.user.role !== 'customer') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only customers can create reviews.' 
-      });
+    const { userId, email } = await getUserIdentity(req);
+    if (!userId || !email) {
+      return res
+        .status(403)
+        .json({ message: "Invalid token: user not found. Please log in again." });
     }
 
-    const { reviewText, rating } = req.body;
-
-    // Validation
-    if (!reviewText || !rating) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Review text and rating are required.' 
+    const { productId, rating, comment, isAnonymous, orderId } = req.body || {};
+    if (!productId || typeof rating !== "number" || !orderId) {
+      return res.status(400).json({
+        message: "productId, orderId and numeric rating are required",
       });
     }
-
     if (rating < 1 || rating > 5) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Rating must be between 1 and 5.' 
+      return res.status(400).json({ message: "rating must be between 1 and 5" });
+    }
+
+    const product = await Product.findOne({ productId });
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // Verify this exact order belongs to the user, is processed, and includes the product
+    const processedStatuses = ["Delivered", "Completed", "delivered", "completed"];
+    const order = await Order.findOne({
+      orderId,
+      email,
+      status: { $in: processedStatuses },
+      "billItems.productId": productId,
+    }).lean();
+
+    if (!order) {
+      return res.status(403).json({
+        message:
+          "You can only review this product for a completed order that contains it",
       });
     }
 
-    // FIX: Use req.user.sub instead of req.user.id
-    // Create new review
-    const newReview = new Review({
-      customerName: `${req.user.firstName} ${req.user.lastName}`,
-      reviewText,
-      rating,
-      customerId: req.user.sub // Use sub instead of id
-    });
+    const anonFlag = Boolean(isAnonymous);
 
-    const savedReview = await newReview.save();
+    // Upsert by (product, user, orderId)
+    const review = await Review.findOneAndUpdate(
+      { product: product._id, user: userId, orderId },
+      {
+        $set: {
+          rating,
+          comment: comment || "",
+          userEmail: email,
+          isAnonymous: anonFlag,
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
 
-    res.status(201).json({
-      success: true,
-      message: 'Review created successfully!',
-      data: savedReview
-    });
+    await Product.updateOne(
+      { _id: product._id },
+      { $addToSet: { reviews: review._id } }
+    );
 
-  } catch (error) {
-    console.error('Error creating review:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error while creating review.' 
-    });
+    await recomputeProductRating(product._id);
+
+    return res.json({ message: "Review saved successfully", review });
+  } catch (err) {
+    console.error("addOrUpdateReview error:", err);
+    if (err?.code === 11000) {
+      // unique per (product,user,orderId)
+      return res.status(409).json({
+        message:
+          "You have already reviewed this product for this order. You can edit your review.",
+      });
+    }
+    return res.status(500).json({ message: "Failed to save review" });
   }
-};
+}
 
-// Get all reviews - Everyone can view
-export const getAllReviews = async (req, res) => {
+/** GET: list reviews for a product (with anonymity shaping) */
+export async function getProductReviews(req, res) {
   try {
-    const reviews = await Review.find({ status: 'active' })
-      .sort({ createdAt: -1 });
+    const { productId } = req.params || {};
+    const product = await Product.findOne({ productId });
+    if (!product) return res.status(404).json({ message: "Product not found" });
 
-    res.status(200).json({
-      success: true,
-      count: reviews.length,
-      data: reviews
+    const reviews = await Review.find({ product: product._id })
+      .populate({ path: "user", select: "firstName lastName email" })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const shaped = reviews.map((r) => {
+      const nameFromUser =
+        [r?.user?.firstName, r?.user?.lastName].filter(Boolean).join(" ").trim();
+      const emailName = r?.user?.email ? String(r.user.email).split("@")[0] : undefined;
+
+      const displayName = r.isAnonymous
+        ? "Anonymous"
+        : nameFromUser || emailName || "Customer";
+
+      if (r.isAnonymous) {
+        const { user, ...rest } = r;
+        return { ...rest, displayName };
+      }
+      return { ...r, displayName };
     });
 
-  } catch (error) {
-    console.error('Error fetching reviews:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error while fetching reviews.' 
+    return res.json({
+      message: "Reviews fetched successfully",
+      data: shaped,
+      averageRating: product.averageRating ?? 0,
+      reviewCount: product.reviewCount ?? 0,
     });
+  } catch (err) {
+    console.error("getProductReviews error:", err);
+    return res.status(500).json({ message: "Failed to fetch reviews" });
   }
-};
+}
 
-// Update review - Customer can update their own reviews
-export const updateReview = async (req, res) => {
+/** DELETE: user deletes their review for a specific order */
+export async function deleteReview(req, res) {
   try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.role) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
-      });
+    if (!req.user) {
+      return res.status(403).json({ message: "You need to log in to continue" });
     }
 
-    const { id } = req.params;
-    const { reviewText, rating } = req.body;
-
-    const review = await Review.findById(id);
-
-    if (!review) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Review not found.' 
-      });
+    const { userId } = await getUserIdentity(req);
+    if (!userId) {
+      return res
+        .status(403)
+        .json({ message: "Invalid token: user not found. Please log in again." });
     }
 
-    // FIX: Use req.user.sub instead of req.user.id
-    // Check if user is the owner of the review or admin
-    if (req.user.role !== 'admin' && review.customerId.toString() !== req.user.sub) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You can only update your own reviews.' 
+    const { productId, reviewId, orderId } = req.params || {};
+    let review;
+    let product;
+
+    if (reviewId && req.user.role === "admin") {
+      // Admin path: delete by reviewId
+      review = await Review.findById(reviewId);
+      if (!review) return res.status(404).json({ message: "Review not found" });
+      product = await Product.findById(review.product);
+    } else {
+      // User path: require productId + orderId
+      if (!orderId) {
+        return res
+          .status(400)
+          .json({ message: "orderId is required to delete this review" });
+      }
+
+      product = await Product.findOne({ productId });
+      if (!product) return res.status(404).json({ message: "Product not found" });
+
+      review = await Review.findOne({
+        product: product._id,
+        user: userId,
+        orderId,
       });
+      if (!review) return res.status(404).json({ message: "Review not found" });
     }
 
-    // Update fields
-    if (reviewText !== undefined) review.reviewText = reviewText;
-    if (rating !== undefined) review.rating = rating;
+    await Review.deleteOne({ _id: review._id });
 
-    const updatedReview = await review.save();
+    await Product.updateOne(
+      { _id: product._id },
+      { $pull: { reviews: review._id } }
+    );
 
-    res.status(200).json({
-      success: true,
-      message: 'Review updated successfully!',
-      data: updatedReview
-    });
+    await recomputeProductRating(product._id);
 
-  } catch (error) {
-    console.error('Error updating review:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error while updating review.' 
-    });
+    return res.json({ message: "Review deleted successfully" });
+  } catch (err) {
+    console.error("deleteReview error:", err);
+    return res.status(500).json({ message: "Failed to delete review" });
   }
-};
-
-// Delete review - Customer can delete their own reviews, Admin can delete any
-export const deleteReview = async (req, res) => {
-  try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.role) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
-      });
-    }
-
-    const { id } = req.params;
-
-    const review = await Review.findById(id);
-
-    if (!review) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Review not found.' 
-      });
-    }
-
-    // FIX: Use req.user.sub instead of req.user.id
-    // Check if user is the owner of the review or admin
-    if (req.user.role !== 'admin' && review.customerId.toString() !== req.user.sub) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You can only delete your own reviews.' 
-      });
-    }
-
-    await Review.findByIdAndDelete(id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Review deleted successfully!'
-    });
-
-  } catch (error) {
-    console.error('Error deleting review:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error while deleting review.' 
-    });
-  }
-};
+}
