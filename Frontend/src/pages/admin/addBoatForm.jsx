@@ -13,7 +13,7 @@ export default function AddBoatForm({ darkMode }) {
     const [equipmentInput, setEquipmentInput] = useState("");
     const [equipmentItems, setEquipmentItems] = useState([]);
     const [formData, setFormData] = useState({
-        boatNumber: "",
+        // boatNumber: "",
         name: "",
         capacity: "",
         status: "active",
@@ -79,7 +79,7 @@ export default function AddBoatForm({ darkMode }) {
 
     const validateForm = () => {
         const newErrors = {};
-        if (!formData.boatNumber.trim()) newErrors.boatNumber = "Boat number is required";
+        // if (!formData.boatNumber.trim()) newErrors.boatNumber = "Boat number is required";
         if (!formData.name.trim()) newErrors.name = "Boat name is required";
         if (!formData.capacity || formData.capacity < 1) newErrors.capacity = "Capacity must be at least 1";
         if (!imageFiles.length) newErrors.images = "At least one image is required";
@@ -130,14 +130,14 @@ export default function AddBoatForm({ darkMode }) {
             <div className={`w-full max-w-xl shadow-md rounded-lg p-6 ${darkMode ? 'bg-slate-800 text-slate-100' : 'bg-white text-slate-800'}`}>
                 <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-cyan-300' : ''}`}>Add New Boat</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <input
+                    {/* <input
                         type="text"
                         name="boatNumber"
                         placeholder="Boat Number *"
                         value={formData.boatNumber}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${errors.boatNumber ? "border-red-500" : darkMode ? "border-slate-600 bg-slate-700 text-slate-100" : "border-gray-300"}`}
-                    />
+                    /> */}
                     <input
                         type="text"
                         name="name"

@@ -22,7 +22,7 @@ export default function AddEquipmentForm({ darkMode }) {
         equipmentID: "",
         name: "",
         type: "Other",
-        serial: "",
+        // serial: "",
         status: "Available",
         purchaseDate: "",
         warrantyExpiry: "",
@@ -45,10 +45,10 @@ export default function AddEquipmentForm({ darkMode }) {
 
     const validateForm = () => {
         const newErrors = {};
-        if (!formData.equipmentID.trim()) newErrors.equipmentID = "Equipment ID is required";
+        // if (!formData.equipmentID.trim()) newErrors.equipmentID = "Equipment ID is required";
         if (!formData.name.trim()) newErrors.name = "Equipment name is required";
         if (!formData.type.trim()) newErrors.type = "Type is required";
-        if (!formData.serial.trim()) newErrors.serial = "Serial is required";
+        // if (!formData.serial.trim()) newErrors.serial = "Serial is required";
         if (!formData.notes.trim()) newErrors.notes = "Notes are required";
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -86,14 +86,14 @@ export default function AddEquipmentForm({ darkMode }) {
                 <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-cyan-300' : ''}`}>Add New Equipment</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment ID *</label>
-                    <input
+                    {/* <input
                         type="text"
                         name="equipmentID"
                         placeholder="Equipment ID"
                         value={formData.equipmentID}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${errors.equipmentID ? "border-red-500" : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : "border-gray-300"}`}
-                    />
+                    /> */}
                     <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Name *</label>
                     <input
                         type="text"
@@ -116,7 +116,7 @@ export default function AddEquipmentForm({ darkMode }) {
                         <option value="Engine">Engine</option>
                         <option value="Other">Other</option>
                     </select>
-                    <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Serial *</label>
+                    {/* <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Serial *</label>
                     <input
                         type="text"
                         name="serial"
@@ -124,7 +124,7 @@ export default function AddEquipmentForm({ darkMode }) {
                         value={formData.serial}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded ${errors.serial ? "border-red-500" : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : "border-gray-300"}`}
-                    />
+                    /> */}
                     <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Status *</label>
                     <select
                         name="status"
