@@ -78,7 +78,7 @@ export default function FinancialManagement({ darkMode }) {
       });
       setIncomeData(response.data.incomes || []);
     } catch (err) {
-      console.error('Error fetching income data:', err);
+      console.error('Error recieving income data:', err);
       toast.error('Failed to load income data');
     } finally {
       setLoading(false);
