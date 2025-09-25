@@ -57,6 +57,7 @@ import AddFishermanForm from "./admin/addFishermanForm.jsx";
 import UpdateFishermanForm from "./admin/updateFishermanForm.jsx";
 import axios from "axios";
 import AdminOrdersPage from "./admin/orders.jsx";
+import AdminReviewsPage from "./admin/reviews.jsx";
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
@@ -119,6 +120,7 @@ export default function AdminDashboard() {
               <Route path="equipment/addEquipment" element={<AddEquipmentForm darkMode={darkMode} />} />
               <Route path="equipment/editEquipment/:equipmentID" element={<EditEquipmentForm darkMode={darkMode} />} />
               <Route path="equipment/:equipmentID" element={<EquipmentDetails darkMode={darkMode} />} />
+              <Route path="reviews" element={<AdminReviewsPage darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
