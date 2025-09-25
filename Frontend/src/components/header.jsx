@@ -102,6 +102,56 @@ export default function Header() {
       }
     }
   }, []);
+   useEffect(() => {
+    const loadNotifications = async () => {
+      const token = localStorage.getItem("token");
+      if (token && (userRole === "customer" || userRole === "admin")) {
+        await fetchNotifications();
+      }
+    };
+
+    loadNotifications();
+  }, [userRole, userEmail]); // Reload when user role or email changes
+
+  // Also load when page becomes visible or user navigates
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const token = localStorage.getItem("token");
+        if (token && (userRole === "customer" || userRole === "admin")) {
+          fetchNotifications();
+        }
+      }
+    };
+
+    // Load notifications when route changes
+    const handleRouteChange = () => {
+      const token = localStorage.getItem("token");
+      if (token && (userRole === "customer" || userRole === "admin")) {
+        fetchNotifications();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('popstate', handleRouteChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [userRole, userEmail]);
+
+  // Add periodic refresh every 30 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const token = localStorage.getItem("token");
+      if (token && (userRole === "customer" || userRole === "admin") && !document.hidden) {
+        fetchNotifications();
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [userRole, userEmail]);
 
   const scrollToId = (id) => {
     const el = document.getElementById(id);
@@ -159,9 +209,13 @@ export default function Header() {
     }
   };
 
-  const fetchNotifications = async () => {
+   const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setNotifications([]);
+      setNotificationCount(0);
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -179,23 +233,32 @@ export default function Header() {
         if (userRole === "customer") {
           filteredNotifications = data.notifications.filter(n => 
             n.role === "customer" && 
-            (!n.targetEmails || n.targetEmails.length === 0 || n.targetEmails.includes(userEmail))
+            (!n.targetEmails || n.targetEmails.length === 0 || 
+             (userEmail && n.targetEmails.includes(userEmail.toLowerCase())))
           );
         } else if (userRole === "admin") {
           filteredNotifications = data.notifications.filter(n => n.role === "customer");
         }
         
         setNotifications(filteredNotifications || []);
-        setNotificationCount(filteredNotifications.filter(n => !n.isRead).length);
+        
+        const unreadCount = filteredNotifications.filter(n => !n.isRead).length;
+        setNotificationCount(unreadCount);
+      } else {
+        console.error("Failed to fetch notifications:", response.status);
+        setNotifications([]);
+        setNotificationCount(0);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
+      setNotifications([]);
+      setNotificationCount(0);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const markAsRead = async (notificationId) => {
+   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
@@ -209,12 +272,16 @@ export default function Header() {
       );
       
       if (response.ok) {
+        // Update local state
         setNotifications(prev => 
           prev.map(n => 
             n._id === notificationId ? { ...n, isRead: true } : n
           )
         );
         setNotificationCount(prev => Math.max(0, prev - 1));
+        
+        // Refetch to ensure consistency
+        setTimeout(() => fetchNotifications(), 100);
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
