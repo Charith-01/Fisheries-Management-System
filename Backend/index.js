@@ -21,8 +21,10 @@ import equipmentRouter from './routes/equipmentRouter.js';
 import productRouter from './routes/productRouter.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import orderRouter from './routes/orderRouter.js';
-
 import { handleWebhook } from './controllers/paymentController.js';
+
+// ✅ New import for Google Auth router
+import googleAuthRouter from './routes/googleAuthRouter.js';
 
 dotenv.config();
 
@@ -60,6 +62,9 @@ app.use((req, res, next) => {
 
 // Routes
 app.post("/api/auth/login", loginController);
+
+// ✅ New Google Auth routes
+app.use("/api/auth/google", googleAuthRouter);
 
 app.use("/api/customer", customerRouter);
 app.use("/api/admin", adminRouter);
