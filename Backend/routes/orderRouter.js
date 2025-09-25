@@ -6,6 +6,7 @@ import {
   getOrderById,
   getOrders,
   updateOrder,
+  refundOrder,
   updateOrderStatus
 } from '../controllers/orderController.js';
 import verifyJWT from "../middleware/auth.js";
@@ -21,5 +22,5 @@ orderRouter.put('/update/:orderId', verifyJWT, updateOrder);
 orderRouter.put('/status/:orderId', verifyJWT, updateOrderStatus);
 orderRouter.post('/cancel/:orderId', verifyJWT, cancelOrder);
 orderRouter.delete('/delete/:orderId', verifyJWT, deleteOrder);
-
+orderRouter.put('/refund/:orderId', verifyJWT, refundOrder);
 export default orderRouter;

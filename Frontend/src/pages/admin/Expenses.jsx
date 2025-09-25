@@ -84,6 +84,48 @@ export default function FinancialManagement({ darkMode }) {
       setLoading(false);
     }
   };
+    // Load both expenses and incomes when component mounts
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load expenses
+        let expensesUrl = `${backendUrl}/api/expenses`;
+        const expensesParams = new URLSearchParams();
+        if (startDate && endDate) {
+          expensesParams.append('startDate', startDate);
+          expensesParams.append('endDate', endDate);
+        }
+        
+        const expensesResponse = await axios.get(`${expensesUrl}?${expensesParams}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setExpenses(expensesResponse.data);
+        
+        // Load incomes
+        let incomeUrl = `${backendUrl}/api/income`;
+        const incomeParams = new URLSearchParams();
+        if (startDate && endDate) {
+          incomeParams.append('startDate', startDate);
+          incomeParams.append('endDate', endDate);
+        }
+        
+        const incomeResponse = await axios.get(`${incomeUrl}?${incomeParams}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIncomeData(incomeResponse.data.incomes || []);
+        
+      } catch (err) {
+        console.error('Error loading initial data:', err);
+        toast.error('Failed to load financial data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
 
   useEffect(() => {
     if (activeTab === "expenses") {
@@ -165,7 +207,11 @@ export default function FinancialManagement({ darkMode }) {
 
   // Calculate totals
   const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-  const totalIncome = incomeData.reduce((sum, income) => sum + parseFloat(income.amount), 0);
+  const totalIncome = incomeData.reduce((sum, income) => {
+  
+  const amount = parseFloat(income.amount);
+  return sum + amount;
+}, 0);
   const netProfit = totalIncome - totalExpenses;
 
   // Export data

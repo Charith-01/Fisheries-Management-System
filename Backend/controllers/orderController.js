@@ -2,7 +2,77 @@ import Order from "../models/order.js";
 import mongoose from "mongoose";
 import Product from "../models/product.js";
 import FishStock from "../models/fishStock.js";
+import Income from "../models/income.js"
+import Notification from "../models/notification.js";
 
+const sendOrderStatusNotification = async (orderId, newStatus, previousStatus) => {
+  try {
+    // Don't send notifications for these statuses (already handled by payment)
+    const excludedStatuses = ['success', 'completed', 'paid', 'pending'];
+    if (excludedStatuses.includes(newStatus.toLowerCase())) {
+      return;
+    }
+
+    // Don't send notification if status didn't actually change
+    if (newStatus === previousStatus) {
+      return;
+    }
+
+    // Get order details
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      console.log('Order not found for notification');
+      return;
+    }
+
+    let title = '';
+    let message = '';
+
+    // Customize notification based on status
+    switch (newStatus.toLowerCase()) {
+      case 'refunded':
+        title = 'Order Refund Processed';
+        message = `Your order ${orderId} has been refunded. Amount: Rs. ${order.total} will be processed shortly.`;
+        break;
+      case 'delivered':
+        title = 'Order Delivered!';
+        message = `Your order ${orderId} has been successfully delivered. Thank you for shopping with us!`;
+        break;
+      case 'shipped':
+        title = 'Order Shipped';
+        message = `Your order ${orderId} has been shipped and is on its way to you.`;
+        break;
+      case 'processing':
+        title = 'Order Processing';
+        message = `Your order ${orderId} is now being processed.`;
+        break;
+      case 'cancelled':
+        title = 'Order Cancelled';
+        message = `Your order ${orderId} has been cancelled.`;
+        break;
+      default:
+        title = 'Order Status Updated';
+        message = `Your order ${orderId} status has been updated to: ${newStatus}`;
+    }
+
+    // Create notification specifically for this customer
+    const notification = new Notification({
+      title,
+      message,
+      role: 'customer',
+      targetEmails: [order.email], // Send only to the specific customer
+      relatedOrder: orderId,
+      status: newStatus
+    });
+
+    await notification.save();
+    console.log(`Order status notification sent for order ${orderId}`);
+
+  } catch (error) {
+    console.error('Error sending order status notification:', error);
+    // Don't throw error - notification failure shouldn't break order update
+  }
+};
 // --- helper reused locally (light wrapper that calls the one in payment controller would also be fine)
 async function decrementStockForOrder(orderDoc) {
   if (!orderDoc || orderDoc.stockAdjusted) return;
@@ -175,7 +245,7 @@ export async function updateOrder(req, res) {
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
-
+    
     if (req.user.role !== 'admin' && order.email !== req.user.email) {
       return res.status(403).json({ message: "You do not have permission to update this order" });
     }
@@ -207,16 +277,25 @@ export async function updateOrderStatus(req, res) {
     if (!allowed.has(nextStatus)) {
       return res.status(400).json({ message: "Invalid status" });
     }
+     const order = await Order.findOne({ orderId: req.params.orderId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
+    const previousStatus = order.status;
     const updated = await Order.findOneAndUpdate(
       { orderId: req.params.orderId },
       { status: nextStatus },
       { new: true }
     );
+    
 
     if (!updated) {
       return res.status(404).json({ message: "Order not found" });
     }
+
+    // Send notification after successful update (non-blocking)
+    sendOrderStatusNotification(req.params.orderId, nextStatus, previousStatus).catch(console.error);
 
     // **NEW**: if admin moves to "Paid" or "Processing" and payment already succeeded,
     // try to decrement stock (idempotent).
@@ -227,6 +306,8 @@ export async function updateOrderStatus(req, res) {
         console.error('Stock decrement during status change failed:', e);
       }
     }
+    
+
 
     res.json({ message: "Order status updated successfully" });
   } catch (err) {
@@ -285,3 +366,74 @@ export async function deleteOrder(req, res) {
     res.status(500).json({ message: "Order not deleted" });
   }
 }
+export const refundOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Order not found' 
+      });
+    }
+
+    if (order.paymentStatus !== 'succeeded') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot refund order with unsuccessful payment'
+      });
+    }
+
+    if (order.status === 'refunded') {
+      return res.status(400).json({
+        success: false,
+        message: 'Order is already refunded'
+      });
+    }
+
+    const previousStatus = order.status; // Get previous status
+
+    // Create UNIQUE order ID for refund record
+    const refundOrderId = `${order.orderId}_REFUND_${Date.now()}`;
+    
+    // Create refund record
+    const refundRecord = new Income({
+      orderId: refundOrderId,
+      originalOrderId: order.orderId,
+      customerName: order.name,
+      customerEmail: order.email,
+      amount: -order.total,
+      paymentMethod: order.paymentMethod || 'card',
+      status: 'refunded',
+      date: new Date(),
+      items: order.billItems,
+      type: 'refund',
+      originalOrderDate: order.date,
+      stripePaymentId: order.stripePaymentId || order.paymentId || `refund_${order.orderId}`
+    });
+
+    order.status = status;
+    order.refundedAt = new Date();
+
+    await refundRecord.save();
+    await order.save();
+
+    // Send notification
+    sendOrderStatusNotification(orderId, status, previousStatus).catch(console.error);
+
+    res.json({ 
+      success: true,
+      message: 'Order refunded successfully', 
+      order,
+      refundRecord 
+    });
+  } catch (error) {
+    console.error('Refund error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during refund process' 
+    });
+  }
+};
