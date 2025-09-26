@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { fishStockService } from "../services/fishStockService";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ShieldAlert, Plus } from "lucide-react";
+import { ShieldAlert, Plus, Download } from "lucide-react"; // ✅ added Download
+import { exportTablePDF } from "../utils/pdfExporter"; // ✅ added
 
 export default function FishStockList() {
   const [fishStocks, setFishStocks] = useState([]);
@@ -25,6 +26,29 @@ export default function FishStockList() {
     }
   }
 
+  // ✅ Export PDF (no other logic touched)
+  const exportPDF = () => {
+    exportTablePDF({
+      title: "Fish Stock Report",
+      meta: {
+        "Total Stocks": Array.isArray(fishStocks) ? fishStocks.length : 0,
+      },
+      columns: [
+        { header: "Stock ID", get: (s) => s.stockId || "-" },
+        { header: "Name", get: (s) => s.name || "-" },
+        { header: "Type", get: (s) => s.type || "-" },
+        { header: "Weight", get: (s) => (s.weight != null ? String(s.weight) : "-"), align: "right" },
+        { header: "Unit", get: (s) => s.unit || "-", align: "center" },
+        { header: "Quality", get: (s) => s.quality || "-" },
+        {
+          header: "Catch Date",
+          get: (s) => (s.catchDate ? new Date(s.catchDate).toLocaleDateString() : "-"),
+        },
+      ],
+      rows: Array.isArray(fishStocks) ? fishStocks : [],
+    });
+  };
+
   return (
     <div className="w-full min-h-screen p-4">
       <div className="max-w-6xl mx-auto">
@@ -40,6 +64,17 @@ export default function FishStockList() {
             </div>
 
             <div className="flex items-center justify-end gap-2">
+              {/* ✅ Export PDF button */}
+              <button
+                onClick={exportPDF}
+                type="button"
+                className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all bg-slate-100 text-slate-800 hover:bg-slate-200"
+                title="Export current list as PDF"
+              >
+                <Download className="h-4 w-4" />
+                Export PDF
+              </button>
+
               {(user.role === "admin" || user.role === "fisherman") && (
                 <Link
                   to="/fishstock/create"
