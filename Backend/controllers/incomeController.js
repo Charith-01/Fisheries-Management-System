@@ -47,21 +47,16 @@ export const createIncome = async (req, res) => {
 // Get all incomes
 export const getIncomes = async (req, res) => {
   try {
-    const { startDate, endDate, page = 1, limit = 10, includeRefunds } = req.query;
+    const { startDate, endDate, page = 1, limit = 10 } = req.query;
     
     let query = {};
     
-    // Date filtering (existing logic)
+    // Date filtering
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
-    }
-    
-    // Filter out refunds by default (unless explicitly included)
-    if (includeRefunds !== 'true') {
-      query.type = { $ne: 'refund' }; // Exclude refund records
     }
     
     const incomes = await Income.find(query)
