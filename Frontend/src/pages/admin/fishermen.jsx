@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, X, CheckCircle2, ShieldAlert, Trash2, Anchor, Edit, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ added
 
 const VERIFY_FILTERS = ["all", "verified", "unverified"];
 const STATUS = ["all", "active", "disabled"];
@@ -74,43 +75,30 @@ export default function AdminFishermenPage({ darkMode }) {
     return list;
   }, [rows, query, verifyFilter, status, position]);
 
-  const exportCSV = () => {
-    const headers = [
-      "email",
-      "firstName",
-      "lastName",
-      "phone",
-      "address",
-      "licenseNumber",
-      "boatNumber",
-      "position",
-      "isEmailVerified",
-      "isDisabled",
-      "createdAt",
-    ];
-    const dataRows = filtered.map((f) => [
-      f.email ?? "",
-      escapeCSV(f.firstName ?? ""),
-      escapeCSV(f.lastName ?? ""),
-      f.phone ?? "",
-      escapeCSV(f.address ?? ""),
-      escapeCSV(f.licenseNumber ?? ""),
-      escapeCSV(f.boatNumber ?? ""),
-      f.position ?? "",
-      f.isEmailVerified ? "true" : "false",
-      f.isDisabled ? "true" : "false",
-      f.createdAt ? new Date(f.createdAt).toISOString() : "",
-    ]);
-    const csv = [headers.join(","), ...dataRows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `fishermen_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  // ✅ added — Export PDF
+  const exportPDF = () => {
+    exportTablePDF({
+      title: "Fishermen Report",
+      meta: {
+        "Total Fishermen": filtered.length,
+      },
+      columns: [
+        {
+          header: "Full name",
+          get: (f) => ((f.firstName || "") + (f.lastName ? " " + f.lastName : "")).trim() || "-",
+        },
+        { header: "Email", get: (f) => f.email || "-" },
+        { header: "Phone", get: (f) => f.phone || "-" },
+        { header: "Address", get: (f) => f.address || "-" },
+        { header: "License", get: (f) => f.licenseNumber || "-" },
+        { header: "Boat", get: (f) => f.boatNumber || "-" },
+        { header: "Position", get: (f) => f.position || "-" },
+        { header: "Verification", get: (f) => (f.isEmailVerified ? "Verified" : "Unverified") },
+        { header: "Status", get: (f) => (f.isDisabled ? "Disabled" : "Active") },
+        { header: "Created", get: (f) => fmtDate(f.createdAt) },
+      ],
+      rows: filtered,
+    });
   };
 
   const handleAdd = () => {
@@ -174,16 +162,17 @@ export default function AdminFishermenPage({ darkMode }) {
         </div>
 
         <div className="flex items-center justify-end gap-2">
+          {/* ✅ replaced CSV with PDF export */}
           <button
-            onClick={exportCSV}
+            onClick={exportPDF}
             type="button"
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
               darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
             }`}
-            title="Export current view as CSV"
+            title="Export current view as PDF"
           >
             <Download className="h-4 w-4" />
-            Export
+            Export PDF
           </button>
           <button
             onClick={handleAdd}
@@ -448,11 +437,4 @@ function fmtDate(v) {
   } catch {
     return "-";
   }
-}
-
-function escapeCSV(s) {
-  if (s == null) return "";
-  const str = String(s);
-  const needs = /[",\n]/.test(str);
-  return needs ? `"${str.replace(/"/g, '""')}"` : str;
 }
