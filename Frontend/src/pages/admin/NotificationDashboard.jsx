@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ PDF exporter
 
 const BASE_URL = (import.meta.env.VITE_BACKEND_URL || "http://localhost:3000");
 
@@ -168,6 +169,36 @@ export default function NotificationDashboard() {
     }
   }
 
+  // ✅ PDF export (no other logic changed)
+  async function handleExportPDF() {
+    if (!filtered.length) {
+      toast.error("No notifications to export");
+      return;
+    }
+
+    const columns = [
+      { header: "Title", get: (n) => n.title || "-" },
+      { header: "Role", get: (n) => n.role || "-" },
+      { header: "Scope", get: (n) => scopeLabel(n) },
+      { header: "Readers", get: (n) => String(n.isReadBy ?? 0), align: "right", width: 60 },
+      { header: "Created", get: (n) => fmtDate(n.createdAt) },
+      { header: "Message", get: (n) => n.message || "-" },
+    ];
+
+    await exportTablePDF({
+      title: "Notifications Report",
+      meta: {
+        "Role Filter": roleFilter === "all" ? "All" : roleFilter,
+        "Search Query": search ? `"${search}"` : "—",
+        "Count": filtered.length,
+      },
+      columns,
+      rows: filtered,
+      orientation: "landscape",
+      filename: `notifications_report_${roleFilter}_${new Date().toISOString().slice(0, 10)}.pdf`,
+    });
+  }
+
   return (
     <div className="w-full max-w-[calc(100vw-320px)] mx-auto">
       <div className="mb-6 flex items-center justify-between">
@@ -190,6 +221,20 @@ export default function NotificationDashboard() {
             </svg>
             {loading ? "Refreshing..." : "Refresh"}
           </button>
+
+          {/* ✅ PDF Report button */}
+          <button
+            onClick={handleExportPDF}
+            className="px-4 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center gap-2 transition-colors"
+            title="Download PDF report"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 16a1 1 0 01-.707-.293l-3.5-3.5a1 1 0 111.414-1.414L11 12.586V4a1 1 0 112 0v8.586l1.793-1.793a1 1 0 111.414 1.414l-3.5 3.5A1 1 0 0112 16z" />
+              <path d="M5 18a2 2 0 002 2h10a2 2 0 002-2v-1a1 1 0 112 0v1a4 4 0 01-4 4H7a4 4 0 01-4-4v-1a1 1 0 112 0v1z" />
+            </svg>
+            Report
+          </button>
+
           <button
             onClick={openCreate}
             className="px-4 h-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-colors"
@@ -313,7 +358,7 @@ export default function NotificationDashboard() {
                       {n.role === "customer" && Array.isArray(n.targetEmails) && n.targetEmails.length > 0 ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
                           </svg>
                           Targeted ({n.targetEmails.length})
                         </span>
