@@ -16,6 +16,7 @@ import {
   Info,
   Download,
 } from "lucide-react";
+import { exportTablePDF } from "../utils/pdfExporter"; // ✅ PDF exporter
 
 export default function TripsManagement({ darkMode = false }) {
   const [trips, setTrips] = useState([]);
@@ -148,7 +149,8 @@ export default function TripsManagement({ darkMode = false }) {
     return { upcoming: u, ongoing: o, others: ot, completed: comp, overdue: over, cancelled: can, counts: c };
   }, [trips]);
 
-  function exportCSV() {
+  // ✅ PDF Export replacing CSV
+  async function handleExportPDF() {
     const list =
       filter === "total" ? trips :
       filter === "upcoming" ? upcoming :
@@ -156,40 +158,53 @@ export default function TripsManagement({ darkMode = false }) {
       filter === "completed" ? completed :
       filter === "overdue" ? overdue : cancelled;
 
-    const headers = [
-      "tripId","status","destination","skipper","boat",
-      "fishermenCount","fishermenNames","tripType",
-      "departureDateTime","plannedReturnAt","specialNotes","createdAt"
+    if (!list || list.length === 0) {
+      toast.error("No trips to export");
+      return;
+    }
+
+    const columns = [
+      { header: "Trip ID", get: (t) => t.tripId },
+      { header: "Status", get: (t) => t.status || "-" },
+      { header: "Destination", get: (t) => t.destination || "-" },
+      { header: "Skipper", get: (t) => personFirstOf(t.skipper ?? t.captain) || "-" },
+      { header: "Boat", get: (t) => boatNameOf(t.boat) || "-" },
+      { header: "Crew Count", get: (t) => (Array.isArray(t.fishermen) ? t.fishermen.length : 0) },
+      { header: "Fishermen", get: (t) => peopleListFirstNames(t.fishermen) || "-" },
+      { header: "Trip Type", get: (t) => t.tripType || "-" },
+      {
+        header: "Departure",
+        get: (t) =>
+          t.departureDateTime
+            ? `${new Date(t.departureDateTime).toLocaleDateString()} ${new Date(t.departureDateTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            : "-",
+      },
+      {
+        header: "Planned Return",
+        get: (t) =>
+          t.plannedReturnAt
+            ? `${new Date(t.plannedReturnAt).toLocaleDateString()} ${new Date(t.plannedReturnAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            : "-",
+      },
+      { header: "Notes", get: (t) => t.specialNotes || "-" },
+      {
+        header: "Created",
+        get: (t) => (t.createdAt ? new Date(t.createdAt).toLocaleString() : "-"),
+      },
     ];
 
-    const rows = (list || []).map((t) => {
-      const skipperName = personFirstOf(t.skipper ?? t.captain);
-      const boatName = boatNameOf(t.boat);
-      const fishermenNames = peopleListFirstNames(t.fishermen);
-
-      return [
-        csv(t.tripId), csv(t.status), csv(t.destination), csv(skipperName), csv(boatName),
-        String(Array.isArray(t.fishermen) ? t.fishermen.length : 0),
-        csv(fishermenNames), csv(t.tripType),
-        csv(iso(t.departureDateTime)), csv(iso(t.plannedReturnAt)), csv(t.specialNotes),
-        csv(iso(t.createdAt)),
-      ];
+    await exportTablePDF({
+      title: "Trips Report",
+      meta: {
+        Filter: filter === "total" ? "All" : capFirst(filter),
+        "Total Trips": list.length,
+      },
+      columns,
+      rows: list,
+      orientation: "landscape",
+      filename: `trip_report_${filter === "total" ? "all" : filter}_${new Date().toISOString().slice(0, 10)}.pdf`,
     });
-
-    const csvText = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `trip_report_${filter === "total" ? "all" : filter}_${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
-
-  function csv(v){ if(v==null) return ""; const s=String(v); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }
-  function iso(dt){ if(!dt) return ""; const d=new Date(dt); return isNaN(d)?"":d.toISOString(); }
 
   if (loading) {
     return (
@@ -220,15 +235,15 @@ export default function TripsManagement({ darkMode = false }) {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={exportCSV}
+            onClick={handleExportPDF}
             type="button"
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
               darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
             }`}
-            title="Export current view as CSV"
+            title="Export current view as PDF"
           >
             <Download className="h-4 w-4" />
-            Report
+            Report PDF
           </button>
 
           <button

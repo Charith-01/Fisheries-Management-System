@@ -10,7 +10,9 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Download, // ✅ added
 } from "lucide-react";
+import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ added
 
 /* ----------------------- tiny UI helpers ----------------------- */
 
@@ -193,6 +195,37 @@ export default function AdminReviewsPage() {
       .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
   }, [viewer, rows]);
 
+  // ✅ PDF Export (does not change any existing logic)
+  const handleExportPDF = async () => {
+    if (!filtered.length) return;
+    await exportTablePDF({
+      title: "Reviews Report",
+      meta: {
+        Search: q,               // (kept for parity; exporter currently omits these from header)
+        "Rating Filter": ratingFilter === "all" ? "All" : `${ratingFilter} star(s)`,
+        "Product Filter": productFilter === "all"
+          ? "All"
+          : (productOptions.find(p => p.id === productFilter)?.name || productFilter),
+        Sort: ({
+          dateDesc: "Newest first",
+          dateAsc: "Oldest first",
+          ratingDesc: "Rating ↓",
+          ratingAsc: "Rating ↑",
+        })[sortBy],
+      },
+      columns: [
+        { header: "Product", accessor: "productName" },
+        { header: "Product ID", accessor: "productId" },
+        { header: "Rating", get: (r) => `${r.rating}.0`, align: "center", width: 60 },
+        { header: "Comment", accessor: "comment", width: 280 },
+        { header: "User", accessor: "userName", width: 120 },
+        { header: "Email", accessor: "userEmail", width: 160 },
+        { header: "Date", get: (r) => (r.createdAt ? r.createdAt.toLocaleDateString() : "—"), width: 90 },
+      ],
+      rows: filtered,
+    });
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
@@ -202,6 +235,16 @@ export default function AdminReviewsPage() {
           {loading ? "Loading…" : `${rows.length} total`}
         </span>
         <div className="ml-auto flex items-center gap-2">
+          {/* ✅ PDF button (added) */}
+          <button
+            onClick={handleExportPDF}
+            className="h-10 px-3 inline-flex items-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200 ring-1 ring-slate-200"
+            title="Download PDF"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
