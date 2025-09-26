@@ -28,7 +28,7 @@ const isPaymentFailed = (o) => norm(o.paymentStatus) === "failed";
 const isOrderPending = (o) => norm(o.status) === "pending";
 
 // Canonical order statuses (admin can change these)
-const ORDER_STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Refunded"];
+const ORDER_STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
 // Payment filter options for UI
 const PAYMENT_FILTER_OPTIONS = ["all", "pending", "succeeded", "failed"];
@@ -127,19 +127,8 @@ export default function AdminOrdersPage({ darkMode }) {
   const handleStatusChange = async (orderId, status) => {
     try {
       setBusyId(orderId);
-      if (norm(status) === "refunded") {
-      if (!confirm(`Refund order ${orderId}? This will deduct the amount from income records.`)) {
-        setBusyId("");
-        return;
-      }
-      
-      await api.put(`/api/order/refund/${encodeURIComponent(orderId)}`, { status });
-      toast.success("Order refunded and income adjusted");
-    } else {
-      // Regular status update
       await api.put(`/api/order/status/${encodeURIComponent(orderId)}`, { status });
       toast.success("Order status updated");
-    }
       await loadOrders();
 
       if (activeOrder?.orderId === orderId) {
@@ -153,8 +142,7 @@ export default function AdminOrdersPage({ darkMode }) {
       setBusyId("");
     }
   };
-  
-  
+
   const handleCancel = async (order) => {
     if (!isOrderPending(order)) {
       toast.error("Only pending orders can be cancelled");
