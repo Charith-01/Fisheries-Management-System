@@ -95,52 +95,6 @@ export default function BoatDetails({ darkMode }) {
                 </button>
                 <div className="flex space-x-3">
                     <button
-                        onClick={() => {
-                            if (!boat) {
-                                toast.error("No boat details to export");
-                                return;
-                            }
-                            const headers = ["Boat Number", "Name", "Capacity", "Status", "Equipment"];
-                            const escapeCSV = (str) => {
-                                if (str == null) return "";
-                                str = String(str);
-                                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                                    return '"' + str.replace(/"/g, '""') + '"';
-                                }
-                                return str;
-                            };
-                            const equipmentStr = boat.equipmentID && boat.equipmentID.length > 0 ? boat.equipmentID.map(eid => {
-                                const eq = equipmentList.find(eq => eq._id === eid || eq.equipmentID === eid);
-                                return eq ? `${eq.name} (${eq.equipmentID})` : eid;
-                            }).join(", ") : "None";
-                            const row = [
-                                escapeCSV(boat.boatNumber),
-                                escapeCSV(boat.name),
-                                escapeCSV(boat.capacity),
-                                escapeCSV(boat.status),
-                                escapeCSV(equipmentStr)
-                            ];
-                            const csv = [headers.join(","), row.join(",")].join("\n");
-                            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `boat_${boat.boatNumber}_${new Date().toISOString().slice(0, 10)}.csv`;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            URL.revokeObjectURL(url);
-                        }}
-                        type="button"
-                        className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
-                            darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
-                        }`}
-                        title="Export boat details as CSV"
-                    >
-                        <Download className="h-4 w-4" />
-                        Export
-                    </button>
-                    <button
                         onClick={() => navigate(`/admin/boats/editBoat/${boat.boatNumber}`)}
                         className={`flex items-center px-4 py-2 rounded-md transition-all ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                     >
@@ -223,19 +177,60 @@ export default function BoatDetails({ darkMode }) {
                             )}
                         </div>
 
-                        {boat.equipmentID && boat.equipmentID.length > 0 && (
+                        {boat.equipmentAssignments && boat.equipmentAssignments.length > 0 && (
                             <div className="mt-6">
                                 <h3 className={`font-semibold mb-2 ${darkMode ? 'text-cyan-200' : 'text-gray-700'}`}>Equipment</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {boat.equipmentID.map((equipmentId, index) => {
-                                        const eq = equipmentList.find(eq => eq._id === equipmentId || eq.equipmentID === equipmentId);
+                                <div className="space-y-2">
+                                    {boat.equipmentAssignments.map((assignment, index) => {
+                                        const eq = equipmentList.find(eq => 
+                                            eq._id === assignment.equipment?._id || 
+                                            eq.equipmentID === assignment.equipment?.equipmentID
+                                        );
                                         return (
-                                            <span
-                                                key={index}
-                                                className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-cyan-900 text-cyan-200' : 'bg-blue-50 text-blue-700'}`}
-                                            >
-                                                {eq ? `${eq.name} (${eq.equipmentID})` : equipmentId}
-                                            </span>
+                                            <div key={index} className={`flex justify-between items-center p-3 rounded ${darkMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
+                                                <div>
+                                                    <div className="font-medium">
+                                                        {eq ? eq.name : assignment.equipment?.name}
+                                                    </div>
+                                                    <div className="text-sm opacity-75">
+                                                        {eq ? eq.equipmentID : assignment.equipment?.equipmentID}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-cyan-900 text-cyan-200' : 'bg-blue-100 text-blue-800'}`}>
+                                                        Qty: {assignment.quantity}
+                                                    </span>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (window.confirm(`Remove ${assignment.quantity} ${eq ? eq.name : 'equipment'} from this boat?`)) {
+                                                                try {
+                                                                    const token = localStorage.getItem("token");
+                                                                    await api.post('/api/equipment/remove', {
+                                                                        boatNumber: boat.boatNumber,
+                                                                        equipmentID: eq ? eq.equipmentID : assignment.equipment?.equipmentID,
+                                                                        quantity: assignment.quantity
+                                                                    }, {
+                                                                        headers: { Authorization: "Bearer " + token }
+                                                                    });
+                                                                    toast.success("Equipment removed successfully");
+                                                                    // Refresh boat details
+                                                                    const response = await api.get(`/api/boat/${boat.boatNumber}`);
+                                                                    setBoat(response.data.boat);
+                                                                    // Refresh equipment list
+                                                                    const res = await api.get("/api/equipment");
+                                                                    setEquipmentList(res.data);
+                                                                } catch (error) {
+                                                                    toast.error("Failed to remove equipment");
+                                                                }
+                                                            }
+                                                        }}
+                                                        className={`p-1 rounded ${darkMode ? 'text-red-400 hover:text-red-600' : 'text-red-500 hover:text-red-700'}`}
+                                                        title="Remove equipment"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            </div>
                                         );
                                     })}
                                 </div>

@@ -1,5 +1,5 @@
 import express from "express"
-import { createEquipment, deleteEquipment, getAllEquipments, getEquipmentById, updatEquipment } from "../controllers/equipmentController.js"
+import { assignEquipmentToBoat, createEquipment, deleteEquipment, getAllEquipments, getBoatEquipment, getEquipmentById, removeEquipmentFromBoat, updatEquipment } from "../controllers/equipmentController.js"
 
 const equipmentRouter = express.Router()
 
@@ -8,5 +8,11 @@ equipmentRouter.get("/", getAllEquipments)
 equipmentRouter.delete("/:equipmentID", deleteEquipment)
 equipmentRouter.put("/:equipmentID", updatEquipment)
 equipmentRouter.get("/:id", getEquipmentById)
+equipmentRouter.post("/assign", assignEquipmentToBoat)
+equipmentRouter.post("/remove", removeEquipmentFromBoat)
+
+equipmentRouter.get("/boat/:boatNumber", getBoatEquipment)
+
+
 
 export default equipmentRouter

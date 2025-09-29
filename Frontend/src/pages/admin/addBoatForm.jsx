@@ -10,26 +10,21 @@ export default function AddBoatForm({ darkMode }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imageFiles, setImageFiles] = useState([]);
     const [imageUrls, setImageUrls] = useState([]);
-    const [equipmentInput, setEquipmentInput] = useState("");
-    const [equipmentItems, setEquipmentItems] = useState([]);
+    const [equipmentList, setEquipmentList] = useState([]);
+    const [equipmentAssignments, setEquipmentAssignments] = useState([]);
     const [formData, setFormData] = useState({
-        // boatNumber: "",
         name: "",
         capacity: "",
         status: "active",
         images: [],
-        equipmentID: []
     });
-    const [errors, setErrors] = useState({});
-    // Equipment list for dropdown
-    const [equipmentList, setEquipmentList] = useState([]);
 
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         const fetchEquipment = async () => {
             try {
                 const res = await api.get("/api/equipment");
-                // Show all equipment in the dropdown
                 setEquipmentList(res.data);
             } catch (err) {
                 setEquipmentList([]);
@@ -60,32 +55,50 @@ export default function AddBoatForm({ darkMode }) {
         setImageUrls(newUrls);
     };
 
-    const addEquipment = (e) => {
-        const selectedObjectId = e.target.value;
-        if (!selectedObjectId || equipmentItems.includes(selectedObjectId)) return;
-        const updatedItems = [...equipmentItems, selectedObjectId];
-        setEquipmentItems(updatedItems);
-        setFormData({ ...formData, equipmentID: updatedItems });
-        if (errors.equipmentID) setErrors({ ...errors, equipmentID: null });
+    const addEquipmentAssignment = (e) => {
+        const selectedEquipmentId = e.target.value;
+        if (!selectedEquipmentId) return;
+        
+        const selectedEquipment = equipmentList.find(eq => eq._id === selectedEquipmentId);
+        if (!selectedEquipment) return;
+
+        // Check if already added
+        if (equipmentAssignments.find(a => a.equipmentId === selectedEquipmentId)) {
+            toast.error("Equipment already added");
+            return;
+        }
+
+        setEquipmentAssignments([
+            ...equipmentAssignments,
+            {
+                equipmentId: selectedEquipmentId,
+                equipmentName: selectedEquipment.name,
+                equipmentID: selectedEquipment.equipmentID,
+                availableQuantity: selectedEquipment.availableQuantity,
+                quantity: 1
+            }
+        ]);
     };
 
-    const removeEquipment = (index) => {
-        const newItems = [...equipmentItems];
-        newItems.splice(index, 1);
-        setEquipmentItems(newItems);
-        setFormData({ ...formData, equipmentID: newItems });
-        if (errors.equipmentID && newItems.length > 0) setErrors({ ...errors, equipmentID: null });
+    const updateEquipmentQuantity = (index, newQuantity) => {
+        const updatedAssignments = [...equipmentAssignments];
+        if (newQuantity <= updatedAssignments[index].availableQuantity && newQuantity > 0) {
+            updatedAssignments[index].quantity = newQuantity;
+            setEquipmentAssignments(updatedAssignments);
+        }
+    };
+
+    const removeEquipmentAssignment = (index) => {
+        const newAssignments = [...equipmentAssignments];
+        newAssignments.splice(index, 1);
+        setEquipmentAssignments(newAssignments);
     };
 
     const validateForm = () => {
         const newErrors = {};
-        // if (!formData.boatNumber.trim()) newErrors.boatNumber = "Boat number is required";
         if (!formData.name.trim()) newErrors.name = "Boat name is required";
         if (!formData.capacity || formData.capacity < 1) newErrors.capacity = "Capacity must be at least 1";
         if (!imageFiles.length) newErrors.images = "At least one image is required";
-        if (!formData.equipmentID || formData.equipmentID.length === 0) {
-            newErrors.equipmentID = "At least one equipment is required";
-        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -98,24 +111,44 @@ export default function AddBoatForm({ darkMode }) {
         try {
             // Upload images
             const uploadedUrls = await Promise.all(imageFiles.map(f => meadiaUpload(f)));
-            const payload = { ...formData, images: uploadedUrls };
+            
+            // Create boat first
+            const boatPayload = {
+                ...formData,
+                images: uploadedUrls,
+            };
 
-            // Get token if required
             const token = localStorage.getItem("token");
-
-            // Correct backend URL
-            await axios.post(
+            const boatResponse = await axios.post(
                 `${import.meta.env.VITE_BACKEND_URL}/api/boat`,
-                payload,
+                boatPayload,
                 {
                     headers: {
-                        // "Authorization": token ? `Bearer ${token}` : "",
                         Authorization: "Bearer " + token,
                     },
                 }
             );
 
-            toast.success("Boat added successfully");
+            const boat = boatResponse.data.boat;
+
+            // Assign equipment to the boat
+            for (const assignment of equipmentAssignments) {
+                await axios.post(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/equipment/assign`,
+                    {
+                        boatNumber: boat.boatNumber,
+                        equipmentID: assignment.equipmentID,
+                        quantity: assignment.quantity
+                    },
+                    {
+                        headers: {
+                            Authorization: "Bearer " + token,
+                        },
+                    }
+                );
+            }
+
+            toast.success("Boat added successfully with equipment assignments");
             navigate("/admin/boats");
         } catch (err) {
             console.error(err);
@@ -130,14 +163,6 @@ export default function AddBoatForm({ darkMode }) {
             <div className={`w-full max-w-xl shadow-md rounded-lg p-6 ${darkMode ? 'bg-slate-800 text-slate-100' : 'bg-white text-slate-800'}`}>
                 <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-cyan-300' : ''}`}>Add New Boat</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* <input
-                        type="text"
-                        name="boatNumber"
-                        placeholder="Boat Number *"
-                        value={formData.boatNumber}
-                        onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded ${errors.boatNumber ? "border-red-500" : darkMode ? "border-slate-600 bg-slate-700 text-slate-100" : "border-gray-300"}`}
-                    /> */}
                     <input
                         type="text"
                         name="name"
@@ -183,41 +208,59 @@ export default function AddBoatForm({ darkMode }) {
                         </div>
                     )}
 
-                    {/* Equipment Dropdown */}
-                    <div className="flex gap-2 items-center">
+                    {/* Equipment Assignments */}
+                    <div>
+                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Assignments</label>
                         <select
-                            value=""
-                            onChange={addEquipment}
-                            className={`flex-grow px-3 py-2 border rounded-l ${errors.equipmentID ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
+                            onChange={addEquipmentAssignment}
+                            className={`w-full px-3 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
                         >
-                            <option value="">Select Equipment</option>
-                            {equipmentList.map(eq => (
+                            <option value="">Select Equipment to Add</option>
+                            {equipmentList
+                                .filter(eq => eq.availableQuantity > 0)
+                                .map(eq => (
                                 <option key={eq._id} value={eq._id}>
-                                    {eq.name} ({eq.equipmentID})
+                                    {eq.name} ({eq.equipmentID}) - Available: {eq.availableQuantity}
                                 </option>
                             ))}
                         </select>
-                    </div>
-                    {errors.equipmentID && (
-                        <p className="mt-1 text-sm text-red-600">{errors.equipmentID}</p>
-                    )}
-                    {equipmentItems.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {equipmentItems.map((item, i) => {
-                                const eq = equipmentList.find(eq => eq._id === item);
-                                return (
-                                    <div key={i} className={`px-3 py-1 rounded-full flex items-center gap-1 ${darkMode ? 'bg-slate-700 text-slate-100' : 'bg-gray-100'}`}>
-                                        <span>{eq ? `${eq.name} (${eq.equipmentID})` : item}</span>
-                                        <button type="button" onClick={() => removeEquipment(i)} className={`${darkMode ? 'text-red-400' : 'text-red-500'}`}>x</button>
+                        
+                        {equipmentAssignments.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                                {equipmentAssignments.map((assignment, index) => (
+                                    <div key={index} className={`flex items-center justify-between p-3 rounded ${darkMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
+                                        <div>
+                                            <div className="font-medium">{assignment.equipmentName}</div>
+                                            <div className="text-sm opacity-75">{assignment.equipmentID}</div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={assignment.availableQuantity}
+                                                value={assignment.quantity}
+                                                onChange={(e) => updateEquipmentQuantity(index, parseInt(e.target.value))}
+                                                className={`w-20 px-2 py-1 border rounded ${darkMode ? 'border-slate-600 bg-slate-800 text-slate-100' : 'border-gray-300'}`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeEquipmentAssignment(index)}
+                                                className={`p-1 rounded ${darkMode ? 'text-red-400 hover:text-red-600' : 'text-red-500 hover:text-red-700'}`}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     <div className="flex justify-end gap-2 mt-4">
                         <button type="button" onClick={() => navigate("/admin/boats")} className={`px-4 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}>Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className={`px-4 py-2 rounded ${darkMode ? 'bg-cyan-700 text-white' : 'bg-blue-600 text-white'}`}>{isSubmitting ? "Saving..." : "Save Boat"}</button>
+                        <button type="submit" disabled={isSubmitting} className={`px-4 py-2 rounded ${darkMode ? 'bg-cyan-700 text-white' : 'bg-blue-600 text-white'}`}>
+                            {isSubmitting ? "Saving..." : "Save Boat"}
+                        </button>
                     </div>
                 </form>
             </div>
