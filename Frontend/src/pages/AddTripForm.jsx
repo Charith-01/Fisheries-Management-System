@@ -12,6 +12,8 @@ export default function AddTripForm({ darkMode = false }) {
   const [boats, setBoats] = useState([]);
   const [skippers, setSkippers] = useState([]);   
   const [fishermen, setFishermen] = useState([]);  
+  const [existingTrips, setExistingTrips] = useState([]);
+  const [loadingTrips, setLoadingTrips] = useState(true);
 
   const [form, setForm] = useState({
     tripId: "",
@@ -31,25 +33,76 @@ export default function AddTripForm({ darkMode = false }) {
 
     (async () => {
       try {
-        const [b, s, f] = await Promise.allSettled([
+        const [b, s, f, tripsRes] = await Promise.allSettled([
           axios.get("/api/boat", { headers }),
           axios.get("/api/fisherman?position=skipper", { headers }),
           axios.get("/api/fisherman?position=crew", { headers }),
+          axios.get("/api/trip", { headers }),
         ]);
         if (b.status === "fulfilled") setBoats(b.value.data || []);
         if (s.status === "fulfilled") setSkippers(s.value.data || []);
         if (f.status === "fulfilled") setFishermen(f.value.data || []);
+        if (tripsRes.status === "fulfilled") setExistingTrips(tripsRes.value.data || []);
       } catch (e) {
         console.error(e);
         toast.error("Failed to load dropdowns");
+      } finally {
+        setLoadingTrips(false);
       }
     })();
   }, []);
 
+  // Generate auto-increment trip ID
+  useEffect(() => {
+    if (!loadingTrips && existingTrips.length > 0) {
+      // Extract numeric parts from existing trip IDs and find the highest number
+      const tripNumbers = existingTrips.map(trip => {
+        const match = trip.tripId?.match(/(\d+)$/);
+        return match ? parseInt(match[1]) : 0;
+      });
+      
+      const maxNumber = Math.max(...tripNumbers, 0);
+      const nextNumber = maxNumber + 1;
+      const newTripId = `TRIP-${new Date().getFullYear()}-${nextNumber.toString().padStart(4, '0')}`;
+      
+      setForm(prev => ({ ...prev, tripId: newTripId }));
+    } else if (!loadingTrips) {
+      // First trip - start with 1
+      setForm(prev => ({ ...prev, tripId: `TRIP-${new Date().getFullYear()}-0001` }));
+    }
+  }, [existingTrips, loadingTrips]);
+
   function onChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === "departureDateTime") {
+      const departureDate = new Date(value);
+      const now = new Date();
+      
+      // Prevent past dates
+      if (departureDate < now) {
+        toast.error("Departure date cannot be in the past");
+        return;
+      }
+      
+      // Automatically set planned return to 30 days after departure
+      const plannedReturnDate = new Date(departureDate);
+      plannedReturnDate.setDate(plannedReturnDate.getDate() + 30);
+      
+      // Format to datetime-local format (YYYY-MM-DDTHH:mm)
+      const formattedReturn = plannedReturnDate.toISOString().slice(0, 16);
+      const formattedDeparture = value;
+      
+      setForm(prev => ({ 
+        ...prev, 
+        departureDateTime: formattedDeparture,
+        plannedReturnAt: formattedReturn
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   }
+
   function onFishermenChange(e) {
     const values = Array.from(e.target.selectedOptions).map((o) => o.value);
     setForm((prev) => ({ ...prev, fishermen: values }));
@@ -62,7 +115,18 @@ export default function AddTripForm({ darkMode = false }) {
     if (!form.fishermen.length) return "Choose at least one fisherman";
     if (!form.departureDateTime) return "Departure date/time is required";
     if (!form.plannedReturnAt) return "Planned return is required";
-    if (new Date(form.plannedReturnAt) <= new Date(form.departureDateTime)) return "Return must be after departure";
+    
+    const departure = new Date(form.departureDateTime);
+    const plannedReturn = new Date(form.plannedReturnAt);
+    const now = new Date();
+    
+    if (departure < now) return "Departure date cannot be in the past";
+    if (plannedReturn <= departure) return "Return must be after departure";
+    
+    const maxReturnDate = new Date(departure);
+    maxReturnDate.setDate(maxReturnDate.getDate() + 30);
+    if (plannedReturn > maxReturnDate) return "Return date cannot be more than 30 days after departure";
+    
     if (!form.destination.trim()) return "Destination is required";
     if (!form.tripType.trim()) return "Trip type is required";
     return null;
@@ -79,6 +143,9 @@ export default function AddTripForm({ darkMode = false }) {
     return "upcoming";
   }, [form.departureDateTime, form.plannedReturnAt]);
 
+  // Calculate min date for departure input
+  const minDepartureDate = new Date().toISOString().slice(0, 16);
+
   async function onSubmit(e) {
     e.preventDefault();
     const err = validate();
@@ -94,11 +161,11 @@ export default function AddTripForm({ darkMode = false }) {
         plannedReturnAt: new Date(form.plannedReturnAt).toISOString(),
       };
       await axios.post("/api/trip", payload, { headers });
-      toast.success("Trip created");
+      toast.success("Trip created successfully");
       navigate("/admin/trip");
     } catch (e) {
       console.error(e);
-      toast.error(e.response?.data?.message || "Create failed");
+      toast.error(e.response?.data?.message || "Failed to create trip");
     } finally {
       setIsSubmitting(false);
     }
@@ -159,14 +226,25 @@ export default function AddTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="tripId">Trip ID</label>
-                  <input id="tripId" name="tripId" placeholder="e.g., TRIP-2025-0004" value={form.tripId} onChange={onChange} className={`${inputBase} font-mono uppercase`} />
-                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Use a unique identifier you can look up later.</p>
+                  <input 
+                    id="tripId" 
+                    name="tripId" 
+                    value={form.tripId} 
+                    readOnly 
+                    className={`${inputBase} font-mono uppercase bg-opacity-50 cursor-not-allowed`} 
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Auto-generated unique trip identifier
+                  </p>
                 </div>
 
                 <div>
                   <label className={labelBase} htmlFor="tripType">Trip Type</label>
                   <select id="tripType" name="tripType" value={form.tripType} onChange={onChange} className={inputBase}>
-                    <option>Fishing Trip</option><option>Sightseeing</option><option>Private Charter</option><option>Other</option>
+                    <option>Fishing Trip</option>
+                    <option>Sightseeing</option>
+                    <option>Private Charter</option>
+                    <option>Other</option>
                   </select>
                 </div>
 
@@ -175,7 +253,14 @@ export default function AddTripForm({ darkMode = false }) {
                     <MapPin className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Destination
                   </label>
-                  <input id="destination" name="destination" placeholder="e.g., Offshore Zone 4B" value={form.destination} onChange={onChange} className={inputBase} />
+                  <input 
+                    id="destination" 
+                    name="destination" 
+                    placeholder="e.g., Offshore Zone 4B" 
+                    value={form.destination} 
+                    onChange={onChange} 
+                    className={inputBase} 
+                  />
                 </div>
               </div>
             </section>
@@ -226,6 +311,7 @@ export default function AddTripForm({ darkMode = false }) {
                   </select>
                   <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
                     Hold <span className="font-medium">Ctrl</span> (Windows) or <span className="font-medium">Cmd</span> (Mac) to select multiple.
+                    Selected: {form.fishermen.length} fishermen
                   </p>
                 </div>
               </div>
@@ -240,17 +326,38 @@ export default function AddTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="departureDateTime">Departure</label>
-                  <input id="departureDateTime" type="datetime-local" name="departureDateTime" value={form.departureDateTime} onChange={onChange} className={inputBase} />
+                  <input 
+                    id="departureDateTime" 
+                    type="datetime-local" 
+                    name="departureDateTime" 
+                    value={form.departureDateTime} 
+                    onChange={onChange} 
+                    min={minDepartureDate}
+                    className={inputBase} 
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Cannot be in the past
+                  </p>
                 </div>
                 <div>
                   <label className={labelBase} htmlFor="plannedReturnAt">Planned Return</label>
-                  <input id="plannedReturnAt" type="datetime-local" name="plannedReturnAt" value={form.plannedReturnAt} onChange={onChange} className={inputBase} />
+                  <input 
+                    id="plannedReturnAt" 
+                    type="datetime-local" 
+                    name="plannedReturnAt" 
+                    value={form.plannedReturnAt} 
+                    readOnly
+                    className={`${inputBase} bg-opacity-50 cursor-not-allowed`} 
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Automatically set to 30 days after departure
+                  </p>
                 </div>
               </div>
 
               <div className={infoBar}>
                 <CalendarClock size={14} className="shrink-0" />
-                Status is automatically derived from the dates you pick.
+                Return date is automatically calculated as 30 days after departure. Status is derived from the dates.
               </div>
             </section>
 
@@ -259,7 +366,13 @@ export default function AddTripForm({ darkMode = false }) {
                 <ClipboardList className={`h-5 w-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
                 <h3 className={sectionTitle}>Notes</h3>
               </div>
-              <textarea name="specialNotes" placeholder="Any special instructions or notes…" value={form.specialNotes} onChange={onChange} className={`${inputBase} min-h-[120px]`} />
+              <textarea 
+                name="specialNotes" 
+                placeholder="Any special instructions or notes…" 
+                value={form.specialNotes} 
+                onChange={onChange} 
+                className={`${inputBase} min-h-[120px]`} 
+              />
             </section>
 
             <div className="flex items-center justify-end gap-2 pt-2">

@@ -7,3 +7,4 @@ const router = express.Router();
 router.get("/", getWeather);
 
 export default router;
+// models/trip.js

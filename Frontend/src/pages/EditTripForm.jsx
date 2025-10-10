@@ -41,6 +41,15 @@ export default function EditTripForm({ darkMode = false }) {
     return full || u.email || idOf(u) || "";
   };
 
+  // Check if trip is completed or cancelled (read-only)
+  const isReadOnly = status === "completed" || status === "cancelled";
+  
+  // Check if trip is ongoing (only actual return can be edited)
+  const isOngoing = status === "ongoing";
+  
+  // Check if trip is upcoming (cannot set actual return)
+  const isUpcoming = status === "upcoming";
+
   // ensure current selected value exist in dropdown lists
   const ensureSkipperPresent = (list, skipperId, skipperObj) => {
     if (!skipperId) return list;
@@ -143,22 +152,93 @@ export default function EditTripForm({ darkMode = false }) {
   // ---------- handlers ----------
   function onChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    
+    if (isReadOnly) return; // Prevent changes for completed/cancelled trips
+    
+    if (name === "departureDateTime") {
+      const departureDate = new Date(value);
+      const now = new Date();
+      
+      // Prevent past dates
+      if (departureDate < now) {
+        toast.error("Departure date cannot be in the past");
+        return;
+      }
+      
+      // Automatically set planned return to 30 days after departure
+      const plannedReturnDate = new Date(departureDate);
+      plannedReturnDate.setDate(plannedReturnDate.getDate() + 30);
+      
+      // Format to datetime-local format (YYYY-MM-DDTHH:mm)
+      const formattedReturn = plannedReturnDate.toISOString().slice(0, 16);
+      const formattedDeparture = value;
+      
+      setForm(prev => ({ 
+        ...prev, 
+        departureDateTime: formattedDeparture,
+        plannedReturnAt: formattedReturn
+      }));
+    } else if (name === "actualReturnAt") {
+      // For ongoing trips, validate actual return date is after departure
+      if (isOngoing && value) {
+        const actualReturn = new Date(value);
+        const departure = new Date(form.departureDateTime);
+        
+        // Actual return cannot be before departure
+        if (actualReturn < departure) {
+          toast.error("Actual return cannot be before departure date");
+          return;
+        }
+      }
+      
+      setForm(prev => ({ ...prev, [name]: value }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   }
+
   function onFishermenChange(e) {
+    if (isReadOnly || isOngoing) return; // Prevent changes for ongoing/completed/cancelled trips
     const values = Array.from(e.target.selectedOptions).map((o) => String(o.value));
     setForm((prev) => ({ ...prev, fishermen: values }));
   }
 
   function validate() {
+    if (isReadOnly) return "Cannot edit completed or cancelled trips";
+    
+    // For ongoing trips, only validate actual return date
+    if (isOngoing) {
+      if (!form.actualReturnAt) return "Actual return date is required to complete the trip";
+      
+      const actualReturn = new Date(form.actualReturnAt);
+      const departure = new Date(form.departureDateTime);
+      
+      if (actualReturn < departure) return "Actual return cannot be before departure date";
+      
+      return null;
+    }
+    
+    // For upcoming trips, validate all fields (except actual return)
     if (!form.boat) return "Select a boat";
     if (!form.skipper) return "Select a skipper";
     if (!form.fishermen.length) return "Choose at least one fisherman";
     if (!form.departureDateTime) return "Departure date/time is required";
     if (!form.plannedReturnAt) return "Planned return is required";
-    if (new Date(form.plannedReturnAt) <= new Date(form.departureDateTime)) return "Return must be after departure";
+    
+    const departure = new Date(form.departureDateTime);
+    const plannedReturn = new Date(form.plannedReturnAt);
+    const now = new Date();
+    
+    if (departure < now) return "Departure date cannot be in the past";
+    if (plannedReturn <= departure) return "Return must be after departure";
+    
+    const maxReturnDate = new Date(departure);
+    maxReturnDate.setDate(maxReturnDate.getDate() + 30);
+    if (plannedReturn > maxReturnDate) return "Return date cannot be more than 30 days after departure";
+    
     if (!form.destination.trim()) return "Destination is required";
     if (!form.tripType.trim()) return "Trip type is required";
+    
     return null;
   }
 
@@ -180,11 +260,12 @@ export default function EditTripForm({ darkMode = false }) {
         fishermen: form.fishermen.map(String),
         departureDateTime: new Date(form.departureDateTime).toISOString(),
         plannedReturnAt: new Date(form.plannedReturnAt).toISOString(),
-        actualReturnAt: form.actualReturnAt ? new Date(form.actualReturnAt).toISOString() : undefined,
+        // For upcoming trips, don't send actualReturnAt
+        actualReturnAt: isUpcoming ? undefined : (form.actualReturnAt ? new Date(form.actualReturnAt).toISOString() : undefined),
       };
 
       await axios.put(`/api/trip/${encodeURIComponent(tripId)}`, payload, { headers });
-      toast.success("Trip updated");
+      toast.success("Trip updated successfully");
       navigate("/admin/trip");
     } catch (e) {
       console.error(e);
@@ -207,6 +288,9 @@ export default function EditTripForm({ darkMode = false }) {
       ? "border-slate-700 bg-slate-800/80 text-slate-100 placeholder:text-slate-400 focus:ring-cyan-400 focus:border-cyan-400"
       : "border-slate-200 bg-white/60 text-slate-800 placeholder:text-slate-400 focus:ring-cyan-500 focus:border-cyan-500"
   } w-full rounded-xl border px-3 py-2 text-sm shadow-sm outline-none transition`;
+  
+  const readOnlyInputBase = `${inputBase} bg-opacity-50 cursor-not-allowed opacity-70`;
+  
   const labelBase = `text-sm font-medium mb-1 flex items-center gap-2 ${darkMode ? "text-slate-200" : "text-slate-700"}`;
   const cardWrap = `rounded-2xl border p-6 shadow-xl backdrop-blur ${darkMode ? "border-slate-700 bg-slate-800/90" : "border-slate-200 bg-white/80"}`;
   const pageWrap = `flex justify-center mt-10 px-4 ${darkMode ? "text-slate-100" : "text-slate-800"}`;
@@ -224,6 +308,16 @@ export default function EditTripForm({ darkMode = false }) {
   const submitBtn = `inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow ${
     darkMode ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-600" : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
   } disabled:cursor-not-allowed disabled:opacity-60`;
+  
+  const disabledSubmitBtn = `inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow ${
+    darkMode ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-slate-300 text-slate-500 cursor-not-allowed"
+  }`;
+
+  // Calculate min date for departure input
+  const minDepartureDate = new Date().toISOString().slice(0, 16);
+
+  // Calculate min for actual return date (departure date for ongoing trips)
+  const minActualReturnDate = form.departureDateTime;
 
   return (
     <div className={pageWrap}>
@@ -233,10 +327,38 @@ export default function EditTripForm({ darkMode = false }) {
           <span className={statusPill}>Status: {status || "—"}</span>
         </div>
 
+        {isReadOnly && (
+          <div className={`mb-4 p-4 rounded-xl border ${
+            darkMode ? "bg-amber-900/20 border-amber-700 text-amber-200" : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}>
+            <div className="flex items-center gap-2">
+              <CalendarClock size={16} />
+              <span className="font-medium">Read-only Mode</span>
+            </div>
+            <p className="text-sm mt-1">This trip is {status} and cannot be edited.</p>
+          </div>
+        )}
+
+        {isOngoing && (
+          <div className={`mb-4 p-4 rounded-xl border ${
+            darkMode ? "bg-blue-900/20 border-blue-700 text-blue-200" : "bg-blue-50 border-blue-200 text-blue-800"
+          }`}>
+            <div className="flex items-center gap-2">
+              <CalendarClock size={16} />
+              <span className="font-medium">Ongoing Trip</span>
+            </div>
+            <p className="text-sm mt-1">You can only update the actual return date. Setting this will mark the trip as completed.</p>
+          </div>
+        )}
+
         <div className={cardWrap}>
           <div className="mb-6">
             <h2 className={h2Cls}>Edit Trip <span className={`font-mono text-sm ${darkMode ? "text-slate-400" : "text-slate-500"}`}>{tripId}</span></h2>
-            <p className={subCls}>Update the details below and save your changes.</p>
+            <p className={subCls}>
+              {isReadOnly ? "Viewing trip details (read-only)" : 
+               isOngoing ? "Update actual return date only" : 
+               "Update the details below and save your changes."}
+            </p>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-8">
@@ -250,12 +372,25 @@ export default function EditTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="tripId">Trip ID</label>
-                  <input id="tripId" name="tripId" value={form.tripId} readOnly className={`${inputBase} ${darkMode ? "bg-slate-900/40" : "bg-slate-50"} font-mono`} />
+                  <input 
+                    id="tripId" 
+                    name="tripId" 
+                    value={form.tripId} 
+                    readOnly 
+                    className={`${inputBase} ${darkMode ? "bg-slate-900/40" : "bg-slate-50"} font-mono cursor-not-allowed`} 
+                  />
                 </div>
 
                 <div>
                   <label className={labelBase} htmlFor="tripType">Trip Type</label>
-                  <select id="tripType" name="tripType" value={form.tripType} onChange={onChange} className={inputBase}>
+                  <select 
+                    id="tripType" 
+                    name="tripType" 
+                    value={form.tripType} 
+                    onChange={onChange} 
+                    disabled={isReadOnly || isOngoing}
+                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
+                  >
                     <option>Fishing Trip</option>
                     <option>Sightseeing</option>
                     <option>Private Charter</option>
@@ -268,7 +403,15 @@ export default function EditTripForm({ darkMode = false }) {
                     <MapPin className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Destination
                   </label>
-                  <input id="destination" name="destination" placeholder="e.g., Offshore Zone 4B" value={form.destination} onChange={onChange} className={inputBase} />
+                  <input 
+                    id="destination" 
+                    name="destination" 
+                    placeholder="e.g., Offshore Zone 4B" 
+                    value={form.destination} 
+                    onChange={onChange} 
+                    disabled={isReadOnly || isOngoing}
+                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase} 
+                  />
                 </div>
               </div>
             </section>
@@ -288,7 +431,14 @@ export default function EditTripForm({ darkMode = false }) {
                     <Ship className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Boat
                   </label>
-                  <select id="boat" name="boat" value={form.boat} onChange={onChange} className={inputBase}>
+                  <select 
+                    id="boat" 
+                    name="boat" 
+                    value={form.boat} 
+                    onChange={onChange} 
+                    disabled={isReadOnly || isOngoing}
+                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
+                  >
                     <option value="">Select a boat…</option>
                     {boats.map((b) => (
                       <option key={b._id} value={b._id}>{b.boatNumber} — {b.name}</option>
@@ -301,7 +451,14 @@ export default function EditTripForm({ darkMode = false }) {
                     <UserCircle2 className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Skipper
                   </label>
-                  <select id="skipper" name="skipper" value={form.skipper} onChange={onChange} className={inputBase}>
+                  <select 
+                    id="skipper" 
+                    name="skipper" 
+                    value={form.skipper} 
+                    onChange={onChange} 
+                    disabled={isReadOnly || isOngoing}
+                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
+                  >
                     <option value="">Select a skipper…</option>
                     {skippers.map((u) => (
                       <option key={u._id} value={u._id}>
@@ -313,7 +470,14 @@ export default function EditTripForm({ darkMode = false }) {
 
                 <div className="md:col-span-2">
                   <label className={labelBase} htmlFor="fishermen">Fishermen</label>
-                  <select id="fishermen" multiple value={form.fishermen} onChange={onFishermenChange} className={`${inputBase} h-40`}>
+                  <select 
+                    id="fishermen" 
+                    multiple 
+                    value={form.fishermen} 
+                    onChange={onFishermenChange} 
+                    disabled={isReadOnly || isOngoing}
+                    className={`${isReadOnly || isOngoing ? readOnlyInputBase : inputBase} h-40`}
+                  >
                     {fishermen.map((u) => (
                       <option key={u._id} value={u._id}>
                         {nameOfFisherman(u)}{u.email ? ` — ${u.email}` : ""}
@@ -321,7 +485,7 @@ export default function EditTripForm({ darkMode = false }) {
                     ))}
                   </select>
                   <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-                    Hold <span className="font-medium">Ctrl</span> (Windows) or <span className="font-medium">Cmd</span> (Mac) to select multiple.
+                    {isReadOnly || isOngoing ? "Selection disabled for this trip status" : "Hold Ctrl (Windows) or Cmd (Mac) to select multiple."}
                   </p>
                 </div>
               </div>
@@ -339,26 +503,63 @@ export default function EditTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="departureDateTime">Departure</label>
-                  <input id="departureDateTime" type="datetime-local" name="departureDateTime" value={form.departureDateTime} onChange={onChange} className={inputBase} />
+                  <input 
+                    id="departureDateTime" 
+                    type="datetime-local" 
+                    name="departureDateTime" 
+                    value={form.departureDateTime} 
+                    onChange={onChange} 
+                    min={minDepartureDate}
+                    disabled={isReadOnly || isOngoing}
+                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase} 
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    {isReadOnly || isOngoing ? "Cannot edit departure date" : "Cannot be in the past"}
+                  </p>
                 </div>
                 <div>
                   <label className={labelBase} htmlFor="plannedReturnAt">Planned Return</label>
-                  <input id="plannedReturnAt" type="datetime-local" name="plannedReturnAt" value={form.plannedReturnAt} onChange={onChange} className={inputBase} />
-                </div>
-              </div>
-
-              <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <label className={labelBase} htmlFor="actualReturnAt">Actual Return (optional)</label>
-                  <input id="actualReturnAt" type="datetime-local" name="actualReturnAt" value={form.actualReturnAt} onChange={onChange} className={inputBase} />
-                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-600"}`}>
-                    Set this when the boat returns. The backend will derive status.{" "}
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarClock size={12} /> Current status: {status || "—"}
-                    </span>
+                  <input 
+                    id="plannedReturnAt" 
+                    type="datetime-local" 
+                    name="plannedReturnAt" 
+                    value={form.plannedReturnAt} 
+                    readOnly
+                    className={`${inputBase} bg-opacity-50 cursor-not-allowed`} 
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Automatically set to 30 days after departure
                   </p>
                 </div>
               </div>
+
+              {/* Actual Return Date - Only show for ongoing and completed trips */}
+              {(isOngoing || status === "completed") && (
+                <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className={labelBase} htmlFor="actualReturnAt">
+                      Actual Return {isOngoing && <span className="text-blue-500">*</span>}
+                    </label>
+                    <input 
+                      id="actualReturnAt" 
+                      type="datetime-local" 
+                      name="actualReturnAt" 
+                      value={form.actualReturnAt} 
+                      onChange={onChange} 
+                      min={minActualReturnDate}
+                      disabled={isReadOnly}
+                      className={isReadOnly ? readOnlyInputBase : inputBase} 
+                    />
+                    <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-600"}`}>
+                      {isOngoing ? "Set the actual return date (must be after departure)" : 
+                       "Actual return date (read-only)"}{" "}
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarClock size={12} /> Current status: {status || "—"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
             </section>
 
             <hr className={divider} />
@@ -369,16 +570,29 @@ export default function EditTripForm({ darkMode = false }) {
                 <ClipboardList className={`h-5 w-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
                 <h3 className={sectionTitle}>Notes</h3>
               </div>
-              <textarea name="specialNotes" placeholder="Any special instructions or notes…" value={form.specialNotes} onChange={onChange} className={`${inputBase} min-h-[120px]`} />
+              <textarea 
+                name="specialNotes" 
+                placeholder="Any special instructions or notes…" 
+                value={form.specialNotes} 
+                onChange={onChange} 
+                disabled={isReadOnly || isOngoing}
+                className={`${isReadOnly || isOngoing ? readOnlyInputBase : inputBase} min-h-[120px]`} 
+              />
             </section>
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-2 pt-2">
               <button type="button" onClick={() => navigate("/admin/trip")} className={cancelBtn}>Cancel</button>
-              <button type="submit" disabled={isSubmitting} className={submitBtn}>
-                {isSubmitting ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
-                {isSubmitting ? "Saving…" : "Update Trip"}
-              </button>
+              {isReadOnly ? (
+                <button type="button" disabled className={disabledSubmitBtn}>
+                  Read-only Mode
+                </button>
+              ) : (
+                <button type="submit" disabled={isSubmitting} className={submitBtn}>
+                  {isSubmitting ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
+                  {isSubmitting ? "Saving…" : isOngoing ? "Update Return Date" : "Update Trip"}
+                </button>
+              )}
             </div>
           </form>
         </div>

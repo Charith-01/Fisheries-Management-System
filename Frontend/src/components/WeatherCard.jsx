@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { fetchCurrentWeather } from "../api/weather";
 
 const WMO = {
   0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
@@ -15,37 +14,16 @@ const WMO = {
   95: "Thunderstorm", 96: "Thunderstorm (hail)", 99: "Severe thunderstorm (hail)"
 };
 
-export default function WeatherCard({ lat = 6.9570, lon = 80.1918, title = "Current Weather", darkMode }) {
-  const [data, setData] = useState(null);
-  const [state, setState] = useState({ loading: true, error: null });
-
-  useEffect(() => {
-    let on = true;
-    (async () => {
-      try {
-        setState({ loading: true, error: null });
-        const d = await fetchCurrentWeather({ lat, lon });
-        if (on) setData(d);
-      } catch (e) {
-        if (on) setState({ loading: false, error: e.message || "Error" });
-      } finally {
-        if (on) setState(s => ({ ...s, loading: false }));
-      }
-    })();
-    return () => { on = false; };
-  }, [lat, lon]);
-
-  const shell = (children) => (
-    <div className={`rounded-2xl p-6 shadow ring-1 ${
-      darkMode ? "bg-slate-800/90 ring-slate-700 text-slate-100" : "bg-white/80 ring-slate-200 text-slate-800"
-    }`}>
-      {children}
-    </div>
-  );
-
-  if (state.loading) return shell(<div>Loading weather…</div>);
-  if (state.error)   return shell(<div className="text-red-600">⚠️ {state.error}</div>);
-  if (!data?.current) return shell(<div>No data</div>);
+export default function WeatherCard({ data, darkMode, title = "Current Weather" }) {
+  if (!data?.current) {
+    return (
+      <div className={`rounded-2xl p-6 shadow ring-1 ${
+        darkMode ? "bg-slate-800/90 ring-slate-700 text-slate-100" : "bg-white/80 ring-slate-200 text-slate-800"
+      }`}>
+        <div>No weather data available</div>
+      </div>
+    );
+  }
 
   const c = data.current;
   const codeText = WMO[c.weathercode] ?? `Code ${c.weathercode}`;
@@ -57,7 +35,6 @@ export default function WeatherCard({ lat = 6.9570, lon = 80.1918, title = "Curr
   // safe getters
   const pick = (arr, i) => (Array.isArray(arr) && arr[i] != null ? arr[i] : null);
 
- 
   const wu = data.units?.weather || {};
   const mu = data.units?.marine || {};
   const u = {
@@ -78,8 +55,10 @@ export default function WeatherCard({ lat = 6.9570, lon = 80.1918, title = "Curr
 
   const risk = getRisk({ waveH, gust });
 
-  return shell(
-    <>
+  return (
+    <div className={`rounded-2xl p-6 shadow ring-1 ${
+      darkMode ? "bg-slate-800/90 ring-slate-700 text-slate-100" : "bg-white/80 ring-slate-200 text-slate-800"
+    }`}>
       <div className="mb-2 flex items-start justify-between">
         <div className="flex flex-col">
           <h3 className="text-lg font-semibold">{title}</h3>
@@ -120,7 +99,7 @@ export default function WeatherCard({ lat = 6.9570, lon = 80.1918, title = "Curr
           <div className="text-xs opacity-70">Marine data not available</div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -132,11 +111,13 @@ function Metric({ label, value }) {
     </div>
   );
 }
+
 function formatVal(v, unit) {
   if (v == null) return "—";
   const num = typeof v === "number" ? v : Number(v);
   return `${Number.isFinite(num) ? num.toFixed(1) : v} ${unit}`;
 }
+
 function nearestIndex(times, targetISO) {
   if (!Array.isArray(times) || !times.length) return 0;
   const t = new Date(targetISO || Date.now()).getTime();
@@ -147,6 +128,7 @@ function nearestIndex(times, targetISO) {
   }
   return best;
 }
+
 function getRisk({ waveH, gust }) {
   const w = Number(waveH ?? NaN);
   const g = Number(gust ?? NaN); 

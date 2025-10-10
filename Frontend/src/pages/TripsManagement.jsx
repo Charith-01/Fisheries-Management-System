@@ -16,6 +16,7 @@ import {
   Info,
   Download,
   XCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 export default function TripsManagement({ darkMode = false, readOnly = false }) {
@@ -26,6 +27,16 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
 
   const [boatsById, setBoatsById] = useState({});
   const [fishById, setFishById] = useState({});
+
+  // Confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    action: "",
+    tripId: "",
+    onConfirm: null,
+  });
 
   const idOf = (x) =>
     typeof x === "string" ? x : (x && (x._id || x.id)) ? String(x._id || x.id) : "";
@@ -104,38 +115,117 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
     fetchLookups();
   }, []);
 
+  // Show confirmation modal
+  function showConfirmation(tripId, action, tripDetails) {
+    const trip = trips.find(t => t.tripId === tripId);
+    const tripName = trip?.tripId || 'this trip';
+    
+    if (action === 'cancel') {
+      setModalConfig({
+        title: "Cancel Trip",
+        message: `Are you sure you want to cancel trip "${tripName}"? This action cannot be undone.`,
+        action: "cancel",
+        tripId: tripId,
+        onConfirm: () => handleCancel(tripId)
+      });
+    } else if (action === 'delete') {
+      setModalConfig({
+        title: "Delete Trip",
+        message: `Are you sure you want to permanently delete trip "${tripName}"? This action cannot be undone.`,
+        action: "delete",
+        tripId: tripId,
+        onConfirm: () => handleDelete(tripId)
+      });
+    }
+    
+    setShowConfirmModal(true);
+  }
+
+  // Close confirmation modal
+  function closeModal() {
+    setShowConfirmModal(false);
+    setModalConfig({
+      title: "",
+      message: "",
+      action: "",
+      tripId: "",
+      onConfirm: null,
+    });
+  }
+
   async function handleDelete(tripId) {
-    if (!window.confirm("Delete this trip?")) return;
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`/api/trip/${encodeURIComponent(tripId)}`, {
         headers: { Authorization: "Bearer " + token },
       });
-      toast.success("Trip deleted");
+      toast.success("Trip deleted successfully");
       setTrips((prev) => prev.filter((t) => t.tripId !== tripId));
     } catch (e) {
       console.error(e);
       toast.error(e.response?.data?.message || "Delete failed");
+    } finally {
+      closeModal();
     }
   }
 
   async function handleCancel(tripId) {
-    if (!window.confirm("Cancel this trip?")) return;
     try {
       const token = localStorage.getItem("token");
-      const { data } = await axios.patch(
-        `/api/trip/${encodeURIComponent(tripId)}`,
-        { status: "cancelled" },
-        { headers: { Authorization: "Bearer " + token } }
-      );
-      const updated = data && typeof data === "object" ? data : null;
+      
+      // Try different API endpoints or payload structures
+      let response;
+      try {
+        // First try: PATCH request with status update
+        response = await axios.patch(
+          `/api/trip/${encodeURIComponent(tripId)}`,
+          { status: "cancelled" },
+          { headers: { Authorization: "Bearer " + token } }
+        );
+      } catch (patchError) {
+        console.log("PATCH failed, trying PUT:", patchError);
+        
+        // Second try: PUT request
+        try {
+          const trip = trips.find(t => t.tripId === tripId);
+          if (trip) {
+            response = await axios.put(
+              `/api/trip/${encodeURIComponent(tripId)}`,
+              { ...trip, status: "cancelled" },
+              { headers: { Authorization: "Bearer " + token } }
+            );
+          }
+        } catch (putError) {
+          console.log("PUT failed, trying POST to cancel endpoint:", putError);
+          
+          // Third try: Specific cancel endpoint
+          response = await axios.post(
+            `/api/trip/${encodeURIComponent(tripId)}/cancel`,
+            {},
+            { headers: { Authorization: "Bearer " + token } }
+          );
+        }
+      }
+
+      // Update local state
+      const updatedTrip = response?.data;
       setTrips((prev) =>
-        prev.map((t) => (t.tripId === tripId ? { ...t, ...(updated || {}), status: "cancelled" } : t))
+        prev.map((t) => 
+          t.tripId === tripId 
+            ? { ...t, ...(updatedTrip || {}), status: "cancelled" } 
+            : t
+        )
       );
-      toast.success("Trip cancelled");
+      
+      toast.success("Trip cancelled successfully");
     } catch (e) {
-      console.error(e);
-      toast.error(e.response?.data?.message || "Cancel failed");
+      console.error("Cancel error details:", e);
+      const errorMessage = e.response?.data?.message || 
+                           e.response?.data?.error || 
+                           "Cancel failed. Please check console for details.";
+      toast.error(errorMessage);
+    } finally {
+      closeModal();
     }
   }
 
@@ -228,180 +318,229 @@ export default function TripsManagement({ darkMode = false, readOnly = false }) 
   const showBlocks = filter === "total" ? ["upcoming","ongoing","others"] : [filter];
 
   return (
-    <div className={`space-y-6 p-6 ${pageBg} ${pageText}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <CalendarClock className="h-7 w-7 text-sky-500" />
-          <div>
-            <h1 className={`text-2xl font-bold ${headerTitle}`}>Trip Schedule</h1>
-            <p className={`text-xs ${subtitleText}`}>Manage and review your trips</p>
+    <>
+      <div className={`space-y-6 p-6 ${pageBg} ${pageText}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-7 w-7 text-sky-500" />
+            <div>
+              <h1 className={`text-2xl font-bold ${headerTitle}`}>Trip Schedule</h1>
+              <p className={`text-xs ${subtitleText}`}>Manage and review your trips</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCSV}
+              type="button"
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
+                darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+              }`}
+              title="Export current view as CSV"
+            >
+              <Download className="h-4 w-4" />
+              Report
+            </button>
+
+            {!readOnly && (
+              <button
+                onClick={() => navigate("/admin/trip/add")}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white shadow hover:bg-blue-700"
+              >
+                <PlusCircle className="h-5 w-5" />
+                Add Trip
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportCSV}
-            type="button"
-            className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
-              darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
-            }`}
-            title="Export current view as CSV"
-          >
-            <Download className="h-4 w-4" />
-            Report
-          </button>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {[
+            ["total", "Total", counts.total, "slate"],
+            ["upcoming", "Upcoming", counts.upcoming, "sky"],
+            ["ongoing", "Ongoing", counts.ongoing, "emerald"],
+            ["completed", "Completed", counts.completed, "slate"],
+            ["overdue", "Overdue", counts.overdue, "amber"],
+            ["cancelled", "Cancelled", counts.cancelled, "rose"],
+          ].map(([key, label, val, color]) => (
+            <SummaryCard
+              key={key}
+              label={label}
+              value={val}
+              color={color}
+              active={filter === key}
+              onClick={() => setFilter(key)}
+              darkMode={darkMode}
+            />
+          ))}
+        </div>
 
-          {!readOnly && (
-            <button
-              onClick={() => navigate("/admin/trip/add")}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white shadow hover:bg-blue-700"
+        <div className={`rounded-2xl p-4 ring-1 ${softPanel}`}>
+          {showBlocks.includes("upcoming") && filter === "total" && (
+            <Section darkMode={darkMode} title="Upcoming" subtitle="Trips that haven't started yet">
+              {upcoming.length === 0 ? (
+                <EmptyRow darkMode={darkMode} text="No upcoming trips" />
+              ) : (
+                <CardGrid>
+                  {upcoming.map((t) => (
+                    <TripCard
+                      key={t.tripId}
+                      trip={t}
+                      onShowConfirmation={showConfirmation}
+                      darkMode={darkMode}
+                      boatNameOf={boatNameOf}
+                      personFirstOf={personFirstOf}
+                      peopleListFirstNames={peopleListFirstNames}
+                      readOnly={readOnly}
+                    />
+                  ))}
+                </CardGrid>
+              )}
+            </Section>
+          )}
+
+          {showBlocks.includes("ongoing") && filter === "total" && (
+            <Section darkMode={darkMode} title="Ongoing" subtitle="Boats currently at sea" className="mt-6">
+              {ongoing.length === 0 ? (
+                <EmptyRow darkMode={darkMode} text="No ongoing trips" />
+              ) : (
+                <CardGrid>
+                  {ongoing.map((t) => (
+                    <TripCard
+                      key={t.tripId}
+                      trip={t}
+                      onShowConfirmation={showConfirmation}
+                      darkMode={darkMode}
+                      boatNameOf={boatNameOf}
+                      personFirstOf={personFirstOf}
+                      peopleListFirstNames={peopleListFirstNames}
+                      readOnly={readOnly}
+                    />
+                  ))}
+                </CardGrid>
+              )}
+            </Section>
+          )}
+
+          {showBlocks.includes("others") && filter === "total" && (
+            <Section darkMode={darkMode} title="Other" subtitle="Completed, overdue, or cancelled" className="mt-6">
+              {others.length === 0 ? (
+                <EmptyRow darkMode={darkMode} text="No trips here yet" />
+              ) : (
+                <CardGrid>
+                  {others.map((t) => (
+                    <TripCard
+                      key={t.tripId}
+                      trip={t}
+                      onShowConfirmation={showConfirmation}
+                      darkMode={darkMode}
+                      boatNameOf={boatNameOf}
+                      personFirstOf={personFirstOf}
+                      peopleListFirstNames={peopleListFirstNames}
+                      readOnly={readOnly}
+                    />
+                  ))}
+                </CardGrid>
+              )}
+            </Section>
+          )}
+
+          {filter !== "total" && (
+            <Section
+              darkMode={darkMode}
+              title={capFirst(filter)}
+              subtitle={
+                filter === "upcoming" ? "Trips that haven't started yet"
+                  : filter === "ongoing" ? "Boats currently at sea"
+                  : filter === "completed" ? "Trips that are completed"
+                  : filter === "overdue" ? "Trips that exceeded planned return"
+                  : "Trips that were cancelled"
+              }
             >
-              <PlusCircle className="h-5 w-5" />
-              Add Trip
-            </button>
+              <CardGrid>
+                {(filter === "upcoming" ? upcoming
+                  : filter === "ongoing" ? ongoing
+                  : filter === "completed" ? completed
+                  : filter === "overdue" ? overdue
+                  : cancelled).length === 0 ? (
+                  <EmptyRow darkMode={darkMode} text={`No ${filter} trips`} />
+                ) : (
+                  (filter === "upcoming" ? upcoming
+                  : filter === "ongoing" ? ongoing
+                  : filter === "completed" ? completed
+                  : filter === "overdue" ? overdue
+                  : cancelled).map((t) => (
+                    <TripCard
+                      key={t.tripId}
+                      trip={t}
+                      onShowConfirmation={showConfirmation}
+                      darkMode={darkMode}
+                      boatNameOf={boatNameOf}
+                      personFirstOf={personFirstOf}
+                      peopleListFirstNames={peopleListFirstNames}
+                      readOnly={readOnly}
+                    />
+                  ))
+                )}
+              </CardGrid>
+            </Section>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {[
-          ["total", "Total", counts.total, "slate"],
-          ["upcoming", "Upcoming", counts.upcoming, "sky"],
-          ["ongoing", "Ongoing", counts.ongoing, "emerald"],
-          ["completed", "Completed", counts.completed, "slate"],
-          ["overdue", "Overdue", counts.overdue, "amber"],
-          ["cancelled", "Cancelled", counts.cancelled, "rose"],
-        ].map(([key, label, val, color]) => (
-          <SummaryCard
-            key={key}
-            label={label}
-            value={val}
-            color={color}
-            active={filter === key}
-            onClick={() => setFilter(key)}
-            darkMode={darkMode}
-          />
-        ))}
-      </div>
-
-      <div className={`rounded-2xl p-4 ring-1 ${softPanel}`}>
-        {showBlocks.includes("upcoming") && filter === "total" && (
-          <Section darkMode={darkMode} title="Upcoming" subtitle="Trips that haven't started yet">
-            {upcoming.length === 0 ? (
-              <EmptyRow darkMode={darkMode} text="No upcoming trips" />
-            ) : (
-              <CardGrid>
-                {upcoming.map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
-                ))}
-              </CardGrid>
-            )}
-          </Section>
-        )}
-
-        {showBlocks.includes("ongoing") && filter === "total" && (
-          <Section darkMode={darkMode} title="Ongoing" subtitle="Boats currently at sea" className="mt-6">
-            {ongoing.length === 0 ? (
-              <EmptyRow darkMode={darkMode} text="No ongoing trips" />
-            ) : (
-              <CardGrid>
-                {ongoing.map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
-                ))}
-              </CardGrid>
-            )}
-          </Section>
-        )}
-
-        {showBlocks.includes("others") && filter === "total" && (
-          <Section darkMode={darkMode} title="Other" subtitle="Completed, overdue, or cancelled" className="mt-6">
-            {others.length === 0 ? (
-              <EmptyRow darkMode={darkMode} text="No trips here yet" />
-            ) : (
-              <CardGrid>
-                {others.map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
-                ))}
-              </CardGrid>
-            )}
-          </Section>
-        )}
-
-        {filter !== "total" && (
-          <Section
-            darkMode={darkMode}
-            title={capFirst(filter)}
-            subtitle={
-              filter === "upcoming" ? "Trips that haven't started yet"
-                : filter === "ongoing" ? "Boats currently at sea"
-                : filter === "completed" ? "Trips that are completed"
-                : filter === "overdue" ? "Trips that exceeded planned return"
-                : "Trips that were cancelled"
-            }
-          >
-            <CardGrid>
-              {(filter === "upcoming" ? upcoming
-                : filter === "ongoing" ? ongoing
-                : filter === "completed" ? completed
-                : filter === "overdue" ? overdue
-                : cancelled).length === 0 ? (
-                <EmptyRow darkMode={darkMode} text={`No ${filter} trips`} />
-              ) : (
-                (filter === "upcoming" ? upcoming
-                : filter === "ongoing" ? ongoing
-                : filter === "completed" ? completed
-                : filter === "overdue" ? overdue
-                : cancelled).map((t) => (
-                  <TripCard
-                    key={t.tripId}
-                    trip={t}
-                    onDelete={handleDelete}
-                    onCancel={handleCancel}
-                    darkMode={darkMode}
-                    boatNameOf={boatNameOf}
-                    personFirstOf={personFirstOf}
-                    peopleListFirstNames={peopleListFirstNames}
-                    readOnly={readOnly}
-                  />
-                ))
-              )}
-            </CardGrid>
-          </Section>
-        )}
-      </div>
-    </div>
+      {/* Custom Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className={`mx-4 w-full max-w-md rounded-2xl p-6 shadow-2xl ${
+            darkMode ? "bg-slate-800 border border-slate-700" : "bg-white border border-slate-200"
+          }`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-2 rounded-full ${
+                modalConfig.action === 'delete' 
+                  ? (darkMode ? "bg-rose-500/20 text-rose-400" : "bg-rose-100 text-rose-600")
+                  : (darkMode ? "bg-amber-500/20 text-amber-400" : "bg-amber-100 text-amber-600")
+              }`}>
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className={`text-lg font-semibold ${darkMode ? "text-white" : "text-slate-900"}`}>
+                {modalConfig.title}
+              </h3>
+            </div>
+            
+            <p className={`mb-6 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>
+              {modalConfig.message}
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={closeModal}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  darkMode 
+                    ? "bg-slate-700 text-slate-200 hover:bg-slate-600" 
+                    : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={modalConfig.onConfirm}
+                className={`px-4 py-2 rounded-lg font-medium text-white transition-colors ${
+                  modalConfig.action === 'delete'
+                    ? "bg-rose-600 hover:bg-rose-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
+              >
+                {modalConfig.action === 'delete' ? 'Delete' : 'Cancel Trip'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
+
+// ... (rest of the component functions remain the same - SummaryCard, Section, CardGrid, EmptyRow, TripCard, InfoRow, DateRow, StatusBadge, formatDate, formatTime, capFirst)
 
 function SummaryCard({ label, value, color = "slate", active = false, onClick, darkMode }) {
   const map = {
@@ -448,7 +587,7 @@ function EmptyRow({ text, darkMode }) {
   );
 }
 
-function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstOf, peopleListFirstNames, readOnly = false }) {
+function TripCard({ trip, onShowConfirmation, darkMode, boatNameOf, personFirstOf, peopleListFirstNames, readOnly = false }) {
   const boatLabel = boatNameOf(trip.boat);
   const skipperLabel = personFirstOf(trip.skipper ?? trip.captain);
   const fishermenLabel = peopleListFirstNames(trip.fishermen);
@@ -458,6 +597,9 @@ function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstO
   const fadeFrom = darkMode ? "from-slate-900" : "from-white";
 
   const status = (trip.status || "").toLowerCase();
+  
+  // Check if edit button should be shown
+  const showEditButton = !readOnly && status !== "completed" && status !== "cancelled";
 
   return (
     <div className={`group relative overflow-hidden rounded-2xl p-5 ring-1 shadow-sm transition-all duration-300 hover:shadow-lg ${shell}`}>
@@ -504,19 +646,21 @@ function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstO
 
       {!readOnly && (
         <div className="mt-5 flex items-center justify-end gap-2">
-          <Link
-            to={`/admin/trip/edit/${encodeURIComponent(trip.tripId)}`}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
-            ${darkMode ? "text-sky-300 ring-sky-800 hover:bg-sky-600/20 hover:text-white" : "text-blue-700 ring-blue-200 hover:bg-blue-600 hover:text-white"}`}
-            title="Edit"
-          >
-            <EditIcon className="h-4 w-4" />
-            Edit
-          </Link>
+          {showEditButton && (
+            <Link
+              to={`/admin/trip/edit/${encodeURIComponent(trip.tripId)}`}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
+              ${darkMode ? "text-sky-300 ring-sky-800 hover:bg-sky-600/20 hover:text-white" : "text-blue-700 ring-blue-200 hover:bg-blue-600 hover:text-white"}`}
+              title="Edit"
+            >
+              <EditIcon className="h-4 w-4" />
+              Edit
+            </Link>
+          )}
 
           {status === "upcoming" ? (
             <button
-              onClick={() => onCancel(trip.tripId)}
+              onClick={() => onShowConfirmation(trip.tripId, 'cancel', trip)}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
               ${darkMode ? "text-amber-300 ring-amber-800 hover:bg-amber-600/20 hover:text-white" : "text-amber-700 ring-amber-200 hover:bg-amber-500 hover:text-white"}`}
               title="Cancel trip"
@@ -526,7 +670,7 @@ function TripCard({ trip, onDelete, onCancel, darkMode, boatNameOf, personFirstO
             </button>
           ) : status === "ongoing" ? null : (
             <button
-              onClick={() => onDelete(trip.tripId)}
+              onClick={() => onShowConfirmation(trip.tripId, 'delete', trip)}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 ring-1 transition
               ${darkMode ? "text-rose-300 ring-rose-800 hover:bg-rose-600/20 hover:text-white" : "text-rose-700 ring-rose-200 hover:bg-rose-600 hover:text-white"}`}
               title="Delete"
