@@ -22,6 +22,7 @@ import productRouter from './routes/productRouter.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import orderRouter from './routes/orderRouter.js';
 import { handleWebhook } from './controllers/paymentController.js';
+import chatRouter from './routes/chatRouter.js';
 
 // ✅ New import for Google Auth router
 import googleAuthRouter from './routes/googleAuthRouter.js';
@@ -79,6 +80,9 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/equipment", equipmentRouter);
 app.use("/api/product", productRouter);
 app.use("/api/order", orderRouter);
+
+//Chatbot route
+app.use("/api/chat", chatRouter);
 
 // Keep paymentRouter AFTER raw webhook + json + auth bypass logic
 app.use("/api/payment", paymentRouter);
