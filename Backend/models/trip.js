@@ -43,7 +43,7 @@ const tripSchema = new mongoose.Schema(
 
     departureDateTime: { type: Date, required: true },
     plannedReturnAt:   { type: Date, required: true },
-    actualReturnAt:    { type: Date }, // optional
+    actualReturnAt:    { type: Date },
 
     destination: { type: String, required: true },
     tripType:    { type: String, required: true },
