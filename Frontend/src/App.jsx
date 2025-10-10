@@ -17,6 +17,7 @@ import SuccessPage from "./pages/client/SuccessPage";
 import HomePage from "./pages/homePage";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import NotFoundPage from "./pages/client/notFoundPage";
+import ChatbotWidget from "./components/ChatbotWidget";
 
 
 function App() {
@@ -37,6 +38,8 @@ function App() {
           <Route path="/checkout/success" element={<SuccessPage />} />
           <Route path="/*" element={<NotFoundPage />} />
         </Routes>
+
+        <ChatbotWidget/>
     </BrowserRouter>
   )
 }
