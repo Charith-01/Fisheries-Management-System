@@ -1,4 +1,31 @@
 import Trip from "../models/trip.js";
+import Notification from "../models/notification.js"; // Import Notification model
+
+// Helper function to create trip notification for all fishermen
+const createTripNotification = async (trip) => {
+  try {
+    // Create notification message with trip details
+    const boatName = trip.boat?.name || trip.boat || 'Unknown Boat';
+    const departureDate = new Date(trip.departureDateTime).toLocaleDateString();
+    const returnDate = trip.plannedReturnAt ? 
+      new Date(trip.plannedReturnAt).toLocaleDateString() : 'To be determined';
+    
+    // Create broadcast notification for all fishermen (no targetEmails)
+    const notificationData = {
+      title: `New Fishing Trip Scheduled - ${boatName}`,
+      message: `New fishing trip on boat ${boatName} scheduled for ${departureDate}. Planned return: ${returnDate}. Trip ID: ${trip.tripId || trip._id}`,
+      role: "fisherman",
+      isReadBy: []
+      // No targetEmails - this makes it a broadcast to all fishermen
+    };
+    
+    await Notification.create(notificationData);
+    console.log('Broadcast trip notification created for all fishermen');
+  } catch (error) {
+    console.error('Error creating trip notification:', error);
+    // Don't throw error, just log it
+  }
+};
 
 
 export async function createTrip(req, res) {
@@ -19,6 +46,15 @@ export async function createTrip(req, res) {
 
     const trip = new Trip(body);
     await trip.save();
+    
+    // Send broadcast notification to all fishermen after successful trip creation
+    try {
+      await createTripNotification(trip);
+    } catch (notifyError) {
+      console.error('Error sending trip notification:', notifyError);
+      // Don't fail the trip creation if notification fails
+    }
+    
     res.json({ message: "Trip saved successfully" });
   } catch (err) {
     console.error(err);

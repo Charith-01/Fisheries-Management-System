@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { NavLink, Route, Routes, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, Route, Routes, Link, useNavigate } from "react-router-dom";
 import TripsManagement from "./TripsManagement.jsx";
 import AddTripForm from "./AddTripForm.jsx";
 import EditTripForm from "./EditTripForm.jsx";
@@ -21,10 +21,6 @@ import {
   Calendar,
   Download,
   Filter,
-  Eye,
-  Edit,
-  Trash2,
-  Plus
 } from "lucide-react";
 import {
   AreaChart,
@@ -44,29 +40,77 @@ import {
 
 import NotificationDashboard from "./admin/NotificationDashboard";
 import Expenses from "./admin/Expenses";
-
-
-
+import FishStockList from "./FishStockList.jsx";
 import AdminProductsPage from "./admin/products";
 import AddProductForm from "./admin/addProductForm";
 import UpdateProductForm from "./admin/updateProductForm";
-
+import AddBoatForm from "./admin/addBoatForm.jsx";
+import BoatsManagement from "./admin/boatManagement.jsx";
+import EditBoatForm from "./admin/editBoatForm.jsx";
+import BoatDetail from "./admin/boatDetails.jsx";
+import EquipmentManagement from "./admin/equipmentManagement.jsx";
+import AddEquipmentForm from "./admin/addEquipmentForm.jsx";
+import EditEquipmentForm from "./admin/editEquipmentForm.jsx";
+import EquipmentDetails from "./admin/equipmentDetails.jsx";
+import AdminCustomersPage from "./admin/customers.jsx";
+import AdminFishermenPage from "./admin/fishermen.jsx";
+import AddFishermanForm from "./admin/addFishermanForm.jsx";
+import UpdateFishermanForm from "./admin/updateFishermanForm.jsx";
+import axios from "axios";
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
-  
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const navigate = useNavigate();
+
+  // minimal, safe auth clear (doesn't touch other app state)
+  function clearAuthFromStorage() {
+    const keys = [
+      "customer",
+      "user",
+      "auth",
+      "auth_user",
+      "token",
+      "authToken",
+      "access_token",
+      "jwt",
+      "refresh_token",
+    ];
+    let changed = false;
+    for (const k of keys) {
+      if (localStorage.getItem(k) !== null) {
+        localStorage.removeItem(k);
+        changed = true;
+      }
+    }
+    if (changed) {
+      try {
+        window.dispatchEvent(new StorageEvent("storage", { key: "auth", newValue: null }));
+      } catch {}
+    }
+  }
+
+  const handleLogoutConfirm = () => {
+    clearAuthFromStorage();
+    setShowLogoutConfirm(false);
+    navigate("/login");
+  };
+
   return (
     <div className={`min-h-screen w-full ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-50 text-slate-800'}`}>
       <div className="mx-auto flex flex-col lg:flex-row max-w-[1400px] gap-2 sm:gap-4 p-2 sm:p-4">
-        <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} />
+        <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} onLogoutRequest={() => setShowLogoutConfirm(true)} />
         <main className="flex-1 min-w-0">
           <Header darkMode={darkMode} setDarkMode={setDarkMode} />
           {/* Content Area */}
           <div className="mt-4">
             <Routes>
               <Route index element={<Overview darkMode={darkMode} />} />
-              <Route path="users" element={<ManageUsers darkMode={darkMode} />} />
+              <Route path="users" element={<AdminCustomersPage darkMode={darkMode} />} />
+              <Route path="fishermen" element={<AdminFishermenPage darkMode={darkMode} />} />
               <Route path="products" element={<AdminProductsPage darkMode={darkMode} />} />
+              <Route path="addFisherman" element={<AddFishermanForm darkMode={darkMode} />} />
+              <Route path="updateFisherman" element={<UpdateFishermanForm darkMode={darkMode} />} />
               <Route path="orders" element={<ViewOrders darkMode={darkMode} />} />
               <Route path="trip" element={<TripsManagement darkMode={darkMode} />} />
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
@@ -75,22 +119,66 @@ export default function AdminDashboard() {
 
 
               {/* You can add boats, equipment, trip, notifications, reviews pages later */}
+              <Route path="stock" element={<FishStockList darkMode={darkMode} />} />
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
               <Route path="notifications" element={<NotificationDashboard darkMode={darkMode}/>} />
-              <Route path="income-expense" element={<Expenses />} />
+              <Route path="expense" element={<Expenses />} />
+              <Route path="boats" element={<BoatsManagement darkMode={darkMode} />} />
+              <Route path="boats/addBoat" element={<AddBoatForm darkMode={darkMode} />} />
+              <Route path="boats/editBoat/:boatNumber" element={<EditBoatForm darkMode={darkMode} />} />
+              <Route path="boats/:boatNumber" element={<BoatDetail darkMode={darkMode} />} />
+              <Route path="equipment" element={<EquipmentManagement darkMode={darkMode} />} />
+              <Route path="equipment/addEquipment" element={<AddEquipmentForm darkMode={darkMode} />} />
+              <Route path="equipment/editEquipment/:equipmentID" element={<EditEquipmentForm darkMode={darkMode} />} />
+              <Route path="equipment/:equipmentID" element={<EquipmentDetails darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
         </main>
       </div>
+
+      {/* Logout confirmation modal (modern, minimal) */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className={`relative w-full max-w-md rounded-2xl shadow-xl ring-1 ${
+            darkMode ? 'bg-slate-800 ring-slate-700' : 'bg-white ring-slate-200'
+          }`}>
+            <div className={`p-5 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                Sign out?
+              </h3>
+              <p className={`${darkMode ? 'text-slate-300' : 'text-slate-600'} text-sm mt-1`}>
+                You’ll be logged out of the admin dashboard and redirected to the login page.
+              </p>
+            </div>
+            <div className="p-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className={`rounded-xl px-4 py-2 text-sm font-medium ${
+                  darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogoutConfirm}
+                className="rounded-xl px-4 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-500"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ----------------------------- UI Pieces ------------------------------ */
 
-function Sidebar({ darkMode, setDarkMode }) {
+function Sidebar({ darkMode, setDarkMode, onLogoutRequest }) {
   const linkBase =
     "group flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all duration-300 hover:translate-x-1";
   const active = "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md";
@@ -113,17 +201,24 @@ function Sidebar({ darkMode, setDarkMode }) {
         <NavLink to="/admin" end className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <LayoutDashboard className="h-5 w-5" /> Overview
         </NavLink>
+
         <NavLink to="/admin/users" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <UsersIcon className="h-5 w-5" /> Users
+          <UsersIcon className="h-5 w-5" /> Customers
         </NavLink>
+
+        <NavLink to="/admin/fishermen" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+          <UsersIcon className="h-5 w-5" /> Fishermen
+        </NavLink>
+
         <NavLink to="/admin/stock" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <BarChart3 className="h-5 w-5" /> Stock
         </NavLink>
         <NavLink to="/admin/products" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <Ship className="h-5 w-5" /> Products
         </NavLink>
-        <NavLink to="/admin/income-expense" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-          <TrendingUp className="h-5 w-5" /> Income & Expense
+        
+        <NavLink to="/admin/expense" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+          <TrendingUp className="h-5 w-5" /> Income & Expences
         </NavLink>
         <NavLink to="/admin/orders" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <FileCheck2 className="h-5 w-5" /> Orders
@@ -146,8 +241,13 @@ function Sidebar({ darkMode, setDarkMode }) {
         <NavLink to="/admin/reviews" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <CreditCard className="h-5 w-5" /> Reviews
         </NavLink>
+        
         <NavLink
           to="/admin/signout"
+          onClick={(e) => {
+            e.preventDefault();
+            onLogoutRequest && onLogoutRequest();
+          }}
           className={({ isActive }) =>
             `group flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all duration-300
             ${isActive 
@@ -162,18 +262,77 @@ function Sidebar({ darkMode, setDarkMode }) {
         </NavLink>
       </nav>
     </aside>
-
   );
 }
 
+
 function Header({ darkMode, setDarkMode }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false); // NEW: profile dropdown state
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  // Fake user details for dropdown
-  const userName = "Admin User";
-  const userEmail = "admin@example.com";
-  
+  const [userInfo, setUserInfo] = useState({
+    name: "",
+    email: "",
+    avatar: ""
+  });
+
+  useEffect(() => {
+    // Try multiple common keys and shapes to get admin details
+    const tryKeys = ["admin", "user", "auth_user", "auth"];
+    let raw = null;
+    for (const k of tryKeys) {
+      const v = localStorage.getItem(k);
+      if (v) { raw = v; break; }
+    }
+    let obj = null;
+    try {
+      obj = raw ? JSON.parse(raw) : null;
+    } catch {
+      obj = null;
+    }
+
+    // Some apps store inside nested fields (e.g., { user: {...} } or { data: {...} })
+    const candidate =
+      obj?.user || obj?.admin || obj?.data || obj || null;
+
+    const first = candidate?.firstName || candidate?.firstname || "";
+    const last = candidate?.lastName || candidate?.lastname || "";
+    const combinedName =
+      candidate?.name ||
+      candidate?.fullName ||
+      `${first} ${last}`.trim() ||
+      candidate?.username ||
+      "";
+
+    const email =
+      candidate?.email ||
+      candidate?.mail ||
+      candidate?.userEmail ||
+      "";
+
+    const avatar =
+      candidate?.avatar ||
+      candidate?.photoURL ||
+      candidate?.image ||
+      candidate?.profilePic ||
+      candidate?.avatarUrl ||
+      "";
+
+    setUserInfo({
+      name: combinedName || "Admin",
+      email: email || "",
+      avatar: avatar || ""
+    });
+  }, []);
+
+  const initials = (name) =>
+    (name || "")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase())
+      .join("") || "A";
+
   const notifications = [
     { id: 1, message: "New order received from Marine Foods", time: "10 mins ago", read: false },
     { id: 2, message: "Inventory low on Atlantic Salmon", time: "2 hours ago", read: false },
@@ -250,31 +409,30 @@ function Header({ darkMode, setDarkMode }) {
               onClick={() => setProfileOpen(!profileOpen)}
               className={`flex items-center gap-2 rounded-xl ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'} px-3 py-2`}
             >
-              <img
-                src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=140&auto=format&fit=crop"
-                alt="admin"
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
-              />
-              <span className="text-sm font-medium">Admin</span>
+              {userInfo.avatar ? (
+                <img
+                  src={userInfo.avatar}
+                  alt={userInfo.name || "admin"}
+                  className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 text-white flex items-center justify-center text-xs font-semibold ring-2 ring-white">
+                  {initials(userInfo.name)}
+                </div>
+              )}
+              <span className="text-sm font-medium">{userInfo.name || "Admin"}</span>
               <ChevronDown className="h-4 w-4" />
             </button>
 
             {profileOpen && (
               <div className={`absolute right-0 top-12 z-20 w-72 rounded-xl shadow-lg ${darkMode ? 'bg-slate-800' : 'bg-white'} ring-1 ${darkMode ? 'ring-slate-700' : 'ring-slate-200'}`}>
-                <div className={`p-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{userName}</p>
-                  <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{userEmail}</p>
+                <div className={`p-4 ${darkMode ? 'border-b border-slate-700' : 'border-b border-slate-200'}`}>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{userInfo.name || "Admin"}</p>
+                  {userInfo.email ? (
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{userInfo.email}</p>
+                  ) : null}
                 </div>
-                <div className="p-2">
-                  <Link
-                    to="/admin/profile"
-                    className={`w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold
-                      ${darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit profile
-                  </Link>
-                </div>
+                {/* Edit profile option removed as requested */}
               </div>
             )}
           </div>
@@ -287,6 +445,94 @@ function Header({ darkMode, setDarkMode }) {
 /* ----------------------------- Pages ------------------------------ */
 
 function Overview({ darkMode }) {
+  // Live counts
+  const [customerCount, setCustomerCount] = useState(0);
+  const [fishermanCount, setFishermanCount] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    const fetchCounts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: "Bearer " + token } : undefined;
+
+        const [custRes, fishRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/customer/all`, { headers }),
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/fisherman/all`, { headers }),
+        ]);
+
+        const custList = Array.isArray(custRes?.data?.customers) ? custRes.data.customers : [];
+        const fishList = Array.isArray(fishRes?.data?.fishermen)
+          ? fishRes.data.fishermen
+          : Array.isArray(fishRes?.data)
+          ? fishRes.data
+          : [];
+
+        setCustomerCount(custList.length);
+        setFishermanCount(fishList.length);
+      } catch (err) {
+        // Silent fail to avoid UX noise on dashboard
+        console.error("Failed to fetch counts", err);
+      }
+    };
+
+    fetchCounts();
+    // Poll every 30s for "real-time-ish" updates
+    timer = setInterval(fetchCounts, 30000);
+    return () => clearInterval(timer);
+  }, []);
+ // Add state for financial data
+  const [financeData, setFinanceData] = useState([]);
+  const [revenue, setRevenue] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch financial data
+  useEffect(() => {
+    const fetchFinancialData = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: "Bearer " + token } : undefined;
+        
+        // Fetch financial data from your API
+        const financeRes = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/finance/summary`, 
+          { headers }
+        );
+        
+        if (financeRes.data && financeRes.data.success) {
+          const data = financeRes.data.data;
+          
+          // Set the finance data for the chart
+          setFinanceData(data.monthlyData || []);
+          
+          // Calculate and set total revenue
+          const totalRevenue = data.totalRevenue || 0;
+          setRevenue(totalRevenue);
+        }
+      } catch (err) {
+        console.error("Failed to fetch financial data", err);
+        // Fallback to dummy data if API fails
+        setFinanceData([
+          { month: "Apr", income: 24, expenses: 14 },
+          { month: "May", income: 28, expenses: 18 },
+          { month: "Jun", income: 32, expenses: 19 },
+          { month: "Jul", income: 29, expenses: 21 },
+          { month: "Aug", income: 35, expenses: 22 },
+          { month: "Sep", income: 38, expenses: 25 },
+        ]);
+        setRevenue(100000);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFinancialData();
+    
+    // Set up polling for real-time updates every minute
+    const interval = setInterval(fetchFinancialData, 60000);
+    return () => clearInterval(interval);
+  }, []);
   // Orders
   const ordersWeekly = [
     { day: "Sat", orders: 24 },
@@ -336,17 +582,6 @@ function Overview({ darkMode }) {
     { name: "1★", value: 2 },
   ];
 
-  // Weather Forecast (next 7 days)
-  const weatherData = [
-    { day: "Sat", temp: 30, rain: 10 },
-    { day: "Sun", temp: 29, rain: 20 },
-    { day: "Mon", temp: 31, rain: 5 },
-    { day: "Tue", temp: 28, rain: 40 },
-    { day: "Wed", temp: 27, rain: 60 },
-    { day: "Thu", temp: 29, rain: 25 },
-    { day: "Fri", temp: 30, rain: 15 },
-  ];
-
   const COLORS = ["#0891b2", "#0ea5e9", "#818cf8", "#22c55e", "#f97316"];
 
   return (
@@ -354,39 +589,39 @@ function Overview({ darkMode }) {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Users"
-          value="234"
-          sub="this week"
-          change="+12%"
+          title="Customers"
+          value={String(customerCount)}
+          sub="total registered"
+          change=""
+          positive={true}
+          icon={<UsersIcon className="h-5 w-5" />}
+          darkMode={darkMode}
+        />
+        <StatCard
+          title="Fishermen"
+          value={String(fishermanCount)}
+          sub="total registered"
+          change=""
           positive={true}
           icon={<UsersIcon className="h-5 w-5" />}
           darkMode={darkMode}
         />
         <StatCard
           title="Orders"
-          value="128"
-          sub="+6 today"
-          change="+5%"
+          value="0"
+          sub="+0 today"
+          change="+0%"
           positive={true}
           icon={<FileCheck2 className="h-5 w-5" />}
           darkMode={darkMode}
         />
         <StatCard
           title="Revenue"
-          value="Rs.100000.00"
+          value={`Rs.${revenue.toLocaleString()}`}
           sub="last 7 days"
           change="+18%"
           positive={true}
           icon={<CreditCard className="h-5 w-5" />}
-          darkMode={darkMode}
-        />
-        <StatCard
-          title="Weather Alerts"
-          value="3"
-          sub="active now"
-          change="+1"
-          positive={false}
-          icon={<BarChart3 className="h-5 w-5" />}
           darkMode={darkMode}
         />
       </div>
@@ -409,6 +644,7 @@ function Overview({ darkMode }) {
               <button className={`rounded-lg p-1.5 ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}>
                 <Download className="h-4 w-4" />
               </button>
+
             </div>
           </div>
           <div className="h-64 sm:h-72">
@@ -578,7 +814,7 @@ function Overview({ darkMode }) {
           </div>
         </div>
 
-        {/* Weather Forecast */}
+        {/* Weather Forecast (kept charts below, only the StatCard was removed above) */}
         <div
           className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
           style={{
@@ -595,7 +831,15 @@ function Overview({ darkMode }) {
 
           <div className="h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weatherData} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
+              <AreaChart data={[
+                { day: "Sat", temp: 30, rain: 10 },
+                { day: "Sun", temp: 29, rain: 20 },
+                { day: "Mon", temp: 31, rain: 5 },
+                { day: "Tue", temp: 28, rain: 40 },
+                { day: "Wed", temp: 27, rain: 60 },
+                { day: "Thu", temp: 29, rain: 25 },
+                { day: "Fri", temp: 30, rain: 15 },
+              ]} margin={{ left: 6, right: 10, top: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.35} />
@@ -657,15 +901,6 @@ function Overview({ darkMode }) {
   );
 }
 
-/* Minimal shells for pages so you can add CRUDs later */
-function ManageUsers({ darkMode }) {
-  return (
-    <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
-      <h3 className="text-lg font-bold">Users</h3>
-    </div>
-  );
-}
-
 function ViewOrders({ darkMode }) {
   return (
     <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'}`}>
@@ -683,7 +918,9 @@ function StatCard({ title, value, sub, change, positive, icon, darkMode }) {
         <div className="rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 p-2 text-white shadow">
           {icon}
         </div>
-        <span className={`text-xs font-medium ${positive ? 'text-green-500' : 'text-red-500'}`}>{change}</span>
+        {change ? (
+          <span className={`text-xs font-medium ${positive ? 'text-green-500' : 'text-red-500'}`}>{change}</span>
+        ) : <span />}
       </div>
       <p className={`text-xs uppercase tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{title}</p>
       <p className={`text-2xl font-extrabold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{value}</p>

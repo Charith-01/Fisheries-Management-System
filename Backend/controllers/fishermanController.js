@@ -69,8 +69,78 @@ export async function listFishermen(req, res) {
 }
 //HH
 
-
 export function loginFisherman(req, res){
     req.body.role = "fisherman";
     return loginController(req, res);
+}
+
+export async function getAllFishermen(req, res) {
+  try {
+    const docs = await Fisherman.find({}).select("-password -__v");
+    return res.json({ fishermen: docs });
+  } catch (err) {
+    console.error("getAllFishermen error:", err);
+    return res.status(500).json({ message: "Failed to fetch fishermen" });
+  }
+}
+
+export async function adminUpdateFisherman(req, res) {
+  if (req.user == null) {
+    res.status(403).json({
+      message: "You need to log in to continue"
+    });
+    return;
+  }
+
+  if (req.user.role != "admin") {
+    res.status(403).json({
+      message: "You do not have permission to perform this action"
+    });
+    return;
+  }
+
+  try {
+    await Fisherman.findOneAndUpdate(
+      { _id: req.params.id },
+      req.body
+    );
+
+    res.json({
+      message: "Fisherman updated successfully"
+    });
+  } catch (err) {
+    console.error("adminUpdateFisherman error:", err);
+    res.status(500).json({
+      message: "Fisherman not updated"
+    });
+  }
+}
+
+export async function adminDeleteFisherman(req, res) {
+  if (req.user == null) {
+    res.status(403).json({
+      message: "You need to log in to continue"
+    });
+    return;
+  }
+
+  if (req.user.role != "admin") {
+    res.status(403).json({
+      message: "You do not have permission to perform this action"
+    });
+    return;
+  }
+
+  try {
+    await Fisherman.findOneAndDelete({ _id: req.params.id });
+
+    res.json({
+      message: "Fisherman deleted successfully"
+    });
+  } catch (err) {
+    console.error("adminDeleteFisherman error:", err);
+    res.status(500).json({
+      message: "Fisherman not deleted"
+    });
+  }
 }

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
   {
-    orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: false }, // optional if no order table yet
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: false }, 
     stripePaymentIntentId: { type: String, required: true },
     amount: { type: Number, required: true },
     currency: { type: String, default: "usd" },

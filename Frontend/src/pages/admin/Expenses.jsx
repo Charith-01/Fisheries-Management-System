@@ -1,26 +1,56 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Calendar,
+  Download,
+  Plus,
+  Edit,
+  Trash2,
+  Filter,
+  CreditCard,
+  Receipt,
+  Save,
+  X
+} from "lucide-react";
 
-export default function Expenses() {
+export default function FinancialManagement({ darkMode }) {
   const [expenses, setExpenses] = useState([]);
+  const [incomeData, setIncomeData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("expenses"); // "expenses" or "income"
 
-  // form states
+  // Form states for expenses
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Other");
   const [description, setDescription] = useState("");
   const [editingId, setEditingId] = useState(null);
 
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
   const token = localStorage.getItem("token");
 
-  // fetch expenses
+  // Fetch expenses
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${backendUrl}/api/expenses`, {
+      let url = `${backendUrl}/api/expenses`;
+      const params = new URLSearchParams();
+      
+      if (startDate && endDate) {
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
+      }
+      
+      const res = await axios.get(`${url}?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setExpenses(res.data);
@@ -31,11 +61,39 @@ export default function Expenses() {
     }
   };
 
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
+  // Fetch income data
+  const fetchIncomeData = async () => {
+    try {
+      setLoading(true);
+      let url = `${backendUrl}/api/income`;
+      const params = new URLSearchParams();
+      
+      if (startDate && endDate) {
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
+      }
+      
+      const response = await axios.get(`${url}?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setIncomeData(response.data.incomes || []);
+    } catch (err) {
+      console.error('Error fetching income data:', err);
+      toast.error('Failed to load income data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // create or update expense
+  useEffect(() => {
+    if (activeTab === "expenses") {
+      fetchExpenses();
+    } else {
+      fetchIncomeData();
+    }
+  }, [activeTab, startDate, endDate]);
+
+  // Create or update expense
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -49,43 +107,45 @@ export default function Expenses() {
           { title, amount, category, description },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        toast.success("Expense updated");
+        toast.success("Expense updated successfully");
       } else {
         await axios.post(
           `${backendUrl}/api/expenses`,
           { title, amount, category, description },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        toast.success("Expense added");
+        toast.success("Expense added successfully");
       }
 
+      // Reset form
       setTitle("");
       setAmount("");
       setCategory("Other");
       setDescription("");
       setEditingId(null);
 
+      // Refresh expenses
       fetchExpenses();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Error saving expense");
     }
   };
 
-  // delete expense
+  // Delete expense
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this expense?")) return;
     try {
       await axios.delete(`${backendUrl}/api/expenses/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("Expense deleted");
+      toast.success("Expense deleted successfully");
       fetchExpenses();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Error deleting expense");
     }
   };
 
-  // set form for editing
+  // Set form for editing
   const handleEdit = (exp) => {
     setEditingId(exp._id);
     setTitle(exp.title);
@@ -94,102 +154,461 @@ export default function Expenses() {
     setDescription(exp.description || "");
   };
 
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setTitle("");
+    setAmount("");
+    setCategory("Other");
+    setDescription("");
+  };
+
+  // Calculate totals
+  const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+  const totalIncome = incomeData.reduce((sum, income) => sum + parseFloat(income.amount), 0);
+  const netProfit = totalIncome - totalExpenses;
+
+  // Export data
+  const handleExport = async (type) => {
+    try {
+      let csvContent = '';
+      let filename = '';
+      
+      if (type === 'expenses') {
+        csvContent = [
+          ['Date', 'Title', 'Category', 'Amount (LKR)', 'Description'],
+          ...expenses.map(expense => [
+            new Date(expense.date).toLocaleDateString(),
+            expense.title,
+            expense.category,
+            expense.amount.toFixed(2),
+            expense.description || ''
+          ])
+        ].map(row => row.join(',')).join('\n');
+        
+        filename = `expenses-report-${new Date().toISOString().split('T')[0]}.csv`;
+      } else {
+        csvContent = [
+          ['Date', 'Order ID', 'Customer', 'Amount (LKR)', 'Status', 'Items'],
+          ...incomeData.map(income => [
+            new Date(income.date).toLocaleDateString(),
+            income.orderId,
+            income.customerName,
+            income.amount.toFixed(2),
+            income.status,
+            income.items?.map(item => `${item.productName} (x${item.quantity})`).join('; ') || ''
+          ])
+        ].map(row => row.join(',')).join('\n');
+        
+        filename = `income-report-${new Date().toISOString().split('T')[0]}.csv`;
+      }
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`${type === 'expenses' ? 'Expenses' : 'Income'} report downloaded successfully`);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('Failed to export data');
+    }
+  };
+
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Expenses Management</h2>
+      <h2 className="text-2xl font-bold mb-6">Financial Management</h2>
 
-      {/* Add / Edit Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-col gap-3 w-full max-w-lg"
-      >
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="border p-2 rounded"
-        />
-        <input
-          type="number"
-          placeholder="Amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="border p-2 rounded"
-        />
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="border p-2 rounded"
-        >
-          <option value="Fuel">Fuel</option>
-          <option value="Maintenance">Maintenance</option>
-          <option value="Salary">Salary</option>
-          <option value="Other">Other</option>
-        </select>
-        <textarea
-          placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="border p-2 rounded"
-        />
+      {/* Financial Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-600 text-sm">Total Income</p>
+              <p className="text-2xl font-bold text-green-700">
+                Rs. {totalIncome.toFixed(2)}
+              </p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-600 text-sm">Total Expenses</p>
+              <p className="text-2xl font-bold text-red-700">
+                Rs. {totalExpenses.toFixed(2)}
+              </p>
+            </div>
+            <TrendingDown className="w-8 h-8 text-red-500" />
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-lg border ${
+          netProfit >= 0 
+            ? 'bg-blue-50 border-blue-200' 
+            : 'bg-orange-50 border-orange-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Net Profit</p>
+              <p className={`text-2xl font-bold ${
+                netProfit >= 0 ? 'text-blue-700' : 'text-orange-700'
+              }`}>
+                Rs. {netProfit.toFixed(2)}
+              </p>
+            </div>
+            <DollarSign className={`w-8 h-8 ${
+              netProfit >= 0 ? 'text-blue-500' : 'text-orange-500'
+            }`} />
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex border-b mb-6">
         <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className={`px-4 py-2 font-medium ${
+            activeTab === "expenses"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500"
+          }`}
+          onClick={() => setActiveTab("expenses")}
         >
-          {editingId ? "Update Expense" : "Add Expense"}
+          Expenses
         </button>
-      </form>
+        <button
+          className={`px-4 py-2 font-medium ${
+            activeTab === "income"
+              ? "border-b-2 border-green-500 text-green-600"
+              : "text-gray-500"
+          }`}
+          onClick={() => setActiveTab("income")}
+        >
+          Income
+        </button>
+      </div>
 
-      {/* Expenses Table */}
-      <div className="w-full max-w-[calc(100vw-320px)] mx-auto bg-white rounded-lg shadow-md overflow-x-auto">
-        <h3 className="text-lg font-semibold p-4 border-b">Expenses List</h3>
-        {loading ? (
-          <p className="p-4">Loading...</p>
-        ) : expenses.length === 0 ? (
-          <p className="p-4">No expenses found</p>
-        ) : (
-          <table className="w-full text-sm text-left border">
-            <thead className="bg-blue-200">
-              <tr>
-                <th className="p-2 border">Title</th>
-                <th className="p-2 border">Amount</th>
-                <th className="p-2 border">Category</th>
-                <th className="p-2 border">Description</th>
-                <th className="p-2 border">Date</th>
-                <th className="p-2 border">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.map((exp) => (
-                <tr key={exp._id} className="hover:bg-gray-50">
-                  <td className="p-2 border">{exp.title}</td>
-                  <td className="p-2 border">${exp.amount}</td>
-                  <td className="p-2 border">{exp.category}</td>
-                  <td className="p-2 border">{exp.description}</td>
-                  <td className="p-2 border">
-                    {new Date(exp.date).toLocaleDateString()}
-                  </td>
-                  <td className="p-2 border flex gap-2">
-                    <button
-                      onClick={() => handleEdit(exp)}
-                      className="bg-yellow-400 text-white px-2 py-1 rounded hover:bg-yellow-500"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(exp._id)}
-                      className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Filter Section */}
+      <div className="mb-6">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+        >
+          <Filter className="w-4 h-4" />
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </button>
+
+        {showFilters && (
+          <div className="mt-4 bg-white p-4 rounded-lg shadow">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    if (activeTab === "expenses") fetchExpenses();
+                    else fetchIncomeData();
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
+      {activeTab === "expenses" ? (
+        <>
+          {/* Expenses Form */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingId ? "Edit Expense" : "Add New Expense"}
+            </h3>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Title *</label>
+                <input
+                  type="text"
+                  placeholder="Expense title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Amount (LKR) *</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  step="0.01"
+                  min="0"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                >
+                  <option value="Fuel">Fuel</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Equipment">Equipment</option>
+                  <option value="Supplies">Supplies</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  placeholder="Optional description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="md:col-span-2 flex gap-3">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  {editingId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                  {editingId ? "Update Expense" : "Add Expense"}
+                </button>
+                
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          {/* Expenses Table */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h3 className="text-lg font-semibold">Expenses List</h3>
+              <button
+                onClick={() => handleExport('expenses')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export Expenses
+              </button>
+            </div>
+            
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading expenses...</p>
+              </div>
+            ) : expenses.length === 0 ? (
+              <div className="p-8 text-center">
+                <Receipt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No expenses found</p>
+                <p className="text-sm text-gray-500 mt-1">Add your first expense using the form above</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {expenses.map((exp) => (
+                      <tr key={exp._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-gray-900">{exp.title}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-bold text-red-600">Rs. {parseFloat(exp.amount).toFixed(2)}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            {exp.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-600 max-w-xs truncate">{exp.description}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {new Date(exp.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(exp)}
+                              className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(exp._id)}
+                              className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td colSpan="1" className="px-6 py-4 text-right font-bold">Total:</td>
+                      <td className="px-6 py-4 font-bold text-red-600">
+                        Rs. {totalExpenses.toFixed(2)}
+                      </td>
+                      <td colSpan="4" className="px-6 py-4"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Income Table */
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="flex justify-between items-center p-6 border-b">
+            <h3 className="text-lg font-semibold">Income Records</h3>
+            <div className="flex gap-3">
+              <button
+                onClick={fetchIncomeData}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Refresh
+              </button>
+              <button
+                onClick={() => handleExport('income')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export Income
+              </button>
+            </div>
+          </div>
+          
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading income data...</p>
+            </div>
+          ) : incomeData.length === 0 ? (
+            <div className="p-8 text-center">
+              <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No income records found</p>
+              <p className="text-sm text-gray-500 mt-1">Income from successful payments will appear here</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-green-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Order ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Payment Method</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {incomeData.map((income) => (
+                    <tr key={income._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
+                        {income.orderId}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900">{income.customerName}</div>
+                        <div className="text-sm text-gray-600">{income.customerEmail}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-bold text-green-600">Rs. {income.amount.toFixed(2)}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 capitalize">
+                        {income.paymentMethod}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          income.status === 'completed' 
+                            ? 'bg-green-100 text-green-800' 
+                            : income.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {income.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {new Date(income.date).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-green-50">
+                  <tr>
+                    <td colSpan="2" className="px-6 py-4 text-right font-bold">Total:</td>
+                    <td className="px-6 py-4 font-bold text-green-600">
+                      Rs. {totalIncome.toFixed(2)}
+                    </td>
+                    <td colSpan="3" className="px-6 py-4"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

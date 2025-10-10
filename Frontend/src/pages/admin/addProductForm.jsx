@@ -10,17 +10,13 @@ export default function AddProductForm({ darkMode }) {
 
   const [name, setName] = useState("");
   const [altNames, setAltNames] = useState("");
-  const [category, setCategory] = useState("fish");
-  const [unit, setUnit] = useState("kg");
   const [price, setPrice] = useState("");
   const [labeledPrice, setLabeledPrice] = useState("");
   const [description, setDescription] = useState("");
   const [images, setImages] = useState([]);
-  const [stock, setStock] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Derived UI states
   const discountPct = useMemo(() => {
     const p = Number(price);
     const lp = Number(labeledPrice);
@@ -50,16 +46,10 @@ export default function AddProductForm({ darkMode }) {
     if (e) e.preventDefault();
     setSubmitting(true);
 
-    const promisesArray = [];
-    for (let i = 0; i < images.length; i++) {
-      const file = images[i];
-      // Keep your existing uploader function as-is:
-      const promise = meadiaUpload(file);
-      promisesArray[i] = promise;
-    }
+    const uploadPromises = images.map((f) => meadiaUpload(f));
 
     try {
-      const result = await Promise.all(promisesArray);
+      const uploaded = await Promise.all(uploadPromises);
 
       const altNamesInArray = altNames
         .split(",")
@@ -67,16 +57,12 @@ export default function AddProductForm({ darkMode }) {
         .filter((n) => n);
 
       const product = {
-        // productId removed
         name: name.trim(),
         altNames: altNamesInArray,
         price: Number(price),
         labeledPrice: Number(labeledPrice),
-        stock: Number(stock),
-        category: category.trim(),
-        unit: unit.trim(),
         description: description.trim(),
-        images: result,
+        images: uploaded,
         isActive: Boolean(isActive),
       };
 
@@ -90,9 +76,7 @@ export default function AddProductForm({ darkMode }) {
       await axios.post(
         import.meta.env.VITE_BACKEND_URL + "/api/product/create",
         product,
-        {
-          headers: { Authorization: "Bearer " + token },
-        }
+        { headers: { Authorization: "Bearer " + token } }
       );
 
       toast.success("Product added successfully");
@@ -118,10 +102,7 @@ export default function AddProductForm({ darkMode }) {
             : "ring-slate-200 bg-white shadow-lg"
         }`}
       >
-        {/* Top accent */}
         <div className="h-1 w-full bg-gradient-to-r from-cyan-500 to-blue-600" />
-
-        {/* Header */}
         <div className="px-6 pt-6">
           <h1 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>
             Add Product
@@ -130,7 +111,7 @@ export default function AddProductForm({ darkMode }) {
             Fill in the details below to add a new item to your catalog.
           </p>
 
-          {/* Live hints row: discount + status */}
+        {/* Live hints */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {discountPct > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-600/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-600 dark:bg-blue-600/20">
@@ -154,7 +135,6 @@ export default function AddProductForm({ darkMode }) {
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Name */}
             <FormField label="Product Name *" darkMode={darkMode}>
               <input
                 value={name}
@@ -166,40 +146,6 @@ export default function AddProductForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Category */}
-            <FormField label="Category *" darkMode={darkMode}>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                required
-                className={inputClass(darkMode)}
-              >
-                <option value="fish">Fish</option>
-                <option value="crab">Crab</option>
-                <option value="shellfish">Shellfish</option>
-                <option value="prawn">Prawn</option>
-                <option value="lobster">Lobster</option>
-                <option value="squid">Squid</option>
-                <option value="other">Other</option>
-              </select>
-            </FormField>
-
-            {/* Unit */}
-            <FormField label="Unit *" darkMode={darkMode}>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                required
-                className={inputClass(darkMode)}
-              >
-                <option value="kg">kg</option>
-                <option value="g">g</option>
-                <option value="lbs">lbs</option>
-                <option value="pieces">pieces</option>
-              </select>
-            </FormField>
-
-            {/* Price */}
             <FormField label="Price (sell) *" darkMode={darkMode}>
               <input
                 value={price}
@@ -213,7 +159,6 @@ export default function AddProductForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Labeled Price */}
             <FormField label="Labeled Price *" darkMode={darkMode}>
               <input
                 value={labeledPrice}
@@ -227,20 +172,6 @@ export default function AddProductForm({ darkMode }) {
               />
             </FormField>
 
-            {/* Stock */}
-            <FormField label="Stock *" darkMode={darkMode}>
-              <input
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                type="number"
-                min="0"
-                required
-                placeholder="0"
-                className={inputClass(darkMode)}
-              />
-            </FormField>
-
-            {/* Status */}
             <FormField label="Status" darkMode={darkMode}>
               <div
                 className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
@@ -263,7 +194,6 @@ export default function AddProductForm({ darkMode }) {
               </div>
             </FormField>
 
-            {/* Alt Names */}
             <FormField label="Alternate Names" darkMode={darkMode} full>
               <input
                 value={altNames}
@@ -288,7 +218,6 @@ export default function AddProductForm({ darkMode }) {
               )}
             </FormField>
 
-            {/* Description */}
             <FormField label="Description" darkMode={darkMode} full>
               <textarea
                 value={description}
@@ -302,7 +231,6 @@ export default function AddProductForm({ darkMode }) {
               </div>
             </FormField>
 
-            {/* Images */}
             <FormField label="Images *" darkMode={darkMode} full>
               <label
                 className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-sm transition ${
@@ -313,23 +241,14 @@ export default function AddProductForm({ darkMode }) {
               >
                 <ImageIcon className="h-5 w-5" />
                 <span>Click to select images (JPG/PNG) or drop files here</span>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => onFilesPicked(e.target.files)}
-                  className="hidden"
-                />
+                <input type="file" multiple onChange={(e) => onFilesPicked(e.target.files)} className="hidden" />
               </label>
 
               {images.length > 0 && (
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {images.map((file, idx) => {
                     let url = "";
-                    try {
-                      url = URL.createObjectURL(file);
-                    } catch {
-                      url = "";
-                    }
+                    try { url = URL.createObjectURL(file); } catch { url = ""; }
                     return (
                       <div
                         key={idx}
@@ -345,9 +264,7 @@ export default function AddProductForm({ darkMode }) {
                             onLoad={() => URL.revokeObjectURL?.(url)}
                           />
                         ) : (
-                          <div className="h-28 grid place-items-center text-xs opacity-70">
-                            No preview
-                          </div>
+                          <div className="h-28 grid place-items-center text-xs opacity-70">No preview</div>
                         )}
 
                         <button
@@ -374,7 +291,6 @@ export default function AddProductForm({ darkMode }) {
             </FormField>
           </div>
 
-          {/* Actions */}
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <Link
               to="/admin/products"
@@ -400,7 +316,6 @@ export default function AddProductForm({ darkMode }) {
   );
 }
 
-/* ---------- Small presentational helper ---------- */
 function FormField({ label, hint, children, full, darkMode }) {
   return (
     <div className={full ? "md:col-span-2" : ""}>
@@ -408,9 +323,7 @@ function FormField({ label, hint, children, full, darkMode }) {
         {label}
       </label>
       {children}
-      {hint && (
-        <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>{hint}</p>
-      )}
+      {hint && <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>{hint}</p>}
     </div>
   );
 }
