@@ -483,7 +483,7 @@ export default function EquipmentManagement({ darkMode }) {
                 <th className="py-3 px-4 text-left">Total Qty</th>
                 <th className="py-3 px-4 text-left">Available Qty</th>
                 <th className="py-3 px-4 text-left">Maintenance</th>
-                <th className="py-3 px-4 text-left">Status</th>
+                {/* Status column removed */}
                 <th className="py-3 px-4 text-left">Actions</th>
               </tr>
             </thead>
@@ -550,30 +550,7 @@ export default function EquipmentManagement({ darkMode }) {
                       {item.requiresMaintenance ? "Required" : "Not Required"}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-semibold capitalize
-                        ${
-                          item.status === "available"
-                            ? darkMode
-                              ? "bg-green-900 text-green-300"
-                              : "bg-green-100 text-green-800"
-                            : item.status === "maintenance"
-                            ? darkMode
-                              ? "bg-yellow-900 text-yellow-200"
-                              : "bg-yellow-100 text-yellow-800"
-                            : item.status
-                            ? darkMode
-                              ? "bg-red-900 text-red-200"
-                              : "bg-red-100 text-red-800"
-                            : darkMode
-                            ? "bg-slate-700 text-slate-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                    >
-                      {item.status || "-"}
-                    </span>
-                  </td>
+                  {/* Status cell removed */}
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-3">
                       <Link
