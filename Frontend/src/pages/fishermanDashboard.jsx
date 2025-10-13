@@ -42,7 +42,9 @@ import FishStockList from "./FishStockList.jsx";
 import { fishStockService } from "../services/fishStockService";
 import toast from "react-hot-toast";
 import api from "../api/axios";
+import Weather from "./Weather";
 import FishStockListFisherman from "./FishStockListFisherman";
+import FishermanTrips from "./admin/fishermanTrips";
 import CreateFishStockFisherman from "./CreateFishStockFisherman";
 import EditFishStockFisherman from "./EditFishStockFisherman";
 import DepthSensor from "./DepthSensor.jsx";
@@ -104,8 +106,9 @@ export default function FishermanDashboard() {
             <Routes>
               <Route index element={<Overview darkMode={darkMode} />} />
               <Route path="stock" element={<FishStockListFisherman darkMode={darkMode} />} />
+              <Route path="weather" element={<Weather darkMode={darkMode} />} />
               <Route path="weather" element={<WeatherPage darkMode={darkMode} />} />
-              <Route path="trip" element={<TripPage darkMode={darkMode} />} />
+              <Route path="trip" element={<FishermanTrips  darkMode={darkMode} />} />
               <Route path="profile" element={<ProfilePage darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
               <Route path="stock/create" element={<CreateFishStockFisherman />} />

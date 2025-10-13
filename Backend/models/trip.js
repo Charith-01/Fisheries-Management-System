@@ -1,7 +1,7 @@
 // models/trip.js
 import mongoose from 'mongoose';
 
-/** Compute status from date fields */
+   
 function deriveStatus({ departureDateTime, plannedReturnAt, actualReturnAt }) {
   const now = Date.now();
   const dep  = departureDateTime ? new Date(departureDateTime).getTime() : null;
@@ -25,14 +25,14 @@ const tripSchema = new mongoose.Schema(
       required: true,
     },
 
-    // RENAMED: captain -> skipper, and points to Fisherman
+    
     skipper: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Fisherman',
       required: true,
     },
 
-    // Fishermen now explicitly reference Fisherman collection
+    
     fishermen: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -43,7 +43,7 @@ const tripSchema = new mongoose.Schema(
 
     departureDateTime: { type: Date, required: true },
     plannedReturnAt:   { type: Date, required: true },
-    actualReturnAt:    { type: Date }, // optional
+    actualReturnAt:    { type: Date },
 
     destination: { type: String, required: true },
     tripType:    { type: String, required: true },

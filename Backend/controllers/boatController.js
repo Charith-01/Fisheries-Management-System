@@ -1,4 +1,5 @@
 import Boat from "../models/boat.js";
+import Equipment from "../models/equipment.js";
 
 export function createBoat(req,res){
     if(req.user == null){
@@ -18,8 +19,11 @@ export function createBoat(req,res){
     const boat = new Boat(req.body)
 
     boat.save().then(
-        ()=>{
-            res.json({message: "Boat saved successfully"})
+        (savedBoat)=>{
+            res.json({
+                message: "Boat saved successfully",
+                boat: savedBoat
+            })
         }
     ).catch(
         (err)=>{
@@ -31,21 +35,20 @@ export function createBoat(req,res){
     )
 }
 
-
 export function getAllBoats(req,res){
-    Boat.find().then(
+    Boat.find().populate('equipmentAssignments.equipment', 'equipmentID name type').then(
         (boats)=>{
             res.json(boats)
         }
     ).catch(
         (err)=>{
+            console.error("Error fetching boats:", err);
             res.status(500).json({
                 message: "Boats not found"
             })
         }
     )
 }
-
 
 export function deleteBoat(req,res){
     if(req.user == null){
@@ -65,13 +68,23 @@ export function deleteBoat(req,res){
     Boat.findOneAndDelete({
         boatNumber: req.params.boatNumber
     }).then(
-        ()=>{
+        async (deletedBoat)=>{
+            if (deletedBoat && deletedBoat.equipmentAssignments.length > 0) {
+                // Return all assigned equipment to available pool
+                for (const assignment of deletedBoat.equipmentAssignments) {
+                    await Equipment.findByIdAndUpdate(
+                        assignment.equipment,
+                        { $inc: { availableQuantity: assignment.quantity } }
+                    );
+                }
+            }
             res.json({
                 message:"Boat deleted successfully"
             })
         }
     ).catch(
         (err)=>{
+            console.error("Error deleting boat:", err);
             res.status(500).json({
                 message:"Boat not deleted"
             })
@@ -79,8 +92,7 @@ export function deleteBoat(req,res){
     )
 }
 
-
-export function updateBoat(req,res){
+export async function updateBoat(req,res){
     if(req.user == null){
         res.status(403).json({
             message:"You need login first"
@@ -95,35 +107,48 @@ export function updateBoat(req,res){
         return;
     }
 
-    Boat.findOneAndUpdate({ 
-        boatNumber: req.params.boatNumber 
-    },req.body).then(
-        () => {
-            res.json({
-                message: "Boat updated successfully"
-            });
-        }
-    ).catch(
-        (err) => {
-            res.status(500).json({
-                message: "Boat not updated"
-            });
-        }
-    );
-}
+    try {
+        const { boatNumber } = req.params;
+        const updateData = { ...req.body };
 
+        // Update the boat
+        const updatedBoat = await Boat.findOneAndUpdate(
+            { boatNumber: boatNumber },
+            updateData,
+            { new: true, runValidators: true }
+        ).populate('equipmentAssignments.equipment', 'equipmentID name type');
+
+        res.json({
+            message: "Boat updated successfully",
+            boat: updatedBoat
+        });
+    } catch (err) {
+        console.error("Error updating boat:", err);
+        res.status(500).json({
+            message: "Boat not updated"
+        });
+    }
+}
 
 export async function getBoatById(req, res) {
     const boatNumber = req.params.id;
-    const boat =await Boat.findOne({ boatNumber: boatNumber });
+    try {
+        const boat = await Boat.findOne({ boatNumber: boatNumber })
+            .populate('equipmentAssignments.equipment', 'equipmentID name type availableQuantity totalQuantity');
 
-    if(boat == null){
-        res.status(404).json({
-            message : "Boat not Found"
+        if(!boat){
+            res.status(404).json({
+                message : "Boat not Found"
+            })
+            return
+        }
+        res.json({
+            boat: boat
         })
-        return
+    } catch (error) {
+        console.error("Error fetching boat:", error);
+        res.status(500).json({
+            message: "Error fetching boat"
+        })
     }
-    res.json({
-        boat: boat
-    })
 }
