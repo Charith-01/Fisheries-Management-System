@@ -9,8 +9,6 @@ import NotFoundPage from "./client/notFoundPage";
 import Footer from "../components/footer";
 import Profile from "./client/profile";
 import MyOrdersPage from "./client/orders";
-import ProtectedRoute from "../components/ProtectedRoute";
-import EnhancedRoleProtectedRoute  from "../components/EnhancedRoleProtectedRoute";
 
 function SectionHeader({ title, subtitle }) {
   return (
@@ -31,7 +29,6 @@ function SectionHeader({ title, subtitle }) {
 
 function HeroSection() {
   const navigate = useNavigate();
-  
 
   const slides = useMemo(
     () => [
@@ -697,30 +694,13 @@ export default function HomePage() {
       <Header />
       <div className="w-full h-[calc(100vh-75px)] min-h-[calc(100vh-75px)] overflow-y-auto">
         <Routes path="/*">
-          {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/overview/:id" element={<ProductOverview />} />
-          
-          
-          <Route path="/cart" element={   <CartPage /> } />
-          <Route path="/checkout" element={
-            <ProtectedRoute>
-              <Checkout />
-            </ProtectedRoute>
-          } />
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
-          <Route path="/orders" element={
-            <EnhancedRoleProtectedRoute>
-              <MyOrdersPage />
-            </EnhancedRoleProtectedRoute>
-          } />
-        
-          {/* Catch all route */}
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/orders" element={<MyOrdersPage />} />
           <Route path="/*" element={<NotFoundPage />} />
         </Routes>
       </div>

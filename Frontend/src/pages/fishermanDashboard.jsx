@@ -20,7 +20,6 @@ import {
   Eye,
   Edit,
   Trash2,
-  Gauge,
   Plus
 } from "lucide-react";
 import {
@@ -47,16 +46,12 @@ import FishStockListFisherman from "./FishStockListFisherman";
 import FishermanTrips from "./admin/fishermanTrips";
 import CreateFishStockFisherman from "./CreateFishStockFisherman";
 import EditFishStockFisherman from "./EditFishStockFisherman";
-import DepthSensor from "./DepthSensor.jsx";
-import { useRoleAccess } from "../hook/useRoleAccess";
-
 export default function FishermanDashboard() {
-   useRoleAccess("fisherman");
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
- 
+
   // minimal, safe auth clear (doesn't touch other app state)
   function clearAuthFromStorage() {
     const keys = [
@@ -113,7 +108,6 @@ export default function FishermanDashboard() {
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
               <Route path="stock/create" element={<CreateFishStockFisherman />} />
               <Route path="stock/edit/:id" element={<EditFishStockFisherman />} />
-              <Route path="depth-sensor" element={<DepthSensor darkMode={darkMode} />} />
             </Routes>
           </div>
         </main>
@@ -188,9 +182,6 @@ function Sidebar({ darkMode, setDarkMode, onLogoutRequest, user }) {
         <NavLink to="/fisherman/weather" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <BarChart3 className="h-5 w-5" /> Weather
         </NavLink>
-        <NavLink to="/fisherman/depth-sensor" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-        <Gauge className="h-5 w-5" /> Depth Sensor
-       </NavLink>
         <NavLink to="/fisherman/trip" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <Calendar className="h-5 w-5" /> Trip
         </NavLink>

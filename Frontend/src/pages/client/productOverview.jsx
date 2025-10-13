@@ -13,7 +13,7 @@ import { getReviews as apiGetReviews } from "../../api/reviews";
 import ReviewStars from "../../components/reviewStars";
 import ReviewForm from "../../components/reviewForm";
 import ReviewList from "../../components/reviewList";
-import Layout from "../../components/Layout";
+import Footer from "../../components/footer";
 
 /* -------------------------- small local component -------------------------- */
 function RatingBreakdown({
@@ -262,7 +262,6 @@ export default function ProductOverview() {
   }, [product?.reviewCount, reviews]);
 
   return (
-    <Layout>
     <div className="w-full h-full flex items-center justify-center">
       {status === "loading" && (
         <div className="w-full h-full flex gap-6 p-6 animate-pulse">
@@ -919,12 +918,8 @@ export default function ProductOverview() {
               </div>
             </div>
           </div>
-
         </div>
-        
       )}
-     
     </div>
-    </Layout>
   );
 }

@@ -2,7 +2,7 @@ import axios from "axios"
 import { useEffect, useMemo, useState } from "react"
 import ProductCard from "../../components/productCard"
 import ProductFilters from "../../components/productFilters"
-import Layout from "../../components/Layout";
+
 export default function ProductsPage() {
 
   const [productList, setProductList] = useState([])
@@ -41,7 +41,6 @@ export default function ProductsPage() {
   }, [productList, query, category, status])
 
   return (
-    <Layout>
     <div className="h-full w-full flex">
       <div className="w-80 hidden md:block p-4">
         <ProductFilters
@@ -80,6 +79,5 @@ export default function ProductsPage() {
         }
       </div>
     </div>
-    </Layout>
   )
 }

@@ -14,19 +14,14 @@ import {
   CreditCard,
   Receipt,
   Save,
-  X,
-  FileText
+  X
 } from "lucide-react";
-
-// Import PDF libraries
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 export default function FinancialManagement({ darkMode }) {
   const [expenses, setExpenses] = useState([]);
   const [incomeData, setIncomeData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("expenses");
+  const [activeTab, setActiveTab] = useState("expenses"); // "expenses" or "income"
 
   // Form states for expenses
   const [title, setTitle] = useState("");
@@ -89,8 +84,7 @@ export default function FinancialManagement({ darkMode }) {
       setLoading(false);
     }
   };
-
-  // Load both expenses and incomes when component mounts
+    // Load both expenses and incomes when component mounts
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -214,196 +208,13 @@ export default function FinancialManagement({ darkMode }) {
   // Calculate totals
   const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
   const totalIncome = incomeData.reduce((sum, income) => {
-    const amount = parseFloat(income.amount);
-    return sum + amount;
-  }, 0);
+  
+  const amount = parseFloat(income.amount);
+  return sum + amount;
+}, 0);
   const netProfit = totalIncome - totalExpenses;
 
-// Generate PDF Report
-const generatePDF = async (type) => {
-  try {
-    setLoading(true);
-    toast.loading(`Generating ${type} PDF report...`);
-
-    const pdf = new jsPDF();
-    const currentDate = new Date();
-    const formattedDate = currentDate.toISOString().split('T')[0];
-    const formattedTime = currentDate.toLocaleTimeString('en-US', { 
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit'
-    }).replace(':', '-');
-
-    // Function to add header to each page
-    const addHeader = (pdf, pageNum, totalPages) => {
-      const pageWidth = pdf.internal.pageSize.width;
-      
-      // Try to add logo with reduced height
-      try {
-        // If logo is in public/assets folder
-        const logoUrl = `${window.location.origin}/dist/logo.jpg`;
-        pdf.addImage(logoUrl, 'JPEG', 20, 15, 25, 25); // Reduced from 30x30 to 25x25
-      } catch (e) {
-        console.warn('Logo not found, using text header only');
-        pdf.setFontSize(16);
-        pdf.setTextColor(0, 0, 128);
-        pdf.text("DF", 25, 30);
-      }
-
-      // Company Info
-      pdf.setFontSize(16);
-      pdf.setTextColor(0, 0, 128);
-      pdf.text("Dhanushka Fisheries", 55, 25);
-      
-      pdf.setFontSize(9);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text("Owner: Mr. Nipun Thanushka", 55, 32);
-      pdf.text("Matara Road, Magalle, Galle", 55, 37);
-      pdf.text("Phone: 0768660219", 55, 42);
-
-      // Report Info
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Generated: ${formattedDate} ${formattedTime.replace('-', ':')}`, pageWidth - 70, 25);
-      pdf.text(`Timezone: Asia/Colombo`, pageWidth - 70, 30);
-      
-      if (pageNum > 1) {
-        pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 70, 35);
-      }
-
-      // Separator line
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(20, 48, pageWidth - 20, 48);
-    };
-
-    // Add header to first page
-    addHeader(pdf, 1, 1);
-
-    // Report Title
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`${type === 'expenses' ? 'Expenses' : 'Orders'} Report`, 20, 65);
-
-    // Summary Section
-    pdf.setFontSize(11);
-    if (type === 'expenses') {
-      pdf.text(`Total Expenses: ${expenses.length} | Total Amount: Rs. ${totalExpenses.toFixed(2)}`, 20, 77);
-    } else {
-      pdf.text(`Total Orders: ${incomeData.length} | Total Amount: Rs. ${totalIncome.toFixed(2)}`, 20, 77);
-    }
-
-    // Table Headers
-    let yPosition = 90;
-    pdf.setFontSize(10);
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFillColor(0, 0, 128);
-    
-    if (type === 'expenses') {
-      // Expenses Table Headers
-      pdf.rect(20, yPosition, 170, 8, 'F');
-      pdf.text("Date", 22, yPosition + 6);
-      pdf.text("Title", 45, yPosition + 6);
-      pdf.text("Category", 90, yPosition + 6);
-      pdf.text("Amount (LKR)", 130, yPosition + 6);
-      pdf.text("Description", 160, yPosition + 6);
-      
-      yPosition += 15;
-      
-      // Expenses Table Data
-      pdf.setTextColor(0, 0, 0);
-      expenses.forEach((expense) => {
-        // Check if we need a new page
-        if (yPosition > 270) {
-          pdf.addPage();
-          const newPageNum = pdf.internal.getNumberOfPages();
-          addHeader(pdf, newPageNum, newPageNum);
-          yPosition = 90; // Reset Y position for new page
-        }
-        
-        const dateStr = new Date(expense.date).toLocaleDateString();
-        const titleStr = expense.title.length > 20 ? expense.title.substring(0, 20) + '...' : expense.title;
-        const descStr = expense.description ? 
-          (expense.description.length > 20 ? expense.description.substring(0, 20) + '...' : expense.description) : 'N/A';
-        
-        pdf.text(dateStr, 22, yPosition);
-        pdf.text(titleStr, 45, yPosition);
-        pdf.text(expense.category, 90, yPosition);
-        pdf.text(expense.amount.toFixed(2), 130, yPosition);
-        pdf.text(descStr, 160, yPosition);
-        
-        yPosition += 8;
-      });
-    } else {
-      // Income Table Headers
-        pdf.rect(20, yPosition, 170, 8, 'F');
-  pdf.text("Date", 22, yPosition + 6);
-  pdf.text("Customer", 50, yPosition + 6); // Moved Customer to left
-  pdf.text("Amount (LKR)", 120, yPosition + 6); // Adjusted position
-  pdf.text("Status", 150, yPosition + 6); // Adjusted position
-  pdf.text("Payment Method", 170, yPosition + 6); // Added Payment Method
-  
-  yPosition += 15;
-  
-  // Income Table Data (without Order ID)
-  pdf.setTextColor(0, 0, 0);
-  incomeData.forEach((income) => {
-    // Check if we need a new page
-    if (yPosition > 270) {
-      pdf.addPage();
-      const newPageNum = pdf.internal.getNumberOfPages();
-      addHeader(pdf, newPageNum, newPageNum);
-      yPosition = 90; // Reset Y position for new page
-    }
-    
-    const dateStr = new Date(income.date).toLocaleDateString();
-    const customerStr = income.customerName.length > 25 ? income.customerName.substring(0, 25) + '...' : income.customerName;
-    
-    pdf.text(dateStr, 22, yPosition);
-    pdf.text(customerStr, 50, yPosition); // Customer name
-    pdf.text(income.amount.toFixed(2), 120, yPosition); // Amount
-    pdf.text(income.status, 150, yPosition); // Status
-    pdf.text(income.paymentMethod || 'N/A', 170, yPosition); // Payment Method
-    
-    yPosition += 8;
-      });
-    }
-
-    // Update all page headers with correct page numbers
-    const pageCount = pdf.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      pdf.setPage(i);
-      
-      // Clear existing header area
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 0, pdf.internal.pageSize.width, 50, 'F');
-      
-      // Redraw header with correct page numbers
-      addHeader(pdf, i, pageCount);
-      
-      // Footer
-      pdf.setFontSize(8);
-      pdf.setTextColor(128, 128, 128);
-      pdf.text(`Dhanushka Fisheries - Confidential`, 20, 285);
-      pdf.text(`Page ${i} of ${pageCount}`, 180, 285);
-    }
-
-    // Save PDF
-    const filename = `${type === 'expenses' ? 'expenses' : 'orders'}-report_${formattedDate}.pdf`;
-    pdf.save(filename);
-    
-    toast.dismiss();
-    toast.success(`PDF report downloaded successfully`);
-    
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    toast.dismiss();
-    toast.error('Failed to generate PDF report');
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Export data (CSV - keeping for backward compatibility)
+  // Export data
   const handleExport = async (type) => {
     try {
       let csvContent = '';
@@ -446,7 +257,7 @@ const generatePDF = async (type) => {
       link.click();
       window.URL.revokeObjectURL(url);
       
-      toast.success(`${type === 'expenses' ? 'Expenses' : 'Income'} CSV report downloaded successfully`);
+      toast.success(`${type === 'expenses' ? 'Expenses' : 'Income'} report downloaded successfully`);
     } catch (error) {
       console.error('Error exporting data:', error);
       toast.error('Failed to export data');
@@ -663,22 +474,13 @@ const generatePDF = async (type) => {
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b">
               <h3 className="text-lg font-semibold">Expenses List</h3>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleExport('expenses')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => generatePDF('expenses')}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  Export PDF
-                </button>
-              </div>
+              <button
+                onClick={() => handleExport('expenses')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export Expenses
+              </button>
             </div>
             
             {loading ? (
@@ -777,14 +579,7 @@ const generatePDF = async (type) => {
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                Export CSV
-              </button>
-              <button
-                onClick={() => generatePDF('income')}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                Export PDF
+                Export Income
               </button>
             </div>
           </div>

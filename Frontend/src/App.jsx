@@ -26,10 +26,10 @@ function App() {
     <BrowserRouter>
     <Toaster position="top-right"/>
         <Routes path="/*">
-         <Route path="/login" element={<LoginPage/>}/>
-          <Route path="/register" element={<RegistrationPage/>}/>
           <Route path="/admin/*" element={<AdminDashboard/>}/>
           <Route path="/fisherman/*" element={<FishermanDashboard/>}/>
+          <Route path="/login" element={<LoginPage/>}/>
+          <Route path="/register" element={<RegistrationPage/>}/>
           <Route path="/*" element={<HomePage />} />        
           <Route path="/fishstock" element={<FishStockList />} />
           <Route path="/fishstock/create" element={<CreateFishStock />} />
