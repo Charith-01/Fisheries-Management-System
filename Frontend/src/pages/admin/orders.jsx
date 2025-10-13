@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ ADDED
 
 /* --------------------------- helpers --------------------------- */
 
@@ -28,7 +29,7 @@ const isPaymentFailed = (o) => norm(o.paymentStatus) === "failed";
 const isOrderPending = (o) => norm(o.status) === "pending";
 
 // Canonical order statuses (admin can change these)
-const ORDER_STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+const ORDER_STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Refunded"];
 
 // Payment filter options for UI
 const PAYMENT_FILTER_OPTIONS = ["all", "pending", "succeeded", "failed"];
@@ -127,8 +128,19 @@ export default function AdminOrdersPage({ darkMode }) {
   const handleStatusChange = async (orderId, status) => {
     try {
       setBusyId(orderId);
+      if (norm(status) === "refunded") {
+      if (!confirm(`Refund order ${orderId}? This will deduct the amount from income records.`)) {
+        setBusyId("");
+        return;
+      }
+      
+      await api.put(`/api/order/refund/${encodeURIComponent(orderId)}`, { status });
+      toast.success("Order refunded and income adjusted");
+    } else {
+      // Regular status update
       await api.put(`/api/order/status/${encodeURIComponent(orderId)}`, { status });
       toast.success("Order status updated");
+    }
       await loadOrders();
 
       if (activeOrder?.orderId === orderId) {
@@ -142,7 +154,8 @@ export default function AdminOrdersPage({ darkMode }) {
       setBusyId("");
     }
   };
-
+  
+  
   const handleCancel = async (order) => {
     if (!isOrderPending(order)) {
       toast.error("Only pending orders can be cancelled");
@@ -172,6 +185,35 @@ export default function AdminOrdersPage({ darkMode }) {
   );
 
   const showRefreshBar = loading && orders.length > 0;
+
+  // ✅ ADDED — PDF export (no other logic changed)
+  const handleExportOrders = () => {
+    exportTablePDF({
+      title: "Orders Report",
+      meta: {
+        "Total Orders": filtered.length,
+        "Total Paid": fmtMoney(
+          filtered
+            .filter((o) => (o.paymentStatus || "").toLowerCase() === "succeeded")
+            .reduce((s, o) => s + Number(o.total || 0), 0)
+        ),
+        "Order Status": statusFilter,
+        "Payment Status": paymentFilter,
+        "Search": (search || "-").slice(0, 64),
+      },
+      columns: [
+        { header: "Order ID", get: (o) => o.orderId, width: 100 },
+        { header: "Customer", get: (o) => o.name || "-" },
+        { header: "Email", get: (o) => o.email || "-" },
+        { header: "Total", get: (o) => fmtMoney(o.total), align: "right", width: 90 },
+        { header: "Payment", get: (o) => o.paymentStatus || "pending", width: 80 },
+        { header: "Status", get: (o) => o.status || "Pending", width: 90 },
+        { header: "Date", get: (o) => fmtDate(o.date), width: 140 },
+      ],
+      rows: filtered,
+      // header/footer branding is handled inside the shared exporter
+    });
+  };
 
   return (
     <div className={`space-y-4 ${darkMode ? "dark text-slate-100" : ""}`}>
@@ -244,6 +286,18 @@ export default function AdminOrdersPage({ darkMode }) {
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
+            </button>
+
+            {/* ✅ ADDED — Export PDF button */}
+            <button
+              onClick={handleExportOrders}
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-slate-200 ${
+                darkMode ? "bg-slate-700 text-slate-100 hover:bg-slate-600" : "bg-slate-100"
+              }`}
+              title="Export orders as PDF"
+              aria-label="Export orders as PDF"
+            >
+              Export PDF
             </button>
           </div>
         </div>

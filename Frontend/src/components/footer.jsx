@@ -42,7 +42,8 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-white text-slate-700">
+    // Added a subtle top shadow for separation. No other changes.
+    <footer className="relative bg-white text-slate-700 shadow-[0_-2px_6px_rgba(0,0,0,0.08)]">
       <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           {/* Brand + mini about */}

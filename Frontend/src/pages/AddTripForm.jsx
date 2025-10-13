@@ -1,22 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+// If you don't have an alias, use: "../../api/axios"
 import axios from "../api/axios";
 import toast from "react-hot-toast";
 import {
-  Save, Loader, CalendarClock, ChevronLeft, Ship, UserCircle2, Users, MapPin, CalendarRange, ClipboardList
+  Save, Loader, CalendarClock, ChevronLeft, Ship, UserCircle2, Users, MapPin, CalendarRange, ClipboardList, AlertTriangle
 } from "lucide-react";
 
 export default function AddTripForm({ darkMode = false }) {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [boats, setBoats] = useState([]);
-  const [skippers, setSkippers] = useState([]);    // ⬅️ skippers
-  const [fishermen, setFishermen] = useState([]);  // ⬅️ crew list
+  const [skippers, setSkippers] = useState([]);
+  const [fishermen, setFishermen] = useState([]);
+
+  // For auto tripId (optional): load existing trips to compute next ID
+  const [existingTrips, setExistingTrips] = useState([]);
+  const [loadingTrips, setLoadingTrips] = useState(true);
+
+  // NEW: availability
+  const [checking, setChecking] = useState(false);
+  const [conflicts, setConflicts] = useState([]);
 
   const [form, setForm] = useState({
     tripId: "",
     boat: "",
-    skipper: "",            // ⬅️ skipper instead of captain
+    skipper: "",
     fishermen: [],
     departureDateTime: "",
     plannedReturnAt: "",
@@ -25,36 +35,81 @@ export default function AddTripForm({ darkMode = false }) {
     specialNotes: "",
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const headers = { Authorization: "Bearer " + token };
+  const token = useMemo(() => localStorage.getItem("token") || "", []);
+  const headers = useMemo(() => ({ Authorization: "Bearer " + token }), [token]);
 
+  // Load dropdowns + existing trips (for tripId generation)
+  useEffect(() => {
     (async () => {
       try {
-        const [b, s, f] = await Promise.allSettled([
+        const [b, s, f, tripsRes] = await Promise.allSettled([
           axios.get("/api/boat", { headers }),
           axios.get("/api/fisherman?position=skipper", { headers }),
           axios.get("/api/fisherman?position=crew", { headers }),
+          axios.get("/api/trip", { headers }),
         ]);
         if (b.status === "fulfilled") setBoats(b.value.data || []);
         if (s.status === "fulfilled") setSkippers(s.value.data || []);
         if (f.status === "fulfilled") setFishermen(f.value.data || []);
+        if (tripsRes.status === "fulfilled") setExistingTrips(tripsRes.value.data || []);
       } catch (e) {
         console.error(e);
         toast.error("Failed to load dropdowns");
+      } finally {
+        setLoadingTrips(false);
       }
     })();
-  }, []);
+  }, [headers]);
 
+  // Auto-generate Trip ID (same style you used before)
+  useEffect(() => {
+    if (loadingTrips) return;
+    const year = new Date().getFullYear();
+    if (existingTrips.length > 0) {
+      const tripNumbers = existingTrips.map(trip => {
+        const match = trip.tripId?.match(/(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      });
+      const maxNumber = Math.max(0, ...tripNumbers);
+      const nextNumber = maxNumber + 1;
+      const newTripId = `TRIP-${year}-${nextNumber.toString().padStart(4, "0")}`;
+      setForm(prev => ({ ...prev, tripId: newTripId }));
+    } else {
+      setForm(prev => ({ ...prev, tripId: `TRIP-${year}-0001` }));
+    }
+  }, [existingTrips, loadingTrips]);
+
+  // Keep your date rules & auto 30 days return
   function onChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-  function onFishermenChange(e) {
-    const values = Array.from(e.target.selectedOptions).map((o) => o.value);
-    setForm((prev) => ({ ...prev, fishermen: values }));
+
+    if (name === "departureDateTime") {
+      const departureDate = new Date(value);
+      const now = new Date();
+      if (departureDate < now) {
+        toast.error("Departure date cannot be in the past");
+        return;
+      }
+      const plannedReturnDate = new Date(departureDate);
+      plannedReturnDate.setDate(plannedReturnDate.getDate() + 30);
+      const formattedReturn = plannedReturnDate.toISOString().slice(0, 16);
+
+      setForm(prev => ({
+        ...prev,
+        departureDateTime: value,
+        plannedReturnAt: formattedReturn,
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   }
 
+  function onFishermenChange(e) {
+    const values = Array.from(e.target.selectedOptions).map(o => o.value);
+    setForm(prev => ({ ...prev, fishermen: values }));
+  }
+
+  // Your validation stays the same
   function validate() {
     if (!form.tripId.trim()) return "Trip ID is required";
     if (!form.boat) return "Select a boat";
@@ -62,12 +117,28 @@ export default function AddTripForm({ darkMode = false }) {
     if (!form.fishermen.length) return "Choose at least one fisherman";
     if (!form.departureDateTime) return "Departure date/time is required";
     if (!form.plannedReturnAt) return "Planned return is required";
-    if (new Date(form.plannedReturnAt) <= new Date(form.departureDateTime)) return "Return must be after departure";
+
+    const departure = new Date(form.departureDateTime);
+    const plannedReturn = new Date(form.plannedReturnAt);
+    const now = new Date();
+
+    if (departure < now) return "Departure date cannot be in the past";
+    if (plannedReturn <= departure) return "Return must be after departure";
+
+    const maxReturnDate = new Date(departure);
+    maxReturnDate.setDate(maxReturnDate.getDate() + 30);
+    if (plannedReturn > maxReturnDate) return "Return date cannot be more than 30 days after departure";
+
     if (!form.destination.trim()) return "Destination is required";
     if (!form.tripType.trim()) return "Trip type is required";
+
+    // NEW: if conflicts present, block (keeps your UX)
+    if (conflicts.length > 0) return "Boat/crew not available for this time window";
+
     return null;
   }
 
+  // Derived status preview (unchanged)
   const statusPreview = useMemo(() => {
     const dep = form.departureDateTime ? new Date(form.departureDateTime).getTime() : null;
     const ret = form.plannedReturnAt ? new Date(form.plannedReturnAt).getTime() : null;
@@ -79,6 +150,42 @@ export default function AddTripForm({ darkMode = false }) {
     return "upcoming";
   }, [form.departureDateTime, form.plannedReturnAt]);
 
+  const minDepartureDate = new Date().toISOString().slice(0, 16);
+
+  // NEW: Live availability check — calls your /api/trip/check-availability
+  useEffect(() => {
+    const { boat, fishermen, departureDateTime, plannedReturnAt } = form;
+    // Only run when we have all inputs
+    if (!boat || !departureDateTime || !plannedReturnAt) {
+      setConflicts([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      setChecking(true);
+      try {
+        const { data } = await axios.post(
+          "/api/trip/check-availability",
+          { boat, fishermen, departureDateTime, plannedReturnAt },
+          { headers }
+        );
+        if (cancelled) return;
+        setConflicts(Array.isArray(data?.conflicts) ? data.conflicts : []);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) toast.error("Availability check failed");
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [form.boat, form.fishermen, form.departureDateTime, form.plannedReturnAt, headers]);
+
+  // Double-check on submit (server is source-of-truth)
   async function onSubmit(e) {
     e.preventDefault();
     const err = validate();
@@ -86,24 +193,43 @@ export default function AddTripForm({ darkMode = false }) {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: "Bearer " + token };
+      // Reconfirm availability (race conditions)
+      const { data: avail } = await axios.post(
+        "/api/trip/check-availability",
+        {
+          boat: form.boat,
+          fishermen: form.fishermen,
+          departureDateTime: form.departureDateTime,
+          plannedReturnAt: form.plannedReturnAt,
+        },
+        { headers }
+      );
+      if (!avail?.ok) {
+        setConflicts(Array.isArray(avail?.conflicts) ? avail.conflicts : []);
+        throw new Error("Boat/crew not available for this time window");
+      }
+
       const payload = {
         ...form,
         departureDateTime: new Date(form.departureDateTime).toISOString(),
         plannedReturnAt: new Date(form.plannedReturnAt).toISOString(),
       };
       await axios.post("/api/trip", payload, { headers });
-      toast.success("Trip created");
+      toast.success("Trip created successfully");
       navigate("/admin/trip");
     } catch (e) {
       console.error(e);
-      toast.error(e.response?.data?.message || "Create failed");
+      const msg = e.response?.data?.message || e.message || "Failed to create trip";
+      toast.error(msg);
+      if (e.response?.status === 409 && Array.isArray(e.response?.data?.conflicts)) {
+        setConflicts(e.response.data.conflicts);
+      }
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  // ---------- styles (yours) ----------
   const inputBase = `${
     darkMode
       ? "border-slate-700 bg-slate-800/80 text-slate-100 placeholder:text-slate-400 focus:ring-cyan-400 focus:border-cyan-400"
@@ -159,14 +285,25 @@ export default function AddTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="tripId">Trip ID</label>
-                  <input id="tripId" name="tripId" placeholder="e.g., TRIP-2025-0004" value={form.tripId} onChange={onChange} className={`${inputBase} font-mono uppercase`} />
-                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Use a unique identifier you can look up later.</p>
+                  <input
+                    id="tripId"
+                    name="tripId"
+                    value={form.tripId}
+                    readOnly
+                    className={`${inputBase} font-mono uppercase bg-opacity-50 cursor-not-allowed`}
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Auto-generated unique trip identifier
+                  </p>
                 </div>
 
                 <div>
                   <label className={labelBase} htmlFor="tripType">Trip Type</label>
                   <select id="tripType" name="tripType" value={form.tripType} onChange={onChange} className={inputBase}>
-                    <option>Fishing Trip</option><option>Sightseeing</option><option>Private Charter</option><option>Other</option>
+                    <option>Fishing Trip</option>
+                    <option>Sightseeing</option>
+                    <option>Private Charter</option>
+                    <option>Other</option>
                   </select>
                 </div>
 
@@ -175,7 +312,14 @@ export default function AddTripForm({ darkMode = false }) {
                     <MapPin className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Destination
                   </label>
-                  <input id="destination" name="destination" placeholder="e.g., Offshore Zone 4B" value={form.destination} onChange={onChange} className={inputBase} />
+                  <input
+                    id="destination"
+                    name="destination"
+                    placeholder="e.g., Offshore Zone 4B"
+                    value={form.destination}
+                    onChange={onChange}
+                    className={inputBase}
+                  />
                 </div>
               </div>
             </section>
@@ -195,7 +339,9 @@ export default function AddTripForm({ darkMode = false }) {
                   <select id="boat" name="boat" value={form.boat} onChange={onChange} className={inputBase}>
                     <option value="">Select a boat…</option>
                     {boats.map((b) => (
-                      <option key={b._id} value={b._id}>{b.boatNumber} — {b.name}</option>
+                      <option key={b._id} value={b._id}>
+                        {b.boatNumber} — {b.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -217,7 +363,13 @@ export default function AddTripForm({ darkMode = false }) {
 
                 <div className="md:col-span-2">
                   <label className={labelBase} htmlFor="fishermen">Fishermen</label>
-                  <select id="fishermen" multiple value={form.fishermen} onChange={onFishermenChange} className={`${inputBase} h-40`}>
+                  <select
+                    id="fishermen"
+                    multiple
+                    value={form.fishermen}
+                    onChange={onFishermenChange}
+                    className={`${inputBase} h-40`}
+                  >
                     {fishermen.map((u) => (
                       <option key={u._id} value={u._id}>
                         {[u.firstName, u.lastName].filter(Boolean).join(" ")} {u.email ? `— ${u.email}` : ""}
@@ -226,6 +378,7 @@ export default function AddTripForm({ darkMode = false }) {
                   </select>
                   <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
                     Hold <span className="font-medium">Ctrl</span> (Windows) or <span className="font-medium">Cmd</span> (Mac) to select multiple.
+                    Selected: {form.fishermen.length} fishermen
                   </p>
                 </div>
               </div>
@@ -240,18 +393,75 @@ export default function AddTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="departureDateTime">Departure</label>
-                  <input id="departureDateTime" type="datetime-local" name="departureDateTime" value={form.departureDateTime} onChange={onChange} className={inputBase} />
+                  <input
+                    id="departureDateTime"
+                    type="datetime-local"
+                    name="departureDateTime"
+                    value={form.departureDateTime}
+                    onChange={onChange}
+                    min={minDepartureDate}
+                    className={inputBase}
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Cannot be in the past
+                  </p>
                 </div>
                 <div>
                   <label className={labelBase} htmlFor="plannedReturnAt">Planned Return</label>
-                  <input id="plannedReturnAt" type="datetime-local" name="plannedReturnAt" value={form.plannedReturnAt} onChange={onChange} className={inputBase} />
+                  <input
+                    id="plannedReturnAt"
+                    type="datetime-local"
+                    name="plannedReturnAt"
+                    value={form.plannedReturnAt}
+                    readOnly
+                    className={`${inputBase} bg-opacity-50 cursor-not-allowed`}
+                  />
+                  <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Automatically set to 30 days after departure
+                  </p>
                 </div>
               </div>
 
+              {/* NEW: Availability panel — matches your design */}
               <div className={infoBar}>
                 <CalendarClock size={14} className="shrink-0" />
-                Status is automatically derived from the dates you pick.
+                <span>Return date is automatically calculated as 30 days after departure. Status is derived from the dates.</span>
               </div>
+
+              {/* Availability result */}
+              {form.boat && form.departureDateTime && form.plannedReturnAt && (
+                checking ? (
+                  <div className={`mt-3 rounded-xl px-3 py-2 text-sm ring-1 ${darkMode ? "bg-slate-800 text-slate-300 ring-slate-700" : "bg-slate-50 text-slate-600 ring-slate-200"}`}>
+                    Checking availability…
+                  </div>
+                ) : conflicts.length > 0 ? (
+                  <div className={`mt-3 rounded-xl px-3 py-3 text-sm ring-1 ${darkMode ? "bg-rose-900/30 text-rose-200 ring-rose-800" : "bg-rose-50 text-rose-700 ring-rose-200"}`}>
+                    <div className="flex items-center gap-2 font-semibold mb-1">
+                      <AlertTriangle className="h-4 w-4" />
+                      Conflicts found — cannot create this trip:
+                    </div>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {conflicts.map((c) => {
+                        const boat = c.boat?.name || c.boat?.boatName || c.boat?.boatNumber || c.boat?.registrationNumber || c.boat || "Boat";
+                        const skipper = c.skipper?.firstName || c.skipper?.lastName
+                          ? `${c.skipper?.firstName || ""} ${c.skipper?.lastName || ""}`.trim()
+                          : c.skipper?.email || "Skipper";
+                        const dep = new Date(c.departureDateTime).toLocaleString();
+                        const ret = new Date(c.plannedReturnAt).toLocaleString();
+                        return (
+                          <li key={c.tripId}>
+                            Trip <b>{c.tripId}</b> — {boat}; Skipper: {skipper}; {dep} → {ret}; Status: {c.status}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className={`mt-3 rounded-xl px-3 py-2 text-sm ring-1 ${darkMode ? "bg-emerald-900/30 text-emerald-200 ring-emerald-800" : "bg-emerald-50 text-emerald-700 ring-emerald-200"}`}>
+                    Boat & crew are available for this time window.
+                  </div>
+                )
+              )}
             </section>
 
             <section>
@@ -259,12 +469,18 @@ export default function AddTripForm({ darkMode = false }) {
                 <ClipboardList className={`h-5 w-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
                 <h3 className={sectionTitle}>Notes</h3>
               </div>
-              <textarea name="specialNotes" placeholder="Any special instructions or notes…" value={form.specialNotes} onChange={onChange} className={`${inputBase} min-h-[120px]`} />
+              <textarea
+                name="specialNotes"
+                placeholder="Any special instructions or notes…"
+                value={form.specialNotes}
+                onChange={onChange}
+                className={`${inputBase} min-h-[120px]`}
+              />
             </section>
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button type="button" onClick={() => navigate("/admin/trip")} className={cancelBtn}>Cancel</button>
-              <button type="submit" disabled={isSubmitting} className={submitBtn}>
+              <button type="submit" disabled={isSubmitting || checking || conflicts.length > 0} className={submitBtn}>
                 {isSubmitting ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
                 {isSubmitting ? "Saving…" : "Create Trip"}
               </button>

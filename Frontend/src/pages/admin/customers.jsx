@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Download, X, CheckCircle2, ShieldAlert, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ added
 
 const VERIFY_FILTERS = ["all", "verified", "unverified"];
 const STATUS = ["all", "active", "disabled"];
@@ -66,77 +67,33 @@ export default function AdminCustomersPage({ darkMode }) {
     return list;
   }, [customers, query, verifyFilter, status]);
 
-  const exportCSV = () => {
-    const headers = [
-      "email",
-      "firstName",
-      "lastName",
-      "role",
-      "phone",
-      "address",
-      "isEmailVerified",
-      "isDisabled",
-      "createdAt",
-      "lastLogin",
-    ];
-    const rows = filtered.map((c) => [
-      c.email ?? "",
-      escapeCSV(c.firstName ?? ""),
-      escapeCSV(c.lastName ?? ""),
-      c.role ?? "customer",
-      c.phone ?? "",
-      escapeCSV(c.address ?? ""),
-      c.isEmailVerified ? "true" : "false",
-      c.isDisabled ? "true" : "false",
-      c.createdAt ? new Date(c.createdAt).toISOString() : "",
-      c.lastLogin ? new Date(c.lastLogin).toISOString() : "",
-    ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `customers_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDelete = async (customer) => {
-    const name =
-      (customer?.firstName || "") + (customer?.lastName ? " " + customer.lastName : "");
-    const ok = window.confirm(
-      `Are you sure you want to delete "${name || customer?.email}"?\nThis action cannot be undone.`
-    );
-    if (!ok) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("Please login to delete a customer");
-      return;
-    }
-
-    const id = customer?._id;
-    if (!id) {
-      toast.error("Customer id is missing");
-      return;
-    }
-
-    try {
-      await axios.delete(
-        import.meta.env.VITE_BACKEND_URL + "/api/customer/" + id,
-        { headers: { Authorization: "Bearer " + token } }
-      );
-      toast.success("Customer deleted successfully");
-      setCustomers((prev) => prev.filter((c) => c._id !== id));
-    } catch (err) {
-      console.error(err);
-      const msg =
-        err?.response?.data?.message ||
-        (err?.response?.status === 400 ? "Invalid customer id" : "Customer deleting failed");
-      toast.error(msg);
-    }
+  // ✅ added — Export PDF (replaces CSV)
+  const exportPDF = () => {
+    exportTablePDF({
+      title: "Customers Report",
+      meta: {
+        "Total Customers": filtered.length,
+      },
+      columns: [
+        {
+          header: "Full name",
+          get: (c) =>
+            ((c.firstName || "") + (c.lastName ? " " + c.lastName : "")).trim() || "-",
+        },
+        { header: "Email", get: (c) => c.email || "-" },
+        { header: "Phone", get: (c) => c.phone || "-" },
+        { header: "Address", get: (c) => c.address || "-" },
+        {
+          header: "Verification",
+          get: (c) => (c.isEmailVerified ? "Verified" : "Unverified"),
+        },
+        { header: "Status", get: (c) => (c.isDisabled ? "Disabled" : "Active") },
+        { header: "Role", get: (c) => c.role || "customer" },
+        { header: "Created", get: (c) => fmtDate(c.createdAt) },
+        { header: "Last login", get: (c) => fmtDate(c.lastLogin) },
+      ],
+      rows: filtered,
+    });
   };
 
   return (
@@ -158,16 +115,17 @@ export default function AdminCustomersPage({ darkMode }) {
         </div>
 
         <div className="flex items-center justify-end gap-2">
+          {/* ✅ replaced CSV with PDF export */}
           <button
-            onClick={exportCSV}
+            onClick={exportPDF}
             type="button"
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
               darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
             }`}
-            title="Export current view as CSV"
+            title="Export current view as PDF"
           >
             <Download className="h-4 w-4" />
-            Export
+            Export PDF
           </button>
         </div>
       </div>
@@ -239,7 +197,7 @@ export default function AdminCustomersPage({ darkMode }) {
 
       {loading && (
         <div className={`rounded-xl ${darkMode ? "bg-slate-900/30" : "bg-slate-50"}`}>
-        <TableSkeleton darkMode={darkMode} />
+          <TableSkeleton darkMode={darkMode} />
         </div>
       )}
 
@@ -401,11 +359,4 @@ function fmtDate(v) {
   } catch {
     return "-";
   }
-}
-
-function escapeCSV(s) {
-  if (s == null) return "";
-  const str = String(s);
-  const needs = /[",\n]/.test(str);
-  return needs ? `"${str.replace(/"/g, '""')}"` : str;
 }

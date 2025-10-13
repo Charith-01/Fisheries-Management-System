@@ -3,6 +3,7 @@ import { NavLink, Route, Routes, Link, useNavigate } from "react-router-dom";
 import TripsManagement from "./TripsManagement.jsx";
 import AddTripForm from "./AddTripForm.jsx";
 import EditTripForm from "./EditTripForm.jsx";
+import Weather from "./Weather";
 import {
   Fish,
   Ship,
@@ -57,6 +58,7 @@ import AddFishermanForm from "./admin/addFishermanForm.jsx";
 import UpdateFishermanForm from "./admin/updateFishermanForm.jsx";
 import axios from "axios";
 import AdminOrdersPage from "./admin/orders.jsx";
+import AdminReviewsPage from "./admin/reviews.jsx";
 
 export default function AdminDashboard() {
   const [darkMode, setDarkMode] = useState(false);
@@ -106,6 +108,7 @@ export default function AdminDashboard() {
               <Route path="trip" element={<TripsManagement darkMode={darkMode} />} />
               <Route path="trip/add" element={<AddTripForm darkMode={darkMode} />} />
               <Route path="trip/edit/:tripId" element={<EditTripForm darkMode={darkMode} />} />
+              <Route path="weather" element={<Weather darkMode={darkMode} />} />
               <Route path="stock" element={<FishStockList darkMode={darkMode} />} />
               <Route path="addProduct" element={<AddProductForm darkMode={darkMode} />} />
               <Route path="updateProduct" element={<UpdateProductForm darkMode={darkMode} />} />
@@ -119,6 +122,7 @@ export default function AdminDashboard() {
               <Route path="equipment/addEquipment" element={<AddEquipmentForm darkMode={darkMode} />} />
               <Route path="equipment/editEquipment/:equipmentID" element={<EditEquipmentForm darkMode={darkMode} />} />
               <Route path="equipment/:equipmentID" element={<EquipmentDetails darkMode={darkMode} />} />
+              <Route path="reviews" element={<AdminReviewsPage darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>

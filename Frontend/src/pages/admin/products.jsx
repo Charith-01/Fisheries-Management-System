@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Edit, Trash2, Plus, Tag, Download, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ added
 
 const CATEGORIES = ["all", "fish", "crab", "shellfish", "prawn", "lobster", "squid", "other"];
 const STATUS = ["all", "active", "inactive"];
@@ -42,29 +43,55 @@ export default function AdminProductsPage({ darkMode }) {
     return list;
   }, [products, query, category, status]);
 
-  const exportCSV = () => {
-    const headers = ["productId", "name", "category", "unit", "price", "labeledPrice", "stock", "isActive", "createdAt"];
-    const rows = filtered.map((p) => [
-      p.productId,
-      escapeCSV(p.name),
-      p.category,
-      p.unit,
-      toMoney(p.price),
-      toMoney(p.labeledPrice),
-      p.stock,
-      p.isActive ? "true" : "false",
-      p.createdAt ? new Date(p.createdAt).toISOString() : "",
-    ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `products_report_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  // ✅ new — Export PDF (replaces CSV)
+  const exportPDF = () => {
+    exportTablePDF({
+      title: "Products Report",
+      meta: {
+        "Total Products": filtered.length,
+      },
+      columns: [
+        { header: "ID", get: (p) => p.productId || "-" },
+        { header: "Name", get: (p) => p.name || "-" },
+        {
+          header: "Category",
+          get: (p) => p.stockType || p.category || "-",
+        },
+        {
+          header: "Unit",
+          get: (p) => p.stockUnit || p.unit || "-",
+          align: "center",
+        },
+        {
+          header: "Price (Rs.)",
+          get: (p) => toMoney(p.price),
+          align: "right",
+        },
+        {
+          header: "Label Price (Rs.)",
+          get: (p) => toMoney(p.labeledPrice),
+          align: "right",
+        },
+        {
+          header: "Stock",
+          get: (p) =>
+            (typeof p?.stockWeight === "number" ? p.stockWeight : p.stock ?? 0) +
+            " " +
+            (p.stockUnit || p.unit || ""),
+          align: "right",
+        },
+        {
+          header: "Status",
+          get: (p) => (p.isActive ? "Active" : "Inactive"),
+          align: "center",
+        },
+        {
+          header: "Created",
+          get: (p) => (p.createdAt ? new Date(p.createdAt).toLocaleString() : "-"),
+        },
+      ],
+      rows: filtered,
+    });
   };
 
   return (
@@ -81,16 +108,17 @@ export default function AdminProductsPage({ darkMode }) {
           </div>
         </div>
         <div className="flex items-center justify-end gap-2">
+          {/* ✅ Export PDF button (CSV removed) */}
           <button
-            onClick={exportCSV}
+            onClick={exportPDF}
             type="button"
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
               darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
             }`}
-            title="Export current view as CSV"
+            title="Export current view as PDF"
           >
             <Download className="h-4 w-4" />
-            Export
+            Export PDF
           </button>
           <Link
             to="/admin/addProduct"
@@ -371,11 +399,4 @@ function ProductCard({ product, darkMode }) {
 function toMoney(v) {
   const n = Number(v ?? 0);
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeCSV(s) {
-  if (s == null) return "";
-  const str = String(s);
-  const needs = /[",\n]/.test(str);
-  return needs ? `"${str.replace(/"/g, '""')}"` : str;
 }

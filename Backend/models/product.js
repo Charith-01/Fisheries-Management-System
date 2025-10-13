@@ -38,7 +38,24 @@ const productSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+
+  // ⭐ Review-related fields
+  reviews: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Review"
+    }
+  ],
+  averageRating: {
+    type: Number,
+    default: 0
+  },
+  reviewCount: {
+    type: Number,
+    default: 0
   }
+
 }, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);

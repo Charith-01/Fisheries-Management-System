@@ -498,61 +498,165 @@ function ContactSection() {
   );
 }
 
+/* ===================== UPDATED REVIEWS SECTION (FULL-BLEED MARQUEE) ===================== */
 function ReviewsSection() {
-  const reviews = [
-    { name: "Kavindu S.", text: "Best prawns I’ve had in years. Packed in ice, zero smell, super fresh!" },
-    { name: "Ishara P.", text: "Delivery was quick and the tuna quality was restaurant-grade. Highly recommend." },
-    { name: "Ruwan D.", text: "Transparent pricing and honest weights. My go-to for weekly seafood." },
-  ];
-  const [active, setActive] = useState(0);
+  // Real reviews (5-star only), aggregated from products
+  const [reviews, setReviews] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  // Helper: initials from name/email
+  const initials = (name) => {
+    const n = (name || "Customer").trim();
+    const parts = n.replace(/\s+/g, " ").split(" ").filter(Boolean);
+    if (parts.length === 1) {
+      const p = parts[0];
+      if (p.includes("@")) return p[0]?.toUpperCase() || "C";
+      return (p[0] || "C").toUpperCase();
+    }
+    return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
+  };
 
   useEffect(() => {
-    const t = setInterval(() => setActive((p) => (p + 1) % reviews.length), 5000);
-    return () => clearInterval(t);
-  }, [reviews.length]);
+    let mounted = true;
+    (async () => {
+      try {
+        // 1) Get all products to know productIds
+        const prodRes = await fetch(import.meta.env.VITE_BACKEND_URL + "/api/product/all");
+        const prodJson = await prodRes.json();
+        const products = Array.isArray(prodJson?.data) ? prodJson.data : [];
+
+        // 2) For each product, fetch its reviews and keep only 5★
+        const allReviews = [];
+        await Promise.all(
+          products.map(async (p) => {
+            const pid = p?.productId;
+            if (!pid) return;
+            try {
+              const r = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/review/${encodeURIComponent(pid)}`
+              );
+              const j = await r.json();
+              const list = Array.isArray(j?.data) ? j.data : [];
+              list
+                .filter((rv) => Number(rv?.rating) === 5)
+                .forEach((rv) => {
+                  allReviews.push({
+                    name:
+                      rv?.user?.name ||
+                      (rv?.user?.email ? rv.user.email.split("@")[0] : "Customer"),
+                    text: rv?.comment || "★★★★★",
+                    createdAt: rv?.createdAt || null,
+                  });
+                });
+            } catch {
+              // ignore single-product review errors
+            }
+          })
+        );
+
+        // Sort newest first, cap to 18 for the slider
+        allReviews.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        const top = allReviews.slice(0, 18);
+
+        if (mounted) {
+          setReviews(top);
+          setLoaded(true);
+        }
+      } catch {
+        if (mounted) {
+          setReviews([]);
+          setLoaded(true);
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <section className="bg-gradient-to-b from-white to-sky-50 py-12 md:py-16" id="reviews">
+      {/* Header stays centered in the normal container */}
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <SectionHeader title="WHAT CUSTOMERS SAY" subtitle="Real feedback from happy seafood lovers" />
-
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {reviews.map((r, i) => (
-            <div
-              key={r.name}
-              className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition ${
-                i === active ? "ring-2 ring-sky-300" : "hover:-translate-y-0.5"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 shrink-0 rounded-full bg-sky-100" />
-                <div>
-                  <div className="font-semibold text-slate-900">{r.name}</div>
-                  <div className="text-xs text-slate-500">Verified Buyer</div>
-                </div>
-              </div>
-              <p className="mt-3 text-slate-700">{r.text}</p>
-              <div className="mt-3 text-sky-600">★★★★★</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 flex justify-center gap-2">
-          {reviews.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActive(i)}
-              className={`h-2.5 w-6 rounded-full transition ${
-                i === active ? "bg-sky-600" : "bg-sky-200 hover:bg-sky-300"
-              }`}
-              aria-label={`Show review ${i + 1}`}
-            />
-          ))}
-        </div>
+        <SectionHeader
+          title="WHAT CUSTOMERS SAY"
+          subtitle="Real feedback from happy seafood lovers"
+        />
       </div>
+
+      {/* Full-bleed marquee strip (edge to edge) */}
+      {!loaded && (
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
+          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-sky-100" />
+                  <div className="h-4 w-32 rounded bg-slate-200" />
+                </div>
+                <div className="mt-3 h-16 rounded bg-slate-100" />
+                <div className="mt-3 h-4 w-16 rounded bg-slate-200" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loaded && reviews.length === 0 && (
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-600">
+            No 5-star reviews yet. Check back soon!
+          </div>
+        </div>
+      )}
+
+      {loaded && reviews.length > 0 && (
+        <div className="relative mt-6 overflow-hidden -mx-4 lg:-mx-8">
+          {/* left/right edge fades for a polished look */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
+
+          {/* Track: duplicate list to get seamless loop */}
+          <div className="flex gap-4 px-4 lg:px-8 animate-marquee will-change-transform">
+            {[...reviews, ...reviews].map((r, i) => (
+              <div
+                key={`${r.name}-${i}`}
+                className="w-[280px] sm:w-[320px] md:w-[360px] shrink-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-sky-100 grid place-items-center text-sky-700 font-bold">
+                    {initials(r.name)}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900">{r.name}</div>
+                    <div className="text-xs text-slate-500">Verified Buyer</div>
+                  </div>
+                </div>
+                <p className="mt-3 text-slate-700 line-clamp-4">{r.text}</p>
+                <div className="mt-3 text-sky-600">★★★★★</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* styles for the continuous marquee */}
+      <style>{`
+        /* Make the track width fit content so translateX works predictably */
+        .animate-marquee {
+          width: max-content;
+          animation: marquee 40s linear infinite;
+        }
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </section>
   );
 }
+/* =================== END UPDATED REVIEWS SECTION (FULL-BLEED) =================== */
+
 
 function LandingPage() {
   return (
@@ -575,6 +679,8 @@ function LandingPage() {
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <Footer />
