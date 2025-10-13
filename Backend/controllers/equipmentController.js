@@ -123,7 +123,7 @@ export async function updatEquipment(req,res){
         const { equipmentID } = req.params;
         const updateData = { ...req.body };
 
-        // If totalQuantity is updated, adjust availableQuantity accordingly
+        // after updating totalQuantity, adjust availableQuantity accordingly
         if (updateData.totalQuantity !== undefined) {
             const currentEquipment = await Equipment.findOne({ equipmentID });
             if (currentEquipment) {
@@ -178,7 +178,7 @@ export async function getEquipmentById(req, res) {
     }
 }
 
-// New function to assign equipment to boat
+// assign equipment to boat
 export async function assignEquipmentToBoat(req, res) {
     if(req.user == null || req.user.role != "admin"){
         return res.status(403).json({ message: "Not authorized" });
@@ -243,7 +243,7 @@ export async function assignEquipmentToBoat(req, res) {
     }
 }
 
-// New function to remove equipment from boat
+// remove equipment from boat
 export async function removeEquipmentFromBoat(req, res) {
     if(req.user == null || req.user.role != "admin"){
         return res.status(403).json({ message: "Not authorized" });
@@ -306,7 +306,7 @@ export async function removeEquipmentFromBoat(req, res) {
     }
 }
 
-// New function to get boat equipment assignments
+// boat equipment assignments
 export async function getBoatEquipment(req, res) {
     try {
         const { boatNumber } = req.params;

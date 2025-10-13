@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import axios from "axios";
 import meadiaUpload from "../../utils/meadiaUpload";
 import toast from "react-hot-toast";
 
@@ -27,7 +26,9 @@ export default function AddBoatForm({ darkMode }) {
                 const res = await api.get("/api/equipment");
                 setEquipmentList(res.data);
             } catch (err) {
+                console.error("Error fetching equipment:", err);
                 setEquipmentList([]);
+                toast.error("Failed to load equipment list");
             }
         };
         fetchEquipment();
@@ -110,7 +111,9 @@ export default function AddBoatForm({ darkMode }) {
         setIsSubmitting(true);
         try {
             // Upload images
-            const uploadedUrls = await Promise.all(imageFiles.map(f => meadiaUpload(f)));
+            const uploadedUrls = await Promise.all(
+                imageFiles.map(f => meadiaUpload(f))
+            );
             
             // Create boat first
             const boatPayload = {
@@ -119,40 +122,53 @@ export default function AddBoatForm({ darkMode }) {
             };
 
             const token = localStorage.getItem("token");
-            const boatResponse = await axios.post(
-                `${import.meta.env.VITE_BACKEND_URL}/api/boat`,
-                boatPayload,
-                {
-                    headers: {
-                        Authorization: "Bearer " + token,
-                    },
-                }
-            );
+            if (!token) {
+                toast.error("Authentication token not found");
+                navigate("/login");
+                return;
+            }
+
+            const boatResponse = await api.post("/api/boat", boatPayload, {
+                headers: {
+                    Authorization: "Bearer " + token,
+                },
+            });
 
             const boat = boatResponse.data.boat;
 
             // Assign equipment to the boat
-            for (const assignment of equipmentAssignments) {
-                await axios.post(
-                    `${import.meta.env.VITE_BACKEND_URL}/api/equipment/assign`,
-                    {
+            if (equipmentAssignments.length > 0) {
+                for (const assignment of equipmentAssignments) {
+                    await api.post("/api/equipment/assign", {
                         boatNumber: boat.boatNumber,
                         equipmentID: assignment.equipmentID,
                         quantity: assignment.quantity
-                    },
-                    {
+                    }, {
                         headers: {
                             Authorization: "Bearer " + token,
                         },
-                    }
-                );
+                    });
+                }
             }
 
             toast.success("Boat added successfully with equipment assignments");
             navigate("/admin/boats");
         } catch (err) {
-            console.error(err);
-            toast.error("Failed to add boat");
+            console.error("Error adding boat:", err);
+            
+            // More specific error messages
+            if (err.response?.status === 404) {
+                toast.error("API endpoint not found. Please check server configuration.");
+            } else if (err.response?.status === 401) {
+                toast.error("Authentication failed. Please login again.");
+                navigate("/login");
+            } else if (err.response?.status === 400) {
+                toast.error(err.response.data?.message || "Invalid data provided");
+            } else if (err.response?.status === 500) {
+                toast.error("Server error. Please try again later.");
+            } else {
+                toast.error("Failed to add boat. Please check your connection and try again.");
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -163,22 +179,30 @@ export default function AddBoatForm({ darkMode }) {
             <div className={`w-full max-w-xl shadow-md rounded-lg p-6 ${darkMode ? 'bg-slate-800 text-slate-100' : 'bg-white text-slate-800'}`}>
                 <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-cyan-300' : ''}`}>Add New Boat</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <input
-                        type="text"
-                        name="name"
-                        placeholder="Boat Name *"
-                        value={formData.name}
-                        onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded ${errors.name ? "border-red-500" : darkMode ? "border-slate-600 bg-slate-700 text-slate-100" : "border-gray-300"}`}
-                    />
-                    <input
-                        type="number"
-                        name="capacity"
-                        placeholder="Capacity (persons) *"
-                        value={formData.capacity}
-                        onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded ${errors.capacity ? "border-red-500" : darkMode ? "border-slate-600 bg-slate-700 text-slate-100" : "border-gray-300"}`}
-                    />
+                    <div>
+                        <input
+                            type="text"
+                            name="name"
+                            placeholder="Boat Name *"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className={`w-full px-3 py-2 border rounded ${errors.name ? "border-red-500" : darkMode ? "border-slate-600 bg-slate-700 text-slate-100" : "border-gray-300"}`}
+                        />
+                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                    </div>
+                    
+                    <div>
+                        <input
+                            type="number"
+                            name="capacity"
+                            placeholder="Capacity (persons) *"
+                            value={formData.capacity}
+                            onChange={handleChange}
+                            className={`w-full px-3 py-2 border rounded ${errors.capacity ? "border-red-500" : darkMode ? "border-slate-600 bg-slate-700 text-slate-100" : "border-gray-300"}`}
+                        />
+                        {errors.capacity && <p className="text-red-500 text-sm mt-1">{errors.capacity}</p>}
+                    </div>
+                    
                     <select
                         name="status"
                         value={formData.status}
@@ -192,25 +216,48 @@ export default function AddBoatForm({ darkMode }) {
                     </select>
 
                     {/* Images */}
-                    <div className={`border-2 border-dashed rounded p-4 text-center ${errors.images ? "border-red-500" : darkMode ? "border-slate-600" : "border-gray-300"}`}>
-                        <p className="mb-2">Drag and drop images or click to select</p>
-                        <input type="file" multiple className="hidden" id="boat-images" onChange={handleImageChange} />
-                        <label htmlFor="boat-images" className={`cursor-pointer px-4 py-2 rounded ${darkMode ? 'bg-cyan-700 text-white' : 'bg-blue-600 text-white'}`}>Select Images</label>
-                    </div>
-                    {imageUrls.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {imageUrls.map((url, i) => (
-                                <div key={i} className="relative">
-                                    <img src={url} alt="" className="h-24 w-24 object-cover rounded" />
-                                    <button type="button" onClick={() => removeImage(i)} className={`absolute top-0 right-0 rounded-full w-5 h-5 ${darkMode ? 'bg-red-700 text-white' : 'bg-red-500 text-white'}`}>x</button>
-                                </div>
-                            ))}
+                    <div>
+                        <div className={`border-2 border-dashed rounded p-4 text-center ${errors.images ? "border-red-500" : darkMode ? "border-slate-600" : "border-gray-300"}`}>
+                            <p className="mb-2">Drag and drop images or click to select</p>
+                            <input 
+                                type="file" 
+                                multiple 
+                                className="hidden" 
+                                id="boat-images" 
+                                onChange={handleImageChange}
+                                accept="image/*"
+                            />
+                            <label 
+                                htmlFor="boat-images" 
+                                className={`cursor-pointer px-4 py-2 rounded ${darkMode ? 'bg-cyan-700 text-white' : 'bg-blue-600 text-white'}`}
+                            >
+                                Select Images
+                            </label>
                         </div>
-                    )}
+                        {errors.images && <p className="text-red-500 text-sm mt-1">{errors.images}</p>}
+                        {imageUrls.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {imageUrls.map((url, i) => (
+                                    <div key={i} className="relative">
+                                        <img src={url} alt="" className="h-24 w-24 object-cover rounded" />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => removeImage(i)} 
+                                            className={`absolute top-0 right-0 rounded-full w-5 h-5 flex items-center justify-center text-xs ${darkMode ? 'bg-red-700 text-white' : 'bg-red-500 text-white'}`}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Equipment Assignments */}
                     <div>
-                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Assignments</label>
+                        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+                            Equipment Assignments
+                        </label>
                         <select
                             onChange={addEquipmentAssignment}
                             className={`w-full px-3 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
@@ -257,8 +304,18 @@ export default function AddBoatForm({ darkMode }) {
                     </div>
 
                     <div className="flex justify-end gap-2 mt-4">
-                        <button type="button" onClick={() => navigate("/admin/boats")} className={`px-4 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}>Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className={`px-4 py-2 rounded ${darkMode ? 'bg-cyan-700 text-white' : 'bg-blue-600 text-white'}`}>
+                        <button 
+                            type="button" 
+                            onClick={() => navigate("/admin/boats")} 
+                            className={`px-4 py-2 border rounded ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'}`}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={isSubmitting} 
+                            className={`px-4 py-2 rounded ${darkMode ? 'bg-cyan-700 text-white' : 'bg-blue-600 text-white'} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
                             {isSubmitting ? "Saving..." : "Save Boat"}
                         </button>
                     </div>
