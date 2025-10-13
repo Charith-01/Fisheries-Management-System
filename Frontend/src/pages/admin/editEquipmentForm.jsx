@@ -1,22 +1,560 @@
+// import { useState, useEffect } from "react";
+// import { useNavigate, useParams } from "react-router-dom";
+// import axios from "../../api/axios";
+// import { Package, Save, Loader } from "lucide-react";
+// import toast from "react-hot-toast";
+
+// export default function EditEquipmentForm({ darkMode }) {
+//     const { equipmentID } = useParams();
+//     const navigate = useNavigate();
+//     const [isSubmitting, setIsSubmitting] = useState(false);
+//     const [isLoading, setIsLoading] = useState(true);
+//     const [errors, setErrors] = useState({});
+//     const [formData, setFormData] = useState({
+//         equipmentID: "",
+//         name: "",
+//         type: "Other",
+//         description: "",
+//         totalQuantity: 1,
+//         requiresMaintenance: false,
+//         maintenanceInterval: "",
+//         lastMaintenanceDate: "",
+//         notes: ""
+//     });
+
+//     useEffect(() => {
+//         const fetchEquipmentDetails = async () => {
+//             try {
+//                 const token = localStorage.getItem("token");
+//                 const response = await axios.get(`/api/equipment/${equipmentID}`,
+//                     { headers: { Authorization: "Bearer " + token } }
+//                 );
+//                 const equipment = response.data.equipment;
+//                 setFormData({
+//                     equipmentID: equipment.equipmentID,
+//                     name: equipment.name,
+//                     type: equipment.type,
+//                     description: equipment.description || "",
+//                     totalQuantity: equipment.totalQuantity,
+//                     requiresMaintenance: equipment.requiresMaintenance || false,
+//                     maintenanceInterval: equipment.maintenanceInterval || "",
+//                     lastMaintenanceDate: equipment.lastMaintenanceDate ? equipment.lastMaintenanceDate.slice(0,10) : "",
+//                     notes: equipment.notes || ""
+//                 });
+//                 setIsLoading(false);
+//             } catch (error) {
+//                 toast.error("Failed to fetch equipment details");
+//                 console.error("Error fetching equipment details:", error);
+//                 navigate("/admin/equipment");
+//             }
+//         };
+//         fetchEquipmentDetails();
+//     }, [equipmentID, navigate]);
+
+//     const handleChange = (e) => {
+//         const { name, value, type, checked } = e.target;
+//         setFormData({ 
+//             ...formData, 
+//             [name]: type === 'checkbox' ? checked : value 
+//         });
+//         if (errors[name]) setErrors({ ...errors, [name]: null });
+//     };
+
+//     const validateForm = () => {
+//         const newErrors = {};
+//         if (!formData.name.trim()) newErrors.name = "Equipment name is required";
+//         if (!formData.type.trim()) newErrors.type = "Type is required";
+//         if (!formData.totalQuantity || formData.totalQuantity < 1) newErrors.totalQuantity = "Quantity must be at least 1";
+//         setErrors(newErrors);
+//         return Object.keys(newErrors).length === 0;
+//     };
+
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
+//         if (!validateForm()) return toast.error("Please fix errors");
+//         setIsSubmitting(true);
+//         try {
+//             const token = localStorage.getItem("token");
+//             await axios.put(`/api/equipment/${equipmentID}`, formData, {
+//                 headers: { Authorization: "Bearer " + token }
+//             });
+//             toast.success("Equipment updated successfully");
+//             navigate("/admin/equipment");
+//         } catch (err) {
+//             console.error(err);
+//             toast.error("Failed to update equipment");
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     if (isLoading) {
+//         return (
+//             <div className="flex justify-center items-center h-64">
+//                 <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${darkMode ? 'border-cyan-400' : 'border-blue-500'}`}></div>
+//             </div>
+//         );
+//     }
+
+//     return (
+//         <div className={`flex flex-col min-h-screen p-6 max-w-4xl mx-auto overflow-y-auto ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gray-50 text-gray-900'}`}>
+//             <div className="flex items-center mb-6">
+//                 <Package className={darkMode ? 'text-cyan-400 mr-2' : 'text-blue-600 mr-2'} size={24} />
+//                 <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-200' : 'text-gray-800'}`}>Edit Equipment: {formData.name}</h1>
+//             </div>
+//             <form onSubmit={handleSubmit} className={`${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-md rounded-lg p-6`}>
+//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+//                     <div>
+//                         <label htmlFor="equipmentID" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment ID</label>
+//                         <input type="text" id="equipmentID" name="equipmentID" value={formData.equipmentID} readOnly className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300 bg-gray-100'} rounded-md`} />
+//                         <p className={`mt-1 text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Equipment ID cannot be changed</p>
+//                     </div>
+//                     <div>
+//                         <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Name *</label>
+//                         <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} placeholder="Enter equipment name" />
+//                         {errors.name && (<p className="mt-1 text-sm text-red-400">{errors.name}</p>)}
+//                     </div>
+//                     <div>
+//                         <label htmlFor="type" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Type *</label>
+//                         <select id="type" name="type" value={formData.type} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`}> 
+//                             <option value="Navigation">Navigation</option>
+//                             <option value="Fishing Gear">Fishing Gear</option>
+//                             <option value="Safety">Safety</option>
+//                             <option value="Engine">Engine</option>
+//                             <option value="Other">Other</option>
+//                         </select>
+//                     </div>
+//                     <div>
+//                         <label htmlFor="totalQuantity" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Total Quantity *</label>
+//                         <input type="number" id="totalQuantity" name="totalQuantity" value={formData.totalQuantity} onChange={handleChange} min="1" className={`w-full px-4 py-2 border ${errors.totalQuantity ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} />
+//                         {errors.totalQuantity && (<p className="mt-1 text-sm text-red-400">{errors.totalQuantity}</p>)}
+//                     </div>
+//                     <div>
+//                         <label htmlFor="description" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Description</label>
+//                         <textarea id="description" name="description" value={formData.description} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} rows={3} placeholder="Enter description" />
+//                     </div>
+//                     <div className="flex items-center">
+//                         <input
+//                             type="checkbox"
+//                             id="requiresMaintenance"
+//                             name="requiresMaintenance"
+//                             checked={formData.requiresMaintenance}
+//                             onChange={handleChange}
+//                             className="mr-2"
+//                         />
+//                         <label htmlFor="requiresMaintenance" className={`text-sm ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Requires Maintenance</label>
+//                     </div>
+//                     {formData.requiresMaintenance && (
+//                         <>
+//                             <div>
+//                                 <label htmlFor="maintenanceInterval" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Maintenance Interval (days)</label>
+//                                 <input type="number" id="maintenanceInterval" name="maintenanceInterval" value={formData.maintenanceInterval} onChange={handleChange} min="1" className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} />
+//                             </div>
+//                             <div>
+//                                 <label htmlFor="lastMaintenanceDate" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Last Maintenance Date</label>
+//                                 <input type="date" id="lastMaintenanceDate" name="lastMaintenanceDate" value={formData.lastMaintenanceDate} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} />
+//                             </div>
+//                         </>
+//                     )}
+//                     <div className="md:col-span-2">
+//                         <label htmlFor="notes" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Notes</label>
+//                         <textarea id="notes" name="notes" value={formData.notes} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} rows={3} placeholder="Enter notes" />
+//                     </div>
+//                 </div>
+//                 <div className="mt-8 flex justify-end gap-4">
+//                     <button type="button" onClick={() => navigate("/admin/equipment")}
+//                         className={`px-4 py-2 border rounded-md transition-all ${darkMode ? 'border-slate-600 text-slate-200 hover:bg-slate-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Cancel</button>
+//                     <button type="submit" disabled={isSubmitting}
+//                         className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
+//                         {isSubmitting ? (
+//                             <>
+//                                 <Loader className="animate-spin" size={18} />
+//                                 Saving...
+//                             </>
+//                         ) : (
+//                             <>
+//                                 <Save size={18} />
+//                                 Update Equipment
+//                             </>
+//                         )}
+//                     </button>
+//                 </div>
+//             </form>
+//         </div>
+//     );
+// }
+
+// import { useState, useEffect } from "react";
+// import { useNavigate, useParams } from "react-router-dom";
+// import axios from "../../api/axios";
+// import { Package, Save, Loader, Calendar } from "lucide-react";
+// import toast from "react-hot-toast";
+
+// export default function EditEquipmentForm({ darkMode }) {
+//     const { equipmentID } = useParams();
+//     const navigate = useNavigate();
+//     const [isSubmitting, setIsSubmitting] = useState(false);
+//     const [isLoading, setIsLoading] = useState(true);
+//     const [errors, setErrors] = useState({});
+//     const [formData, setFormData] = useState({
+//         equipmentID: "",
+//         name: "",
+//         type: "Other",
+//         description: "",
+//         totalQuantity: 1,
+//         requiresMaintenance: false,
+//         maintenanceInterval: "",
+//         nextMaintenanceDate: "",
+//         notes: ""
+//     });
+
+//     useEffect(() => {
+//         const fetchEquipmentDetails = async () => {
+//             try {
+//                 const token = localStorage.getItem("token");
+//                 const response = await axios.get(`/api/equipment/${equipmentID}`,
+//                     { headers: { Authorization: "Bearer " + token } }
+//                 );
+//                 const equipment = response.data.equipment;
+                
+//                 setFormData({
+//                     equipmentID: equipment.equipmentID,
+//                     name: equipment.name,
+//                     type: equipment.type,
+//                     description: equipment.description || "",
+//                     totalQuantity: equipment.totalQuantity,
+//                     requiresMaintenance: equipment.requiresMaintenance || false,
+//                     maintenanceInterval: equipment.maintenanceInterval || "",
+//                     nextMaintenanceDate: equipment.nextMaintenanceDate ? equipment.nextMaintenanceDate.slice(0,10) : "",
+//                     notes: equipment.notes || ""
+//                 });
+//                 setIsLoading(false);
+//             } catch (error) {
+//                 toast.error("Failed to fetch equipment details");
+//                 console.error("Error fetching equipment details:", error);
+//                 navigate("/admin/equipment");
+//             }
+//         };
+//         fetchEquipmentDetails();
+//     }, [equipmentID, navigate]);
+
+//     const handleChange = (e) => {
+//         const { name, value, type, checked } = e.target;
+//         setFormData({ 
+//             ...formData, 
+//             [name]: type === 'checkbox' ? checked : value 
+//         });
+//         if (errors[name]) setErrors({ ...errors, [name]: null });
+//     };
+
+//     // Calculate next maintenance date based on interval
+//     const calculateNextMaintenance = () => {
+//         if (formData.maintenanceInterval) {
+//             const today = new Date();
+//             const nextDate = new Date();
+//             nextDate.setDate(today.getDate() + parseInt(formData.maintenanceInterval));
+//             setFormData({
+//                 ...formData,
+//                 nextMaintenanceDate: nextDate.toISOString().split('T')[0]
+//             });
+//         }
+//     };
+
+//     const validateForm = () => {
+//         const newErrors = {};
+//         if (!formData.name.trim()) newErrors.name = "Equipment name is required";
+//         if (!formData.type.trim()) newErrors.type = "Type is required";
+//         if (!formData.totalQuantity || formData.totalQuantity < 1) newErrors.totalQuantity = "Quantity must be at least 1";
+        
+//         // Validate maintenance fields if maintenance is required
+//         if (formData.requiresMaintenance) {
+//             if (!formData.maintenanceInterval || formData.maintenanceInterval < 1) {
+//                 newErrors.maintenanceInterval = "Maintenance interval must be at least 1 day";
+//             }
+//         }
+        
+//         setErrors(newErrors);
+//         return Object.keys(newErrors).length === 0;
+//     };
+
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
+//         if (!validateForm()) return toast.error("Please fix errors");
+//         setIsSubmitting(true);
+//         try {
+//             const token = localStorage.getItem("token");
+//             await axios.put(`/api/equipment/${equipmentID}`, formData, {
+//                 headers: { Authorization: "Bearer " + token }
+//             });
+//             toast.success("Equipment updated successfully");
+//             navigate("/admin/equipment");
+//         } catch (err) {
+//             console.error(err);
+//             toast.error("Failed to update equipment");
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     if (isLoading) {
+//         return (
+//             <div className="flex justify-center items-center h-64">
+//                 <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${darkMode ? 'border-cyan-400' : 'border-blue-500'}`}></div>
+//             </div>
+//         );
+//     }
+
+//     return (
+//         <div className={`flex flex-col min-h-screen p-6 max-w-4xl mx-auto overflow-y-auto ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gray-50 text-gray-900'}`}>
+//             <div className="flex items-center mb-6">
+//                 <Package className={darkMode ? 'text-cyan-400 mr-2' : 'text-blue-600 mr-2'} size={24} />
+//                 <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-200' : 'text-gray-800'}`}>Edit Equipment: {formData.name}</h1>
+//             </div>
+//             <form onSubmit={handleSubmit} className={`${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-md rounded-lg p-6`}>
+//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+//                     {/* Equipment ID (Read-only) */}
+//                     <div>
+//                         <label htmlFor="equipmentID" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment ID</label>
+//                         <input 
+//                             type="text" 
+//                             id="equipmentID" 
+//                             name="equipmentID" 
+//                             value={formData.equipmentID} 
+//                             readOnly 
+//                             className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300 bg-gray-100'} rounded-md`} 
+//                         />
+//                         <p className={`mt-1 text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Equipment ID cannot be changed</p>
+//                     </div>
+
+//                     {/* Equipment Name */}
+//                     <div>
+//                         <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Name *</label>
+//                         <input 
+//                             type="text" 
+//                             id="name" 
+//                             name="name" 
+//                             value={formData.name} 
+//                             onChange={handleChange}
+//                             className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} 
+//                             placeholder="Enter equipment name" 
+//                         />
+//                         {errors.name && (<p className="mt-1 text-sm text-red-400">{errors.name}</p>)}
+//                     </div>
+
+//                     {/* Equipment Type */}
+//                     <div>
+//                         <label htmlFor="type" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Type *</label>
+//                         <select 
+//                             id="type" 
+//                             name="type" 
+//                             value={formData.type} 
+//                             onChange={handleChange}
+//                             className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`}
+//                         > 
+//                             <option value="Navigation">Navigation</option>
+//                             <option value="Fishing Gear">Fishing Gear</option>
+//                             <option value="Safety">Safety</option>
+//                             <option value="Engine">Engine</option>
+//                             <option value="Other">Other</option>
+//                         </select>
+//                     </div>
+
+//                     {/* Total Quantity */}
+//                     <div>
+//                         <label htmlFor="totalQuantity" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Total Quantity *</label>
+//                         <input 
+//                             type="number" 
+//                             id="totalQuantity" 
+//                             name="totalQuantity" 
+//                             value={formData.totalQuantity} 
+//                             onChange={handleChange}
+//                             min="1"
+//                             className={`w-full px-4 py-2 border ${errors.totalQuantity ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} 
+//                         />
+//                         {errors.totalQuantity && (<p className="mt-1 text-sm text-red-400">{errors.totalQuantity}</p>)}
+//                     </div>
+
+//                     {/* Description */}
+//                     <div className="md:col-span-2">
+//                         <label htmlFor="description" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Description</label>
+//                         <textarea 
+//                             id="description" 
+//                             name="description" 
+//                             value={formData.description} 
+//                             onChange={handleChange}
+//                             className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} 
+//                             rows={3} 
+//                             placeholder="Enter equipment description" 
+//                         />
+//                     </div>
+
+//                     {/* Maintenance Section */}
+//                     <div className="md:col-span-2 border-t pt-4 mt-2">
+//                         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-cyan-300' : 'text-blue-600'}`}>
+//                             <Package className="inline mr-2" size={20} />
+//                             Maintenance Settings
+//                         </h3>
+                        
+//                         {/* Requires Maintenance Checkbox */}
+//                         <div className="flex items-center mb-4">
+//                             <input
+//                                 type="checkbox"
+//                                 id="requiresMaintenance"
+//                                 name="requiresMaintenance"
+//                                 checked={formData.requiresMaintenance}
+//                                 onChange={handleChange}
+//                                 className="mr-3 w-4 h-4"
+//                             />
+//                             <label htmlFor="requiresMaintenance" className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+//                                 This equipment requires regular maintenance
+//                             </label>
+//                         </div>
+
+//                         {formData.requiresMaintenance && (
+//                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-opacity-50 p-4 rounded-lg border">
+//                                 {/* Maintenance Interval */}
+//                                 <div>
+//                                     <label htmlFor="maintenanceInterval" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+//                                         Maintenance Interval (days) *
+//                                     </label>
+//                                     <input 
+//                                         type="number" 
+//                                         id="maintenanceInterval" 
+//                                         name="maintenanceInterval" 
+//                                         value={formData.maintenanceInterval} 
+//                                         onChange={handleChange}
+//                                         min="1"
+//                                         className={`w-full px-4 py-2 border ${errors.maintenanceInterval ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} 
+//                                         placeholder="e.g., 30, 90, 180"
+//                                     />
+//                                     {errors.maintenanceInterval && (
+//                                         <p className="mt-1 text-sm text-red-400">{errors.maintenanceInterval}</p>
+//                                     )}
+//                                     <p className={`mt-1 text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+//                                         How often this equipment needs maintenance
+//                                     </p>
+//                                 </div>
+
+//                                 {/* Next Maintenance Date */}
+//                                 <div>
+//                                     <label htmlFor="nextMaintenanceDate" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+//                                         Next Maintenance Date
+//                                     </label>
+//                                     <div className="flex gap-2">
+//                                         <input 
+//                                             type="date" 
+//                                             id="nextMaintenanceDate" 
+//                                             name="nextMaintenanceDate" 
+//                                             value={formData.nextMaintenanceDate} 
+//                                             onChange={handleChange}
+//                                             className={`flex-1 px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} 
+//                                         />
+//                                         <button
+//                                             type="button"
+//                                             onClick={calculateNextMaintenance}
+//                                             className={`px-3 py-2 border rounded-md flex items-center gap-2 ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600' : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+//                                             title="Calculate next maintenance date based on interval"
+//                                         >
+//                                             <Calendar size={16} />
+//                                             Auto
+//                                         </button>
+//                                     </div>
+//                                     <p className={`mt-1 text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+//                                         When this equipment needs maintenance next
+//                                     </p>
+//                                 </div>
+
+//                                 {/* Maintenance Status */}
+//                                 {formData.nextMaintenanceDate && (
+//                                     <div className="md:col-span-2">
+//                                         <div className={`p-3 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
+//                                             <div className="flex items-center justify-between">
+//                                                 <span className={`text-sm font-medium ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+//                                                     Maintenance Status:
+//                                                 </span>
+//                                                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+//                                                     new Date(formData.nextMaintenanceDate) < new Date() 
+//                                                         ? (darkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800')
+//                                                         : new Date(formData.nextMaintenanceDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+//                                                         ? (darkMode ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800')
+//                                                         : (darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800')
+//                                                 }`}>
+//                                                     {new Date(formData.nextMaintenanceDate) < new Date() 
+//                                                         ? 'OVERDUE'
+//                                                         : new Date(formData.nextMaintenanceDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+//                                                         ? 'DUE SOON'
+//                                                         : 'SCHEDULED'
+//                                                     }
+//                                                 </span>
+//                                             </div>
+//                                             <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-gray-600'}`}>
+//                                                 Next maintenance: {new Date(formData.nextMaintenanceDate).toLocaleDateString()}
+//                                             </p>
+//                                         </div>
+//                                     </div>
+//                                 )}
+//                             </div>
+//                         )}
+//                     </div>
+
+//                     {/* Notes */}
+//                     <div className="md:col-span-2">
+//                         <label htmlFor="notes" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Notes</label>
+//                         <textarea 
+//                             id="notes" 
+//                             name="notes" 
+//                             value={formData.notes} 
+//                             onChange={handleChange}
+//                             className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} 
+//                             rows={3} 
+//                             placeholder="Enter any additional notes or special instructions" 
+//                         />
+//                         <p className={`mt-1 text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+//                             Any special instructions or important information about this equipment
+//                         </p>
+//                     </div>
+//                 </div>
+
+//                 {/* Form Buttons */}
+//                 <div className="mt-8 flex justify-end gap-4">
+//                     <button 
+//                         type="button" 
+//                         onClick={() => navigate("/admin/equipment")}
+//                         className={`px-4 py-2 border rounded-md transition-all ${darkMode ? 'border-slate-600 text-slate-200 hover:bg-slate-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+//                     >
+//                         Cancel
+//                     </button>
+//                     <button 
+//                         type="submit" 
+//                         disabled={isSubmitting}
+//                         className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+//                     >
+//                         {isSubmitting ? (
+//                             <>
+//                                 <Loader className="animate-spin" size={18} />
+//                                 Saving...
+//                             </>
+//                         ) : (
+//                             <>
+//                                 <Save size={18} />
+//                                 Update Equipment
+//                             </>
+//                         )}
+//                     </button>
+//                 </div>
+//             </form>
+//         </div>
+//     );
+// }
+
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "../../api/axios";
-import { Package, Save, Loader } from "lucide-react";
+import { Package, Save, Loader, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function EditEquipmentForm({ darkMode }) {
-    const [boatList, setBoatList] = useState([]);
-    useEffect(() => {
-        const fetchBoats = async () => {
-            try {
-                const res = await axios.get("/api/boat");
-                setBoatList(res.data);
-            } catch (err) {
-                setBoatList([]);
-            }
-        };
-        fetchBoats();
-    }, []);
     const { equipmentID } = useParams();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,13 +564,12 @@ export default function EditEquipmentForm({ darkMode }) {
         equipmentID: "",
         name: "",
         type: "Other",
-        serial: "",
-        status: "Available",
-        purchaseDate: "",
-        warrantyExpiry: "",
-        lastServiced: "",
-        notes: "",
-        boatNumber: ""
+        description: "",
+        totalQuantity: 1,
+        requiresMaintenance: false,
+        maintenanceInterval: "",
+        nextMaintenanceDate: "",
+        notes: ""
     });
 
     useEffect(() => {
@@ -43,17 +580,18 @@ export default function EditEquipmentForm({ darkMode }) {
                     { headers: { Authorization: "Bearer " + token } }
                 );
                 const equipment = response.data.equipment;
+                console.log("Fetched equipment:", equipment); // Debug log
+                
                 setFormData({
                     equipmentID: equipment.equipmentID,
                     name: equipment.name,
                     type: equipment.type,
-                    serial: equipment.serial,
-                    status: equipment.status,
-                    purchaseDate: equipment.purchaseDate ? equipment.purchaseDate.slice(0,10) : "",
-                    warrantyExpiry: equipment.warrantyExpiry ? equipment.warrantyExpiry.slice(0,10) : "",
-                    lastServiced: equipment.lastServiced ? equipment.lastServiced.slice(0,10) : "",
-                    notes: equipment.notes || "",
-                    boatNumber: equipment.boatNumber || ""
+                    description: equipment.description || "",
+                    totalQuantity: equipment.totalQuantity,
+                    requiresMaintenance: equipment.requiresMaintenance || false,
+                    maintenanceInterval: equipment.maintenanceInterval || "",
+                    nextMaintenanceDate: equipment.nextMaintenanceDate ? equipment.nextMaintenanceDate.slice(0,10) : "",
+                    notes: equipment.notes || ""
                 });
                 setIsLoading(false);
             } catch (error) {
@@ -65,14 +603,33 @@ export default function EditEquipmentForm({ darkMode }) {
         fetchEquipmentDetails();
     }, [equipmentID, navigate]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        let updated = { ...formData, [name]: value };
-        // If boatNumber changes, auto-update status
-        if (name === 'boatNumber') {
-            updated.status = value ? 'In Use' : 'Available';
+    // Calculate next maintenance date when maintenance interval changes
+    useEffect(() => {
+        if (formData.requiresMaintenance && formData.maintenanceInterval) {
+            const today = new Date();
+            const nextDate = new Date();
+            nextDate.setDate(today.getDate() + parseInt(formData.maintenanceInterval));
+            
+            setFormData(prev => ({
+                ...prev,
+                nextMaintenanceDate: nextDate.toISOString().split('T')[0]
+            }));
+        } else if (!formData.requiresMaintenance) {
+            // Clear maintenance date if maintenance is disabled
+            setFormData(prev => ({
+                ...prev,
+                nextMaintenanceDate: "",
+                maintenanceInterval: ""
+            }));
         }
-        setFormData(updated);
+    }, [formData.requiresMaintenance, formData.maintenanceInterval]);
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData({ 
+            ...formData, 
+            [name]: type === 'checkbox' ? checked : value 
+        });
         if (errors[name]) setErrors({ ...errors, [name]: null });
     };
 
@@ -80,8 +637,15 @@ export default function EditEquipmentForm({ darkMode }) {
         const newErrors = {};
         if (!formData.name.trim()) newErrors.name = "Equipment name is required";
         if (!formData.type.trim()) newErrors.type = "Type is required";
-        if (!formData.serial.trim()) newErrors.serial = "Serial is required";
-        if (!formData.notes.trim()) newErrors.notes = "Notes are required";
+        if (!formData.totalQuantity || formData.totalQuantity < 1) newErrors.totalQuantity = "Quantity must be at least 1";
+        
+        // Validate maintenance fields if maintenance is required
+        if (formData.requiresMaintenance) {
+            if (!formData.maintenanceInterval || formData.maintenanceInterval < 1) {
+                newErrors.maintenanceInterval = "Maintenance interval must be at least 1 day";
+            }
+        }
+        
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -92,7 +656,16 @@ export default function EditEquipmentForm({ darkMode }) {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem("token");
-            await axios.put(`/api/equipment/${equipmentID}`, formData, {
+            
+            // Prepare data for submission
+            const submitData = {
+                ...formData,
+                totalQuantity: parseInt(formData.totalQuantity),
+                maintenanceInterval: formData.requiresMaintenance ? parseInt(formData.maintenanceInterval) : null,
+                nextMaintenanceDate: formData.requiresMaintenance ? formData.nextMaintenanceDate : null
+            };
+            
+            await axios.put(`/api/equipment/${equipmentID}`, submitData, {
                 headers: { Authorization: "Bearer " + token }
             });
             toast.success("Equipment updated successfully");
@@ -105,6 +678,24 @@ export default function EditEquipmentForm({ darkMode }) {
         }
     };
 
+    const getMaintenanceStatus = () => {
+        if (!formData.nextMaintenanceDate) return null;
+        
+        const nextDate = new Date(formData.nextMaintenanceDate);
+        const today = new Date();
+        const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        if (nextDate < today) {
+            return { status: 'OVERDUE', color: 'red' };
+        } else if (nextDate <= oneWeekFromNow) {
+            return { status: 'DUE SOON', color: 'yellow' };
+        } else {
+            return { status: 'SCHEDULED', color: 'green' };
+        }
+    };
+
+    const maintenanceStatus = getMaintenanceStatus();
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -114,26 +705,47 @@ export default function EditEquipmentForm({ darkMode }) {
     }
 
     return (
-        <div className={`flex flex-col min-h-screen p-6 max-w-4xl mx-auto overflow-y-auto ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gray-50 text-gray-900'}`}>
+        <div className={`flex flex-col min-h-screen p-6 max-w-4xl mx-auto ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gray-50 text-gray-900'}`}>
             <div className="flex items-center mb-6">
                 <Package className={darkMode ? 'text-cyan-400 mr-2' : 'text-blue-600 mr-2'} size={24} />
                 <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-200' : 'text-gray-800'}`}>Edit Equipment: {formData.name}</h1>
             </div>
+            
             <form onSubmit={handleSubmit} className={`${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-md rounded-lg p-6`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Equipment ID */}
                     <div>
-                        <label htmlFor="equipmentID" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment ID</label>
-                        <input type="text" id="equipmentID" name="equipmentID" value={formData.equipmentID} readOnly className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300 bg-gray-100'} rounded-md`} />
-                        <p className={`mt-1 text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>Equipment ID cannot be changed</p>
+                        <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment ID</label>
+                        <input 
+                            type="text" 
+                            value={formData.equipmentID} 
+                            readOnly 
+                            className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300 bg-gray-100'} rounded-md`} 
+                        />
                     </div>
+
+                    {/* Equipment Name */}
                     <div>
-                        <label htmlFor="name" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Name *</label>
-                        <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} placeholder="Enter equipment name" />
-                        {errors.name && (<p className="mt-1 text-sm text-red-400">{errors.name}</p>)}
+                        <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Equipment Name *</label>
+                        <input 
+                            type="text" 
+                            name="name"
+                            value={formData.name} 
+                            onChange={handleChange}
+                            className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} 
+                        />
+                        {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                     </div>
+
+                    {/* Equipment Type */}
                     <div>
-                        <label htmlFor="type" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Type *</label>
-                        <select id="type" name="type" value={formData.type} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`}> 
+                        <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Type *</label>
+                        <select 
+                            name="type"
+                            value={formData.type} 
+                            onChange={handleChange}
+                            className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`}
+                        > 
                             <option value="Navigation">Navigation</option>
                             <option value="Fishing Gear">Fishing Gear</option>
                             <option value="Safety">Safety</option>
@@ -141,53 +753,150 @@ export default function EditEquipmentForm({ darkMode }) {
                             <option value="Other">Other</option>
                         </select>
                     </div>
+
+                    {/* Total Quantity */}
                     <div>
-                        <label htmlFor="serial" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Serial *</label>
-                        <input type="text" id="serial" name="serial" value={formData.serial} onChange={handleChange} className={`w-full px-4 py-2 border ${errors.serial ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} placeholder="Enter serial number" />
-                        {errors.serial && (<p className="mt-1 text-sm text-red-400">{errors.serial}</p>)}
+                        <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Total Quantity *</label>
+                        <input 
+                            type="number" 
+                            name="totalQuantity"
+                            value={formData.totalQuantity} 
+                            onChange={handleChange}
+                            min="1"
+                            className={`w-full px-4 py-2 border ${errors.totalQuantity ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} 
+                        />
+                        {errors.totalQuantity && <p className="mt-1 text-sm text-red-400">{errors.totalQuantity}</p>}
                     </div>
-                    <div>
-                        <label htmlFor="status" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Status</label>
-                        <select id="status" name="status" value={formData.status} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`}> 
-                            <option value="Available">Available</option>
-                            <option value="In Use">In Use</option>
-                            <option value="Under Maintenance">Under Maintenance</option>
-                        </select>
+
+                    {/* Description */}
+                    <div className="md:col-span-2">
+                        <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Description</label>
+                        <textarea 
+                            name="description"
+                            value={formData.description} 
+                            onChange={handleChange}
+                            className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} 
+                            rows={3}
+                        />
                     </div>
-                    <div>
-                        <label htmlFor="purchaseDate" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Purchase Date</label>
-                        <input type="date" id="purchaseDate" name="purchaseDate" value={formData.purchaseDate} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} />
-                    </div>
-                    <div>
-                        <label htmlFor="warrantyExpiry" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Warranty Expiry</label>
-                        <input type="date" id="warrantyExpiry" name="warrantyExpiry" value={formData.warrantyExpiry} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} />
-                    </div>
-                    <div>
-                        <label htmlFor="lastServiced" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Last Serviced</label>
-                        <input type="date" id="lastServiced" name="lastServiced" value={formData.lastServiced} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} />
-                    </div>
-                    <div>
-                        <label htmlFor="notes" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Notes *</label>
-                        <textarea id="notes" name="notes" value={formData.notes} onChange={handleChange} className={`w-full px-4 py-2 border ${errors.notes ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-cyan-400' : 'focus:ring-blue-500'}`} rows={3} placeholder="Enter notes" />
-                        {errors.notes && (<p className="mt-1 text-sm text-red-400">{errors.notes}</p>)}
-                    </div>
-                    {/* <div>
-                        <label htmlFor="boatNumber" className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Boat Number (optional)</label>
-                        <select id="boatNumber" name="boatNumber" value={formData.boatNumber} onChange={handleChange} className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`}>
-                            <option value="">No Boat Assigned</option>
-                            {boatList.map(boat => (
-                                <option key={boat.boatNumber} value={boat.boatNumber}>
-                                    {boat.name} ({boat.boatNumber})
-                                </option>
-                            ))}
-                        </select>
-                    </div> */}
                 </div>
+
+                {/* Maintenance Section */}
+                <div className="mt-6 pt-6 border-t">
+                    <h3 className={`text-lg font-semibold mb-4 flex items-center ${darkMode ? 'text-cyan-300' : 'text-blue-600'}`}>
+                        <Calendar className="mr-2" size={20} />
+                        Maintenance Settings
+                    </h3>
+                    
+                    <div className="flex items-center mb-4">
+                        <input
+                            type="checkbox"
+                            id="requiresMaintenance"
+                            name="requiresMaintenance"
+                            checked={formData.requiresMaintenance}
+                            onChange={handleChange}
+                            className="mr-3 w-4 h-4"
+                        />
+                        <label htmlFor="requiresMaintenance" className={`font-medium ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+                            This equipment requires regular maintenance
+                        </label>
+                    </div>
+
+                    {formData.requiresMaintenance && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-lg border">
+                            {/* Maintenance Interval */}
+                            <div>
+                                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+                                    Maintenance Interval (days) *
+                                </label>
+                                <input 
+                                    type="number" 
+                                    name="maintenanceInterval"
+                                    value={formData.maintenanceInterval} 
+                                    onChange={handleChange}
+                                    min="1"
+                                    className={`w-full px-4 py-2 border ${errors.maintenanceInterval ? 'border-red-500' : darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} 
+                                />
+                                {errors.maintenanceInterval && (
+                                    <p className="mt-1 text-sm text-red-400">{errors.maintenanceInterval}</p>
+                                )}
+                            </div>
+
+                            {/* Next Maintenance Date Display */}
+                            <div>
+                                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+                                    Next Maintenance Date
+                                </label>
+                                <div className={`p-2 border rounded-md ${darkMode ? 'border-slate-600 bg-slate-700' : 'border-gray-300 bg-gray-100'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <span className={formData.nextMaintenanceDate ? "" : "opacity-50"}>
+                                            {formData.nextMaintenanceDate 
+                                                ? new Date(formData.nextMaintenanceDate).toLocaleDateString()
+                                                : "Set interval to calculate date"
+                                            }
+                                        </span>
+                                        <Calendar size={16} className="opacity-50" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Maintenance Status */}
+                            {maintenanceStatus && (
+                                <div className="md:col-span-2">
+                                    <div className={`p-3 rounded-lg border ${
+                                        maintenanceStatus.color === 'red' 
+                                            ? (darkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-200')
+                                            : maintenanceStatus.color === 'yellow'
+                                            ? (darkMode ? 'bg-yellow-900/20 border-yellow-700' : 'bg-yellow-50 border-yellow-200')
+                                            : (darkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-200')
+                                    }`}>
+                                        <div className="flex items-center justify-between">
+                                            <span className={`font-medium ${darkMode ? 'text-slate-200' : 'text-gray-800'}`}>
+                                                Maintenance Status: {maintenanceStatus.status}
+                                            </span>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                                maintenanceStatus.color === 'red' 
+                                                    ? (darkMode ? 'bg-red-700 text-red-100' : 'bg-red-500 text-white')
+                                                    : maintenanceStatus.color === 'yellow'
+                                                    ? (darkMode ? 'bg-yellow-700 text-yellow-100' : 'bg-yellow-500 text-white')
+                                                    : (darkMode ? 'bg-green-700 text-green-100' : 'bg-green-500 text-white')
+                                            }`}>
+                                                {maintenanceStatus.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Notes */}
+                <div className="mt-6">
+                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>Notes</label>
+                    <textarea 
+                        name="notes"
+                        value={formData.notes} 
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 border ${darkMode ? 'border-slate-600 bg-slate-700 text-slate-100' : 'border-gray-300'} rounded-md`} 
+                        rows={3}
+                    />
+                </div>
+
+                {/* Form Buttons */}
                 <div className="mt-8 flex justify-end gap-4">
-                    <button type="button" onClick={() => navigate("/admin/equipment")}
-                        className={`px-4 py-2 border rounded-md transition-all ${darkMode ? 'border-slate-600 text-slate-200 hover:bg-slate-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Cancel</button>
-                    <button type="submit" disabled={isSubmitting}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                    <button 
+                        type="button" 
+                        onClick={() => navigate("/admin/equipment")}
+                        className={`px-4 py-2 border rounded-md ${darkMode ? 'border-slate-600 text-slate-200 hover:bg-slate-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        disabled={isSubmitting}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-md ${darkMode ? 'bg-cyan-700 hover:bg-cyan-800 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
                         {isSubmitting ? (
                             <>
                                 <Loader className="animate-spin" size={18} />
