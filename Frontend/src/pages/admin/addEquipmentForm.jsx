@@ -6,16 +6,6 @@ import toast from "react-hot-toast";
 export default function AddEquipmentForm({ darkMode }) {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    // const [formData, setFormData] = useState({
-    //     name: "",
-    //     type: "Other",
-    //     description: "",
-    //     totalQuantity: 1,
-    //     requiresMaintenance: false,
-    //     maintenanceInterval: "",
-    //     notes: ""
-    // });
-    // In AddEquipmentForm.jsx, add the same useEffect for automatic calculation
     const [formData, setFormData] = useState({
         name: "",
         type: "Other",
