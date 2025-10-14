@@ -21,7 +21,6 @@ export default function UpdateFishermanForm({ darkMode }) {
   const [phone, setPhone] = useState(s?.phone || "");
   const [address, setAddress] = useState(s?.address || "");
   const [licenseNumber, setLicenseNumber] = useState(s?.licenseNumber || "");
-  const [boatNumber, setBoatNumber] = useState(s?.boatNumber || "");
   const [position, setPosition] = useState(s?.position || "crew"); // crew | skipper
   const [isEmailVerified, setIsEmailVerified] = useState(Boolean(s?.isEmailVerified));
   const [isDisabled, setIsDisabled] = useState(Boolean(s?.isDisabled));
@@ -56,7 +55,6 @@ export default function UpdateFishermanForm({ darkMode }) {
       phone: phone.trim(),
       address: address.trim(),
       licenseNumber: licenseNumber.trim(),
-      boatNumber: boatNumber.trim(),
       position,
       isEmailVerified: Boolean(isEmailVerified),
       isDisabled: Boolean(isDisabled),
@@ -222,17 +220,6 @@ export default function UpdateFishermanForm({ darkMode }) {
                 type="text"
                 required
                 placeholder="LIC-000001"
-                className={inputClass(darkMode)}
-              />
-            </FormField>
-
-            <FormField label="Boat Number *" darkMode={darkMode}>
-              <input
-                value={boatNumber}
-                onChange={(e) => setBoatNumber(e.target.value)}
-                type="text"
-                required
-                placeholder="BOAT-1234"
                 className={inputClass(darkMode)}
               />
             </FormField>

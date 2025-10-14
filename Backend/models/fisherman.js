@@ -37,7 +37,6 @@ const fishermanSchema = new mongoose.Schema({
     },
     boatNumber : {
         type: String,
-        required: true
     },
     position : {
         type: String,

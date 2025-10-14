@@ -27,7 +27,6 @@ export function registerFisherman(req, res){
         address: req.body.address,
         phone: req.body.phone,
         licenseNumber: req.body.licenseNumber,
-        boatNumber: req.body.boatNumber,
         position: req.body.position,
         isEmailVerified: req.body.isEmailVerified,
         createdAt: req.body.createdAt,
