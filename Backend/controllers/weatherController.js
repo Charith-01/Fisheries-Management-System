@@ -123,7 +123,7 @@ export const getWeather = async (req, res) => {
         weather: { ...weather.hourly_units, ...weather.daily_units },
         marine: { ...marine.hourly_units, ...marine.daily_units }
       },
-      forecast_days: 16, // Add this to track available days
+      forecast_days: 16, 
       fetchedAt: new Date().toISOString()
     });
   } catch (err) {
