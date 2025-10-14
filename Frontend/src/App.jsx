@@ -14,6 +14,7 @@ import PaymentPage from "./pages/client/PaymentPage";
 import SuccessPage from "./pages/client/SuccessPage";
 import HomePage from "./pages/homePage";
 import NotFoundPage from "./pages/client/notFoundPage";
+import ChatbotWidget from "./components/ChatbotWidget";
 
 function App() {
   return (
@@ -84,6 +85,8 @@ function App() {
           {/* ALL CUSTOMER/CLIENT ROUTES GO THROUGH HOMEPAGE */}
           <Route path="/*" element={<HomePage />} />
         </Routes>
+
+        <ChatbotWidget/>
       </BrowserRouter>
     </AuthProvider>
   )

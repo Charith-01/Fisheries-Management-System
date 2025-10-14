@@ -1,36 +1,61 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const boatSchema = new mongoose.Schema({
-    boatNumber:{
+    boatNumber: {
         type: String,
-        required: true,
         unique: true
     },
-    name:{
+    name: {
         type: String,
         required: true
     },
-    capacity:{
+    capacity: {
         type: Number,
         required: true,
-        min:[1,"Capacity must be at least 1"]
+        min: [1, "Capacity must be at least 1"]
     },
-    status:{
-        type:String,
-        enum: ["active","inactive","maintenance","retired"],
+    status: {
+        type: String,
+        enum: ["active", "inactive", "maintenance", "retired"],
         default: "active"
     },
-    images:{
-        type:[String],
+    images: {
+        type: [String],
         required: true
     },
-    equipmentID:[{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Equipment", 
-        required: true
+    // Store equipment assignments with quantities
+    equipmentAssignments: [{
+        equipment: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Equipment",
+            required: true
+        },
+        quantity: {
+            type: Number,
+            required: true,
+            min: 1,
+            default: 1
+        },
+        assignedAt: {
+            type: Date,
+            default: Date.now
+        }
     }]
-})
+});
 
-const Boat = mongoose.model("boat",boatSchema)
+// Pre-save hook to auto-generate boatNumber
+boatSchema.pre("save", async function (next) {
+  if (!this.boatNumber) {
+    const count = await mongoose.model("Boat").countDocuments();
+    this.boatNumber = "DHANUSHKA-" + String(count + 1).padStart(3, "0");
+  }
+  next();
+});
 
-export default Boat
+// Delete existing model if it exists to avoid conflicts
+if (mongoose.models.Boat) {
+  delete mongoose.models.Boat;
+}
+
+const Boat = mongoose.model("Boat", boatSchema);
+export default Boat;
