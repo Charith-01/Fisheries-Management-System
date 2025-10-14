@@ -32,7 +32,7 @@ const PAYMENT_FILTER_OPTIONS = ["all", "pending", "succeeded", "failed"];
 
 
 export default function AdminOrdersPage({ darkMode }) {
-  const navigate = useNavigate(); // ✅ ADDED
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [filtered, setFiltered] = useState([]);
 
@@ -46,7 +46,6 @@ export default function AdminOrdersPage({ darkMode }) {
   const [activeOrder, setActiveOrder] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  // ✅ ADDED: Authentication check with delay
   useEffect(() => {
     const checkAuth = () => {
       try {
@@ -62,7 +61,6 @@ export default function AdminOrdersPage({ darkMode }) {
           return false;
         }
         
-        // Check if user has appropriate role
         let userRole = null;
         if (user) {
           const userData = JSON.parse(user);
@@ -73,7 +71,6 @@ export default function AdminOrdersPage({ darkMode }) {
           userRole = customerData.role || customerData.user?.role;
         }
         
-        // Allow both customers and admins to access orders
         if (userRole !== "customer" && userRole !== "admin") {
           toast.error("Access denied");
           navigate("/");
@@ -88,7 +85,6 @@ export default function AdminOrdersPage({ darkMode }) {
       }
     };
 
-    // Small delay to prevent race conditions with route protection
     const timer = setTimeout(() => {
       if (checkAuth()) {
         loadOrders();
@@ -107,7 +103,6 @@ export default function AdminOrdersPage({ darkMode }) {
       setFiltered(list);
     } catch (e) {
       console.error(e);
-      // ✅ ADDED: Better error handling
       if (e.response?.status === 401 || e.response?.status === 403) {
         toast.error("Session expired. Please login again.");
         navigate("/login");
@@ -169,7 +164,6 @@ export default function AdminOrdersPage({ darkMode }) {
       setActiveOrder(res.data);
     } catch (e) {
       console.error(e);
-      // ✅ ADDED: Better error handling
       if (e.response?.status === 401 || e.response?.status === 403) {
         toast.error("Session expired. Please login again.");
         navigate("/login");
@@ -205,7 +199,6 @@ export default function AdminOrdersPage({ darkMode }) {
       }
     } catch (e) {
       console.error(e);
-      // ✅ ADDED: Better error handling
       if (e.response?.status === 401 || e.response?.status === 403) {
         toast.error("Session expired. Please login again.");
         navigate("/login");
@@ -234,7 +227,6 @@ export default function AdminOrdersPage({ darkMode }) {
       }
     } catch (e) {
       console.error(e);
-      // ✅ ADDED: Better error handling
       if (e.response?.status === 401 || e.response?.status === 403) {
         toast.error("Session expired. Please login again.");
         navigate("/login");
@@ -280,7 +272,6 @@ export default function AdminOrdersPage({ darkMode }) {
     });
   };
 
-  // ✅ ADDED: Early return for loading state
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
