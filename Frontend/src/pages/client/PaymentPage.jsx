@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import api from "../../api/axios"; // ✅ use api instance
+import api from "../../api/axios";
 import Payment from "../../components/Payment";
 import toast from "react-hot-toast";
 
@@ -26,7 +26,7 @@ export default function PaymentPage() {
       }
 
       try {
-        const response = await api.get(`/api/order/${encodeURIComponent(orderId)}`); // 🔒 safe
+        const response = await api.get(`/api/order/${encodeURIComponent(orderId)}`);
         setOrder(response.data);
       } catch (err) {
         console.error("Error fetching order:", err);
@@ -49,7 +49,7 @@ export default function PaymentPage() {
   }, [orderId, navigate]);
 
   const handlePaymentSuccess = () => {
-    navigate(`/checkout/success?orderId=${orderId}`); // ✅ smoother than window.location.assign
+    navigate(`/checkout/success?orderId=${orderId}`);
   };
 
   const handlePaymentCancel = () => {
@@ -58,7 +58,7 @@ export default function PaymentPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-lg">Loading order details...</div>
       </div>
     );
@@ -66,11 +66,11 @@ export default function PaymentPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-red-600">Failed to load order</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="text-lg text-red-600 mb-4">Failed to load order</div>
         <button
           onClick={() => navigate("/checkout")}
-          className="ml-4 px-4 py-2 bg-blue-600 text-white rounded"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Back to Checkout
         </button>

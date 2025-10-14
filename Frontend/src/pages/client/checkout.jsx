@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import getCart from "../../utils/cart";
 import api from "../../api/axios"; // ✅ use api instance
-
+import Layout from "../../components/Layout";
 export default function Checkout() {
   const navigate = useNavigate();
 
@@ -253,6 +253,7 @@ export default function Checkout() {
   }
 
   return (
+    <Layout>
     <div className="w-full min-h-[60vh] px-4 py-6 md:px-6">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -491,6 +492,8 @@ export default function Checkout() {
           </div>
         </aside>
       </div>
+       
     </div>
+    </Layout>
   );
 }

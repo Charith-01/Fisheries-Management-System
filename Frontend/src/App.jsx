@@ -42,7 +42,7 @@ function App() {
         <Route path="/fishstock/edit/:id" element={<UpdateFishStock />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/checkout/success" element={<SuccessPage />} />
-        <Route path="/*" element={<NotFoundPage />} />
+        
       </Routes>
 
       {/* Chatbot only on customer-facing pages */}
