@@ -51,7 +51,7 @@ import DepthSensor from "./DepthSensor.jsx";
 import { useRoleAccess } from "../hook/useRoleAccess";
 
 export default function FishermanDashboard() {
-   useRoleAccess("fisherman");
+  
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();

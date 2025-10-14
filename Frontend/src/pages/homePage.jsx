@@ -779,13 +779,10 @@ export default function HomePage() {
       <Header />
       <div className="w-full h-[calc(100vh-75px)] min-h-[calc(100vh-75px)] overflow-y-auto">
         <Routes path="/*">
-          {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/overview/:id" element={<ProductOverview />} />
-          
-          
-          <Route path="/cart" element={   <CartPage /> } />
+          <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={
             <ProtectedRoute>
               <Checkout />
@@ -796,13 +793,13 @@ export default function HomePage() {
               <Profile />
             </ProtectedRoute>
           } />
-          <Route path="/orders" element={
-            <EnhancedRoleProtectedRoute>
-              <MyOrdersPage />
-            </EnhancedRoleProtectedRoute>
-          } />
-        
-          {/* Catch all route */}
+<Route path="/orders" element={
+  <EnhancedRoleProtectedRoute allowedRoles={["customer"]}>
+    <MyOrdersPage />
+  </EnhancedRoleProtectedRoute>
+} />
+          
+          {/* Only ONE catch-all route */}
           <Route path="/*" element={<NotFoundPage />} />
         </Routes>
       </div>

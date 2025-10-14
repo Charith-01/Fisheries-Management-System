@@ -1,6 +1,7 @@
 // pages/admin/orders.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom"; // ✅ ADDED
 import api from "../../api/axios";
 import {
   Search,
@@ -12,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ ADDED
+import { exportTablePDF } from "../../utils/pdfExporter";
 
 /* --------------------------- helpers --------------------------- */
 
@@ -37,6 +38,7 @@ const PAYMENT_FILTER_OPTIONS = ["all", "pending", "succeeded", "failed"];
 /* --------------------------- component --------------------------- */
 
 export default function AdminOrdersPage({ darkMode }) {
+  const navigate = useNavigate(); // ✅ ADDED
   const [orders, setOrders] = useState([]);
   const [filtered, setFiltered] = useState([]);
 
@@ -50,6 +52,58 @@ export default function AdminOrdersPage({ darkMode }) {
   const [activeOrder, setActiveOrder] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
+  // ✅ ADDED: Authentication check with delay
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const token = localStorage.getItem("token");
+        const customer = localStorage.getItem("customer");
+        const user = localStorage.getItem("user");
+        
+        const isAuthenticated = !!(token || customer || user);
+        
+        if (!isAuthenticated) {
+          toast.error("Please login to access orders");
+          navigate("/login");
+          return false;
+        }
+        
+        // Check if user has appropriate role
+        let userRole = null;
+        if (user) {
+          const userData = JSON.parse(user);
+          userRole = userData.role || userData.user?.role;
+        }
+        if (!userRole && customer) {
+          const customerData = JSON.parse(customer);
+          userRole = customerData.role || customerData.user?.role;
+        }
+        
+        // Allow both customers and admins to access orders
+        if (userRole !== "customer" && userRole !== "admin") {
+          toast.error("Access denied");
+          navigate("/");
+          return false;
+        }
+        
+        return true;
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        navigate("/login");
+        return false;
+      }
+    };
+
+    // Small delay to prevent race conditions with route protection
+    const timer = setTimeout(() => {
+      if (checkAuth()) {
+        loadOrders();
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -59,15 +113,17 @@ export default function AdminOrdersPage({ darkMode }) {
       setFiltered(list);
     } catch (e) {
       console.error(e);
+      // ✅ ADDED: Better error handling
+      if (e.response?.status === 401 || e.response?.status === 403) {
+        toast.error("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       toast.error("Failed to fetch orders");
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
 
   // filter + search (order status + payment status + query)
   useEffect(() => {
@@ -118,6 +174,12 @@ export default function AdminOrdersPage({ darkMode }) {
       setActiveOrder(res.data);
     } catch (e) {
       console.error(e);
+      // ✅ ADDED: Better error handling
+      if (e.response?.status === 401 || e.response?.status === 403) {
+        toast.error("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       toast.error("Failed to load order details");
       setDrawerOpen(false);
     } finally {
@@ -129,18 +191,18 @@ export default function AdminOrdersPage({ darkMode }) {
     try {
       setBusyId(orderId);
       if (norm(status) === "refunded") {
-      if (!confirm(`Refund order ${orderId}? This will deduct the amount from income records.`)) {
-        setBusyId("");
-        return;
-      }
+        if (!confirm(`Refund order ${orderId}? This will deduct the amount from income records.`)) {
+          setBusyId("");
+          return;
+        }
       
-      await api.put(`/api/order/refund/${encodeURIComponent(orderId)}`, { status });
-      toast.success("Order refunded and income adjusted");
-    } else {
-      // Regular status update
-      await api.put(`/api/order/status/${encodeURIComponent(orderId)}`, { status });
-      toast.success("Order status updated");
-    }
+        await api.put(`/api/order/refund/${encodeURIComponent(orderId)}`, { status });
+        toast.success("Order refunded and income adjusted");
+      } else {
+        // Regular status update
+        await api.put(`/api/order/status/${encodeURIComponent(orderId)}`, { status });
+        toast.success("Order status updated");
+      }
       await loadOrders();
 
       if (activeOrder?.orderId === orderId) {
@@ -149,12 +211,17 @@ export default function AdminOrdersPage({ darkMode }) {
       }
     } catch (e) {
       console.error(e);
+      // ✅ ADDED: Better error handling
+      if (e.response?.status === 401 || e.response?.status === 403) {
+        toast.error("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       toast.error(e?.response?.data?.message || "Failed to update status");
     } finally {
       setBusyId("");
     }
   };
-  
   
   const handleCancel = async (order) => {
     if (!isOrderPending(order)) {
@@ -173,6 +240,12 @@ export default function AdminOrdersPage({ darkMode }) {
       }
     } catch (e) {
       console.error(e);
+      // ✅ ADDED: Better error handling
+      if (e.response?.status === 401 || e.response?.status === 403) {
+        toast.error("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
       toast.error(e?.response?.data?.message || "Failed to cancel order");
     } finally {
       setBusyId("");
@@ -214,6 +287,15 @@ export default function AdminOrdersPage({ darkMode }) {
       // header/footer branding is handled inside the shared exporter
     });
   };
+
+  // ✅ ADDED: Early return for loading state
+  if (loading && orders.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-slate-600">Loading orders...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-4 ${darkMode ? "dark text-slate-100" : ""}`}>

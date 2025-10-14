@@ -1,7 +1,7 @@
 import api from "./axios";
 
 // Create Stripe Payment Intent
-export const createPaymentIntent = async ({ orderId, currency = "usd" }) => {
+export const createPaymentIntent = async ({ orderId, currency = "lkr" }) => {
   const res = await api.post("/payment/create-intent", { orderId, currency });
   return res.data;
 };

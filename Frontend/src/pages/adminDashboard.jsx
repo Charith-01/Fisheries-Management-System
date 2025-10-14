@@ -64,7 +64,7 @@ import DepthSensor from "./DepthSensor.jsx";
 import { useRoleAccess,clearAllAuthData  } from "../hook/useRoleAccess";
 
 export default function AdminDashboard() {
-  useRoleAccess("admin");
+ 
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
