@@ -20,6 +20,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  Gauge,
   Plus
 } from "lucide-react";
 import {
@@ -46,12 +47,59 @@ import FishStockListFisherman from "./FishStockListFisherman";
 import FishermanTrips from "./admin/fishermanTrips";
 import CreateFishStockFisherman from "./CreateFishStockFisherman";
 import EditFishStockFisherman from "./EditFishStockFisherman";
+import DepthSensor from "./DepthSensor.jsx";
+import { useRoleAccess } from "../hook/useRoleAccess";
+function useFishermanProtection() {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const checkAccess = () => {
+      try {
+        const user = localStorage.getItem("user");
+        const customer = localStorage.getItem("customer");
+        
+        let userData = null;
+        if (user) userData = JSON.parse(user);
+        else if (customer) userData = JSON.parse(customer);
+        
+        const userRole = userData?.role || userData?.user?.role;
+        
+        // If user is not authenticated at all, redirect to login
+        if (!userData && !localStorage.getItem("token")) {
+          navigate("/login");
+          return;
+        }
+        
+        // If user doesn't have fisherman role
+        if (userRole !== "fisherman") {
+          console.log(`❌ Access denied. Required: fisherman, Current: ${userRole}`);
+          
+          // Redirect to appropriate dashboard based on actual role
+          if (userRole === "admin") {
+            navigate("/admin");
+          } else {
+            navigate("/"); // Regular users go to home
+          }
+        }
+      } catch (error) {
+        console.error("Access check failed:", error);
+        navigate("/login");
+      }
+    };
+    
+    // Small delay to prevent race conditions
+    const timer = setTimeout(checkAccess, 100);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+}
 export default function FishermanDashboard() {
+
+  useFishermanProtection();
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-
+ 
   // minimal, safe auth clear (doesn't touch other app state)
   function clearAuthFromStorage() {
     const keys = [
@@ -108,6 +156,7 @@ export default function FishermanDashboard() {
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
               <Route path="stock/create" element={<CreateFishStockFisherman />} />
               <Route path="stock/edit/:id" element={<EditFishStockFisherman />} />
+              <Route path="depth-sensor" element={<DepthSensor darkMode={darkMode} />} />
             </Routes>
           </div>
         </main>
@@ -182,6 +231,9 @@ function Sidebar({ darkMode, setDarkMode, onLogoutRequest, user }) {
         <NavLink to="/fisherman/weather" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <BarChart3 className="h-5 w-5" /> Weather
         </NavLink>
+        <NavLink to="/fisherman/depth-sensor" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+        <Gauge className="h-5 w-5" /> Depth Sensor
+       </NavLink>
         <NavLink to="/fisherman/trip" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <Calendar className="h-5 w-5" /> Trip
         </NavLink>

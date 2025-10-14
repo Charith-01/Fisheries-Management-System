@@ -15,5 +15,5 @@ export async function fetchCurrentWeather({ lat = 6.9570, lon = 80.1918 } = {}) 
   if (!res.ok) {
     throw new Error((await res.text().catch(() => "")) || "Failed to fetch weather");
   }
-  return res.json(); // backend JSON fullma denna 
+  return res.json(); 
 }

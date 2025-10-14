@@ -1,7 +1,7 @@
+// pages/admin/AddTripForm.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-// If you don't have an alias, use: "../../api/axios"
-import axios from "../api/axios";
+import axios from "../api/axios"; // adjust if your alias differs
 import toast from "react-hot-toast";
 import {
   Save, Loader, CalendarClock, ChevronLeft, Ship, UserCircle2, Users, MapPin, CalendarRange, ClipboardList, AlertTriangle
@@ -15,11 +15,11 @@ export default function AddTripForm({ darkMode = false }) {
   const [skippers, setSkippers] = useState([]);
   const [fishermen, setFishermen] = useState([]);
 
-  // For auto tripId (optional): load existing trips to compute next ID
+  // Auto tripId source
   const [existingTrips, setExistingTrips] = useState([]);
   const [loadingTrips, setLoadingTrips] = useState(true);
 
-  // NEW: availability
+  // Availability
   const [checking, setChecking] = useState(false);
   const [conflicts, setConflicts] = useState([]);
 
@@ -38,7 +38,7 @@ export default function AddTripForm({ darkMode = false }) {
   const token = useMemo(() => localStorage.getItem("token") || "", []);
   const headers = useMemo(() => ({ Authorization: "Bearer " + token }), [token]);
 
-  // Load dropdowns + existing trips (for tripId generation)
+  // Load dropdowns + existing trips
   useEffect(() => {
     (async () => {
       try {
@@ -61,25 +61,26 @@ export default function AddTripForm({ darkMode = false }) {
     })();
   }, [headers]);
 
-  // Auto-generate Trip ID (same style you used before)
+  // Auto-generate Trip ID
   useEffect(() => {
     if (loadingTrips) return;
     const year = new Date().getFullYear();
     if (existingTrips.length > 0) {
-      const tripNumbers = existingTrips.map(trip => {
+      const tripNumbers = existingTrips.map((trip) => {
         const match = trip.tripId?.match(/(\d+)$/);
         return match ? parseInt(match[1], 10) : 0;
+        // If some trips lack numeric suffix, they'll count as 0 and won't break anything.
       });
       const maxNumber = Math.max(0, ...tripNumbers);
       const nextNumber = maxNumber + 1;
       const newTripId = `TRIP-${year}-${nextNumber.toString().padStart(4, "0")}`;
-      setForm(prev => ({ ...prev, tripId: newTripId }));
+      setForm((prev) => ({ ...prev, tripId: newTripId }));
     } else {
-      setForm(prev => ({ ...prev, tripId: `TRIP-${year}-0001` }));
+      setForm((prev) => ({ ...prev, tripId: `TRIP-${year}-0001` }));
     }
   }, [existingTrips, loadingTrips]);
 
-  // Keep your date rules & auto 30 days return
+  // 30-day auto return + prevent past departure
   function onChange(e) {
     const { name, value } = e.target;
 
@@ -94,22 +95,22 @@ export default function AddTripForm({ darkMode = false }) {
       plannedReturnDate.setDate(plannedReturnDate.getDate() + 30);
       const formattedReturn = plannedReturnDate.toISOString().slice(0, 16);
 
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
         departureDateTime: value,
         plannedReturnAt: formattedReturn,
       }));
     } else {
-      setForm(prev => ({ ...prev, [name]: value }));
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   }
 
   function onFishermenChange(e) {
-    const values = Array.from(e.target.selectedOptions).map(o => o.value);
-    setForm(prev => ({ ...prev, fishermen: values }));
+    const values = Array.from(e.target.selectedOptions).map((o) => o.value);
+    setForm((prev) => ({ ...prev, fishermen: values }));
   }
 
-  // Your validation stays the same
+  // Validation (your rules)
   function validate() {
     if (!form.tripId.trim()) return "Trip ID is required";
     if (!form.boat) return "Select a boat";
@@ -132,13 +133,13 @@ export default function AddTripForm({ darkMode = false }) {
     if (!form.destination.trim()) return "Destination is required";
     if (!form.tripType.trim()) return "Trip type is required";
 
-    // NEW: if conflicts present, block (keeps your UX)
+    // Also block when we already show conflicts
     if (conflicts.length > 0) return "Boat/crew not available for this time window";
 
     return null;
   }
 
-  // Derived status preview (unchanged)
+  // Status preview
   const statusPreview = useMemo(() => {
     const dep = form.departureDateTime ? new Date(form.departureDateTime).getTime() : null;
     const ret = form.plannedReturnAt ? new Date(form.plannedReturnAt).getTime() : null;
@@ -152,11 +153,10 @@ export default function AddTripForm({ darkMode = false }) {
 
   const minDepartureDate = new Date().toISOString().slice(0, 16);
 
-  // NEW: Live availability check — calls your /api/trip/check-availability
+  /* -------------------- LIVE AVAILABILITY (with skipper) -------------------- */
   useEffect(() => {
-    const { boat, fishermen, departureDateTime, plannedReturnAt } = form;
-    // Only run when we have all inputs
-    if (!boat || !departureDateTime || !plannedReturnAt) {
+    const { boat, skipper, fishermen, departureDateTime, plannedReturnAt } = form;
+    if (!boat || !skipper || !departureDateTime || !plannedReturnAt) {
       setConflicts([]);
       return;
     }
@@ -168,11 +168,18 @@ export default function AddTripForm({ darkMode = false }) {
       try {
         const { data } = await axios.post(
           "/api/trip/check-availability",
-          { boat, fishermen, departureDateTime, plannedReturnAt },
+          {
+            boat,
+            skipper,           
+            fishermen,
+            departureDateTime,
+            plannedReturnAt,
+          },
           { headers }
         );
-        if (cancelled) return;
-        setConflicts(Array.isArray(data?.conflicts) ? data.conflicts : []);
+        if (!cancelled) {
+          setConflicts(Array.isArray(data?.conflicts) ? data.conflicts : []);
+        }
       } catch (e) {
         console.error(e);
         if (!cancelled) toast.error("Availability check failed");
@@ -182,10 +189,12 @@ export default function AddTripForm({ darkMode = false }) {
     };
 
     run();
-    return () => { cancelled = true; };
-  }, [form.boat, form.fishermen, form.departureDateTime, form.plannedReturnAt, headers]);
+    return () => {
+      cancelled = true;
+    };
+  }, [form.boat, form.skipper, form.fishermen, form.departureDateTime, form.plannedReturnAt, headers]);
 
-  // Double-check on submit (server is source-of-truth)
+  /* -------------------- SUBMIT -------------------- */
   async function onSubmit(e) {
     e.preventDefault();
     const err = validate();
@@ -193,11 +202,12 @@ export default function AddTripForm({ darkMode = false }) {
 
     setIsSubmitting(true);
     try {
-      // Reconfirm availability (race conditions)
+      // Reconfirm availability on submit (avoid race conditions)
       const { data: avail } = await axios.post(
         "/api/trip/check-availability",
         {
           boat: form.boat,
+          skipper: form.skipper, 
           fishermen: form.fishermen,
           departureDateTime: form.departureDateTime,
           plannedReturnAt: form.plannedReturnAt,
@@ -229,7 +239,7 @@ export default function AddTripForm({ darkMode = false }) {
     }
   }
 
-  // ---------- styles (yours) ----------
+  // ---------- styles ----------
   const inputBase = `${
     darkMode
       ? "border-slate-700 bg-slate-800/80 text-slate-100 placeholder:text-slate-400 focus:ring-cyan-400 focus:border-cyan-400"
@@ -422,7 +432,7 @@ export default function AddTripForm({ darkMode = false }) {
                 </div>
               </div>
 
-              {/* NEW: Availability panel — matches your design */}
+              {/* Info bar */}
               <div className={infoBar}>
                 <CalendarClock size={14} className="shrink-0" />
                 <span>Return date is automatically calculated as 30 days after departure. Status is derived from the dates.</span>
@@ -480,7 +490,11 @@ export default function AddTripForm({ darkMode = false }) {
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button type="button" onClick={() => navigate("/admin/trip")} className={cancelBtn}>Cancel</button>
-              <button type="submit" disabled={isSubmitting || checking || conflicts.length > 0} className={submitBtn}>
+              <button
+                type="submit"
+                disabled={isSubmitting || checking || conflicts.length > 0}
+                className={submitBtn}
+              >
                 {isSubmitting ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
                 {isSubmitting ? "Saving…" : "Create Trip"}
               </button>

@@ -1,3 +1,4 @@
+// controllers/tripController.js
 import Trip from "../models/trip.js";
 import Notification from "../models/notification.js";
 import mongoose from "mongoose";
@@ -42,16 +43,25 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
   const aE = new Date(aEnd).getTime();
   const bS = new Date(bStart).getTime();
   const bE = new Date(bEnd).getTime();
-  return aS < bE && bS < aE; // strict interval overlap
+  
+  return aS < bE && bS < aE;
 }
 
-async function findConflictingTrips({ boat, fishermen = [], dep, ret, excludeTripId = null }) {
-  // Only look at trips that are not completed/cancelled
+async function findConflictingTrips({
+  boat,
+  skipper,
+  fishermen = [],
+  dep,
+  ret,
+  excludeTripId = null,
+}) {
+  // Only consider active-ish trips (not completed/cancelled)
   const baseQuery = {
     status: { $nin: ["completed", "cancelled"] },
     $or: [
-      { boat },                         // same boat
-      { fishermen: { $in: fishermen } } // any overlapping fisherman
+      { boat },                             
+      { skipper },                         
+      { fishermen: { $in: fishermen || [] } }, 
     ],
   };
 
@@ -59,21 +69,23 @@ async function findConflictingTrips({ boat, fishermen = [], dep, ret, excludeTri
     baseQuery.tripId = { $ne: excludeTripId };
   }
 
-  // Coarse time prefilter to reduce DB results
+  // Coarse pre-filter by time window to shrink results
   const preFilter = {
     ...baseQuery,
     departureDateTime: { $lt: new Date(ret) },
-    plannedReturnAt:   { $gt: new Date(dep) },
+    plannedReturnAt: { $gt: new Date(dep) },
   };
 
   const rows = await Trip.find(preFilter)
-    .select("tripId boat skipper fishermen departureDateTime plannedReturnAt status")
+    .select(
+      "tripId boat skipper fishermen departureDateTime plannedReturnAt status"
+    )
     .populate("boat", "name boatName boatNumber registrationNumber")
     .populate("skipper", "firstName lastName email")
     .populate("fishermen", "firstName lastName email")
     .lean();
 
-  // Final precise overlap check
+  // Precise overlap check
   return rows.filter((t) =>
     overlaps(t.departureDateTime, t.plannedReturnAt, dep, ret)
   );
@@ -83,15 +95,24 @@ async function findConflictingTrips({ boat, fishermen = [], dep, ret, excludeTri
 
 export async function checkTripAvailability(req, res) {
   try {
-    const { boat, fishermen = [], departureDateTime, plannedReturnAt, excludeTripId } = req.body || {};
-    if (!boat || !departureDateTime || !plannedReturnAt) {
-      return res
-        .status(400)
-        .json({ message: "boat, departureDateTime and plannedReturnAt are required" });
+    const {
+      boat,
+      skipper,
+      fishermen = [],
+      departureDateTime,
+      plannedReturnAt,
+      excludeTripId,
+    } = req.body || {};
+    if (!boat || !skipper || !departureDateTime || !plannedReturnAt) {
+      return res.status(400).json({
+        message:
+          "boat, skipper, departureDateTime and plannedReturnAt are required",
+      });
     }
 
     const conflicts = await findConflictingTrips({
       boat,
+      skipper,
       fishermen,
       dep: departureDateTime,
       ret: plannedReturnAt,
@@ -111,24 +132,35 @@ export async function checkTripAvailability(req, res) {
 /* ---------------- CRUD ---------------- */
 
 export async function createTrip(req, res) {
-  if (!req.user) return res.status(403).json({ message: "You need to login first" });
+  if (!req.user)
+    return res.status(403).json({ message: "You need to login first" });
   if (req.user.role !== "admin")
-    return res.status(403).json({ message: "You are not authorized to create trip" });
+    return res
+      .status(403)
+      .json({ message: "You are not authorized to create trip" });
 
   try {
     const body = req.body || {};
-    const { boat, fishermen = [], departureDateTime, plannedReturnAt } = body;
+    const {
+      boat,
+      skipper,
+      fishermen = [],
+      departureDateTime,
+      plannedReturnAt,
+    } = body;
 
-    // Basic required fields
-    if (!boat || !departureDateTime || !plannedReturnAt) {
-      return res
-        .status(400)
-        .json({ message: "boat, departureDateTime and plannedReturnAt are required" });
+    // Basic required fields (skipper is required by schema as well)
+    if (!boat || !skipper || !departureDateTime || !plannedReturnAt) {
+      return res.status(400).json({
+        message:
+          "boat, skipper, departureDateTime and plannedReturnAt are required",
+      });
     }
 
-    // Conflict check
+    // Conflict check (boat + skipper + any fisherman)
     const conflicts = await findConflictingTrips({
       boat,
+      skipper,
       fishermen,
       dep: departureDateTime,
       ret: plannedReturnAt,
@@ -137,12 +169,13 @@ export async function createTrip(req, res) {
 
     if (conflicts.length > 0) {
       return res.status(409).json({
-        message: "Boat or one/more fishermen are already assigned to another overlapping trip.",
+        message:
+          "Boat, skipper or one/more fishermen are already assigned to another overlapping trip.",
         conflicts,
       });
     }
 
-    // Derive status if not explicitly cancelled/completed
+    // Derive status unless explicitly set to cancelled/completed
     if (body.status !== "cancelled" && body.status !== "completed") {
       body.status = Trip.deriveStatus({
         departureDateTime: body.departureDateTime,
@@ -154,12 +187,10 @@ export async function createTrip(req, res) {
     const trip = new Trip(body);
     await trip.save();
 
-    // Notification (best-effort)
-    try {
-      await createTripNotification(trip);
-    } catch (notifyError) {
-      console.error("Error sending trip notification:", notifyError);
-    }
+    // Fire-and-forget notification
+    createTripNotification(trip).catch((e) =>
+      console.error("Notification error:", e)
+    );
 
     res.json({ message: "Trip saved successfully", trip });
   } catch (err) {
@@ -211,9 +242,12 @@ export async function getTripById(req, res) {
 }
 
 export async function updateTrip(req, res) {
-  if (!req.user) return res.status(403).json({ message: "You need to login first" });
+  if (!req.user)
+    return res.status(403).json({ message: "You need to login first" });
   if (req.user.role !== "admin")
-    return res.status(403).json({ message: "You are not authorized to update trip" });
+    return res
+      .status(403)
+      .json({ message: "You are not authorized to update trip" });
 
   try {
     const { tripId } = req.params;
@@ -222,16 +256,19 @@ export async function updateTrip(req, res) {
 
     // Determine intended next values
     const nextDoc = {
-      departureDateTime: req.body.departureDateTime ?? existing.departureDateTime,
+      departureDateTime:
+        req.body.departureDateTime ?? existing.departureDateTime,
       plannedReturnAt: req.body.plannedReturnAt ?? existing.plannedReturnAt,
       actualReturnAt: req.body.actualReturnAt ?? existing.actualReturnAt,
       boat: req.body.boat ?? existing.boat,
+      skipper: req.body.skipper ?? existing.skipper,
       fishermen: req.body.fishermen ?? existing.fishermen,
     };
 
-    // Conflict check excluding the current trip
+    // Conflict check excluding this trip
     const conflicts = await findConflictingTrips({
       boat: nextDoc.boat,
+      skipper: nextDoc.skipper,
       fishermen: Array.isArray(nextDoc.fishermen) ? nextDoc.fishermen : [],
       dep: nextDoc.departureDateTime,
       ret: nextDoc.plannedReturnAt,
@@ -240,7 +277,8 @@ export async function updateTrip(req, res) {
 
     if (conflicts.length > 0) {
       return res.status(409).json({
-        message: "Boat or one/more fishermen are already assigned to another overlapping trip.",
+        message:
+          "Boat, skipper or one/more fishermen are already assigned to another overlapping trip.",
         conflicts,
       });
     }
@@ -252,11 +290,10 @@ export async function updateTrip(req, res) {
 
     const update = { ...req.body, status: nextStatus };
 
-    const updated = await Trip.findOneAndUpdate(
-      { tripId },
-      update,
-      { runValidators: true, new: true }
-    ).lean();
+    const updated = await Trip.findOneAndUpdate({ tripId }, update, {
+      runValidators: true,
+      new: true,
+    }).lean();
 
     res.json({ message: "Trip updated successfully", trip: updated });
   } catch (err) {
@@ -266,9 +303,12 @@ export async function updateTrip(req, res) {
 }
 
 export async function deleteTrip(req, res) {
-  if (!req.user) return res.status(403).json({ message: "You need to login first" });
+  if (!req.user)
+    return res.status(403).json({ message: "You need to login first" });
   if (req.user.role !== "admin")
-    return res.status(403).json({ message: "You are not authorized to delete trip" });
+    return res
+      .status(403)
+      .json({ message: "You are not authorized to delete trip" });
 
   try {
     await Trip.findOneAndDelete({ tripId: req.params.tripId });
@@ -282,7 +322,8 @@ export async function deleteTrip(req, res) {
 /* ---------------- Current user's trips ---------------- */
 
 export async function getMyTrips(req, res) {
-  if (!req.user) return res.status(403).json({ message: "You need to login first" });
+  if (!req.user)
+    return res.status(403).json({ message: "You need to login first" });
 
   try {
     const rawId = req.user._id || req.user.id || req.user.sub;
@@ -293,10 +334,10 @@ export async function getMyTrips(req, res) {
     const query = {
       $or: [
         { skipper: userId },
-        { captain: userId },     // harmless if field doesn't exist
+        { captain: userId }, 
         { fishermen: userId },
-        { assignedTo: userId },  // harmless if field doesn't exist
-        { createdBy: userId },   // harmless if field doesn't exist
+        { assignedTo: userId }, 
+        { createdBy: userId }, 
       ],
     };
 

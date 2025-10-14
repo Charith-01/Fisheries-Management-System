@@ -22,6 +22,7 @@ import expenseRoutes from './routes/expenseRoutes.js';
 import orderRouter from './routes/orderRouter.js';
 import weatherRouter from './routes/weatherRouter.js';
 import { handleWebhook } from './controllers/paymentController.js';
+import depthRoutes from './routes/depth.js';
 import chatRouter from './routes/chatRouter.js';
 import googleAuthRouter from './routes/googleAuthRouter.js';
 
@@ -76,7 +77,8 @@ app.use("/api/weather", weatherRouter);
 //Chatbot route
 app.use("/api/chat", chatRouter);
 
-// Keep paymentRouter AFTER raw webhook + json + auth bypass logic
+app.use('/api/depth', depthRoutes);
+
 app.use("/api/payment", paymentRouter);
 
 // Server

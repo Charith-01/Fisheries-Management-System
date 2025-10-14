@@ -3,7 +3,10 @@ import {
   createFishStock, 
   getAllFishStocks, 
   getFishStockById, 
-  updateFishStock 
+  updateFishStock,
+  deleteFishStock,
+  getFishStockHistory
+
 } from '../controllers/fishStockController.js';
 
 const router = express.Router();
@@ -17,11 +20,15 @@ router.get('/', getAllFishStocks);
 // Get single fish stock by ID
 router.get('/:id', getFishStockById);
 
-// Update fish stock (Admin only)
-router.put('/:id', updateFishStock);
+// Get update history for a fish stock
+router.get('/:id/history', getFishStockHistory);
 
-// Optional: explicit link/unlink product using same controller
-// expects { product: "<ObjectId>" } or { product: null }
-router.patch('/:id/link-product', updateFishStock);
+
+
+// Update fish stock (Admin only)
+router.post('/:id/update', updateFishStock);
+
+// Delete fish stock (Admin only)
+router.delete('/:id', deleteFishStock);
 
 export default router;

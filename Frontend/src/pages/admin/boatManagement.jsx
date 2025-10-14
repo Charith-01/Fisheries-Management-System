@@ -1,10 +1,9 @@
-// src/pages/admin/BoatsManagement.jsx
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { Ship, Trash2, Edit, PlusCircle, Download, Search, Filter, X, FileText } from "lucide-react";
 import toast from "react-hot-toast";
-import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ from test1
+import { exportTablePDF } from "../../utils/pdfExporter"; 
 
 export default function BoatsManagement({ darkMode }) {
   const [boats, setBoats] = useState([]);
@@ -91,45 +90,7 @@ export default function BoatsManagement({ darkMode }) {
     setCapacityFilter("all");
   };
 
-  // ✅ CSV export (kept from Vihangi branch) — exports CURRENT filtered list
-  const handleExportCSV = () => {
-    const data = filteredBoats;
-    if (!data.length) {
-      toast.error("No boats to export");
-      return;
-    }
-
-    const headers = ["Boat Number", "Name", "Capacity", "Status", "Equipment Count"];
-    const escapeCSV = (str) => {
-      if (str == null) return "";
-      str = String(str);
-      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-        return '"' + str.replace(/"/g, '""') + '"';
-      }
-      return str;
-    };
-
-    const rows = data.map((boat) => [
-      escapeCSV(boat.boatNumber),
-      escapeCSV(boat.name),
-      escapeCSV(boat.capacity),
-      escapeCSV(boat.status),
-      boat.equipmentAssignments?.length || 0,
-    ]);
-
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `boats_report_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  // ✅ PDF export (from test1) — exports CURRENT filtered list with equipment column too
+  // PDF export 
   const handleExportPDF = async () => {
     const data = filteredBoats;
     if (!data.length) {
@@ -176,18 +137,6 @@ export default function BoatsManagement({ darkMode }) {
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={handleExportCSV}
-            type="button"
-            className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
-              darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-slate-100 text-slate-800 hover:bg-slate-200"
-            }`}
-            title="Export filtered boats as CSV"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
-
           <button
             onClick={handleExportPDF}
             type="button"
@@ -436,9 +385,6 @@ export default function BoatsManagement({ darkMode }) {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-3">
-                      <Link to={`/admin/boats/${boat.boatNumber}`} className="p-1 text-gray-600 hover:text-blue-800" title="View Details">
-                        <Ship size={18} />
-                      </Link>
                       <button
                         onClick={() => navigate(`/admin/boats/editBoat/${boat.boatNumber}`)}
                         className="p-1 text-blue-600 hover:text-blue-800"
