@@ -24,7 +24,6 @@ import orderRouter from './routes/orderRouter.js';
 import weatherRouter from './routes/weatherRouter.js';
 
 import { handleWebhook } from './controllers/paymentController.js';
-import depthRoutes from './routes/depth.js';
 import chatRouter from './routes/chatRouter.js';
 
 // ✅ New import for Google Auth router
@@ -89,8 +88,7 @@ app.use("/api/weather", weatherRouter);
 //Chatbot route
 app.use("/api/chat", chatRouter);
 
-app.use('/api/depth', depthRoutes);
-
+// Keep paymentRouter AFTER raw webhook + json + auth bypass logic
 app.use("/api/payment", paymentRouter);
 
 // Server

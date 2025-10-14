@@ -20,7 +20,6 @@ import {
   Eye,
   Edit,
   Trash2,
-  Gauge,
   Plus
 } from "lucide-react";
 import {
@@ -39,16 +38,17 @@ import {
   Legend
 } from "recharts";
 import FishStockList from "./FishStockList.jsx";
-import { fishStockService } from "../services/fishStockService";
+import { fishStockService } from "../services/fishStockService.js";
 import toast from "react-hot-toast";
-import api from "../api/axios";
-import Weather from "./Weather";
-import FishStockListFisherman from "./FishStockListFisherman";
-import FishermanTrips from "./admin/fishermanTrips";
-import CreateFishStockFisherman from "./CreateFishStockFisherman";
-import EditFishStockFisherman from "./EditFishStockFisherman";
+import api from "../api/axios.js";
+import Weather from "./Weather.jsx";
+import FishStockListFisherman from "./FishStockListFisherman.jsx";
+import FishermanTrips from "./admin/fishermanTrips.jsx";
+import CreateFishStockFisherman from "./CreateFishStockFisherman.jsx";
+import EditFishStockFisherman from "./EditFishStockFisherman.jsx";
+
 import DepthSensor from "./DepthSensor.jsx";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext.jsx";
 
 export default function FishermanDashboard() {
   const { user } = useAuth(); 
@@ -57,6 +57,7 @@ export default function FishermanDashboard() {
   const navigate = useNavigate();
  
  
+
   // minimal, safe auth clear (doesn't touch other app state)
   function clearAuthFromStorage() {
     const keys = [
@@ -113,7 +114,6 @@ export default function FishermanDashboard() {
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
               <Route path="stock/create" element={<CreateFishStockFisherman />} />
               <Route path="stock/edit/:id" element={<EditFishStockFisherman />} />
-              <Route path="depth-sensor" element={<DepthSensor darkMode={darkMode} />} />
             </Routes>
           </div>
         </main>
@@ -188,9 +188,6 @@ function Sidebar({ darkMode, setDarkMode, onLogoutRequest, user }) {
         <NavLink to="/fisherman/weather" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <BarChart3 className="h-5 w-5" /> Weather
         </NavLink>
-        <NavLink to="/fisherman/depth-sensor" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-        <Gauge className="h-5 w-5" /> Depth Sensor
-       </NavLink>
         <NavLink to="/fisherman/trip" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <Calendar className="h-5 w-5" /> Trip
         </NavLink>

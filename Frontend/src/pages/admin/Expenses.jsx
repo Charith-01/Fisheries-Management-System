@@ -14,18 +14,19 @@ import {
   CreditCard,
   Receipt,
   Save,
-  X,
-  FileText
+  X
 } from "lucide-react";
+
 
 // Import PDF utility
 import { exportTablePDF } from "../../utils/pdfExporter";
+
 
 export default function FinancialManagement({ darkMode }) {
   const [expenses, setExpenses] = useState([]);
   const [incomeData, setIncomeData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("expenses");
+  const [activeTab, setActiveTab] = useState("expenses"); // "expenses" or "income"
 
   // Form states for expenses
   const [title, setTitle] = useState("");
@@ -88,8 +89,7 @@ export default function FinancialManagement({ darkMode }) {
       setLoading(false);
     }
   };
-
-  // Load both expenses and incomes when component mounts
+    // Load both expenses and incomes when component mounts
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -213,10 +213,12 @@ export default function FinancialManagement({ darkMode }) {
   // Calculate totals
   const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
   const totalIncome = incomeData.reduce((sum, income) => {
-    const amount = parseFloat(income.amount);
-    return sum + amount;
-  }, 0);
+  
+  const amount = parseFloat(income.amount);
+  return sum + amount;
+}, 0);
   const netProfit = totalIncome - totalExpenses;
+
 
   // Generate PDF Report using the same format as boat management
   const generatePDF = async (type) => {
@@ -281,6 +283,9 @@ export default function FinancialManagement({ darkMode }) {
   };
 
   // Export data (CSV - keeping for backward compatibility)
+
+  // Export data
+
   const handleExport = async (type) => {
     try {
       let csvContent = '';
@@ -323,7 +328,7 @@ export default function FinancialManagement({ darkMode }) {
       link.click();
       window.URL.revokeObjectURL(url);
       
-      toast.success(`${type === 'expenses' ? 'Expenses' : 'Income'} CSV report downloaded successfully`);
+      toast.success(`${type === 'expenses' ? 'Expenses' : 'Income'} report downloaded successfully`);
     } catch (error) {
       console.error('Error exporting data:', error);
       toast.error('Failed to export data');
@@ -498,22 +503,13 @@ export default function FinancialManagement({ darkMode }) {
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b">
               <h3 className="text-lg font-semibold">Expenses List</h3>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleExport('expenses')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => generatePDF('expenses')}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  Export PDF
-                </button>
-              </div>
+              <button
+                onClick={() => handleExport('expenses')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export Expenses
+              </button>
             </div>
             
             {loading ? (
@@ -612,14 +608,7 @@ export default function FinancialManagement({ darkMode }) {
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                Export CSV
-              </button>
-              <button
-                onClick={() => generatePDF('income')}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                Export PDF
+                Export Income
               </button>
             </div>
           </div>

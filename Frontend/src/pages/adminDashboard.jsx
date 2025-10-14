@@ -59,6 +59,7 @@ import UpdateFishermanForm from "./admin/updateFishermanForm.jsx";
 import axios from "axios";
 import AdminOrdersPage from "./admin/orders.jsx";
 import AdminReviewsPage from "./admin/reviews.jsx";
+
 import { Gauge } from "lucide-react";
 import DepthSensor from "./DepthSensor.jsx";
 import { useRoleAccess,clearAllAuthData  } from "../hook/useRoleAccess";
@@ -66,16 +67,36 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
+  function clearAuthFromStorage() {
+    const keys = [
+      "customer","user","auth","auth_user","token","authToken",
+      "access_token","jwt","refresh_token",
+    ];
+    let changed = false;
+    for (const k of keys) {
+      if (localStorage.getItem(k) !== null) {
+        localStorage.removeItem(k);
+        changed = true;
+      }
+    }
+    if (changed) {
+      try {
+        window.dispatchEvent(new StorageEvent("storage", { key: "auth", newValue: null }));
+      } catch {}
+    }
+  }
+
   const handleLogoutConfirm = () => {
-    clearAllAuthData(); // Use the centralized function
+    clearAuthFromStorage();
     setShowLogoutConfirm(false);
     navigate("/login");
   };
-  
+
   return (
     <div className={`min-h-screen w-full ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-50 text-slate-800'}`}>
       <div className="mx-auto flex flex-col lg:flex-row max-w-[1400px] gap-2 sm:gap-4 p-2 sm:p-4">
@@ -109,7 +130,6 @@ export default function AdminDashboard() {
               <Route path="equipment/editEquipment/:equipmentID" element={<EditEquipmentForm darkMode={darkMode} />} />
               <Route path="equipment/:equipmentID" element={<EquipmentDetails darkMode={darkMode} />} />
               <Route path="reviews" element={<AdminReviewsPage darkMode={darkMode} />} />
-               <Route path="depth-sensor" element={<DepthSensor darkMode={darkMode} />} />
               <Route path="*" element={<NotFound darkMode={darkMode} />} />
             </Routes>
           </div>
@@ -125,7 +145,7 @@ export default function AdminDashboard() {
             <div className={`p-5 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
               <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Sign out?</h3>
               <p className={`${darkMode ? 'text-slate-300' : 'text-slate-600'} text-sm mt-1`}>
-                You'll be logged out of the admin dashboard and redirected to the login page.
+                You’ll be logged out of the admin dashboard and redirected to the login page.
               </p>
             </div>
             <div className="p-5 flex items-center justify-end gap-2">
@@ -212,9 +232,7 @@ function Sidebar({ darkMode, setDarkMode, onLogoutRequest }) {
         <NavLink to="/admin/reviews" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
           <CreditCard className="h-5 w-5" /> Reviews
         </NavLink>
-        <NavLink to="/admin/depth-sensor" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-        <Gauge className="h-5 w-5" /> Depth Sensor
-        </NavLink>
+        
         <NavLink
           to="/admin/signout"
           onClick={(e) => { e.preventDefault(); onLogoutRequest && onLogoutRequest(); }}

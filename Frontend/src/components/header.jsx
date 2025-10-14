@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { clearAllAuthData } from "../hook/useRoleAccess";
 
 function base64UrlDecode(input) {
   try {
@@ -48,6 +47,30 @@ function readAuthFromStorage() {
   }
 
   return null;
+}
+
+function clearAuthFromStorage() {
+  const keys = [
+    "customer",
+    "user",
+    "auth",
+    "auth_user",
+    "token",
+    "authToken",
+    "access_token",
+    "jwt",
+    "refresh_token",
+  ];
+  let changed = false;
+  for (const k of keys) {
+    if (localStorage.getItem(k) !== null) {
+      localStorage.removeItem(k);
+      changed = true;
+    }
+  }
+  if (changed) {
+    window.dispatchEvent(new StorageEvent("storage", { key: "auth", newValue: null }));
+  }
 }
 
 export default function Header() {
@@ -104,8 +127,7 @@ export default function Header() {
       }
     }
   }, []);
-  
-  useEffect(() => {
+   useEffect(() => {
     const loadNotifications = async () => {
       const token = localStorage.getItem("token");
       if (token && (userRole === "customer" || userRole === "admin")) {
@@ -212,7 +234,7 @@ export default function Header() {
     }
   };
 
-  const fetchNotifications = async () => {
+   const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setNotifications([]);
@@ -261,7 +283,7 @@ export default function Header() {
     }
   };
 
-  const markAsRead = async (notificationId) => {
+   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
@@ -408,18 +430,17 @@ export default function Header() {
     return "U";
   }, [user]);
 
-  // FIXED: Only keep one logout function that uses clearAllAuthData
   const logout = () => {
     setConfirmOpen(true);
   };
 
   const performLogout = () => {
-    clearAllAuthData(); // Use the centralized function
+    clearAuthFromStorage();
     setUser(null);
     setMenuOpen(false);
     setConfirmOpen(false);
     setToast({ show: true, msg: "Logged out successfully" });
-    navigate("/login"); // Navigate to login instead of home
+    navigate("/");
     setTimeout(() => setToast({ show: false, msg: "" }), 2200);
   };
 
@@ -734,7 +755,7 @@ export default function Header() {
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-semibold text-slate-900">Are you sure you want to logout?</h3>
-                <p className="mt-1 text-sm text-slate-600">You'll be returned to the login page and will need to log in again to access your account.</p>
+                <p className="mt-1 text-sm text-slate-600">You’ll be returned to the home page and will need to log in again to access your account.</p>
               </div>
             </div>
             <div className="mt-5 flex items-center justify-end gap-2">

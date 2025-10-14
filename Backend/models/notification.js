@@ -1,4 +1,4 @@
-
+// models/Notification.js
 import mongoose from "mongoose";
 
 

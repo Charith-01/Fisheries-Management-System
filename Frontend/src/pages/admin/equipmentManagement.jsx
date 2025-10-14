@@ -1,4 +1,3 @@
-// src/pages/admin/EquipmentManagement.jsx
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
@@ -14,7 +13,7 @@ import {
   FileText,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ PDF exporter
+import { exportTablePDF } from "../../utils/pdfExporter"; // Import the PDF export utility
 
 export default function EquipmentManagement({ darkMode }) {
   const [equipment, setEquipment] = useState([]);
@@ -87,7 +86,7 @@ export default function EquipmentManagement({ darkMode }) {
       filtered = filtered.filter((item) => item.type === typeFilter);
     }
 
-    // Availability (derived from quantities)
+    // Availability
     if (availabilityFilter !== "all") {
       filtered = filtered.filter((item) => {
         const status = getAvailabilityStatus(item);
@@ -141,58 +140,7 @@ export default function EquipmentManagement({ darkMode }) {
   const availabilityCounts = getAvailabilityCounts();
   const maintenanceCounts = getMaintenanceCounts();
 
-  // ✅ CSV export (filtered)
-  const handleExportCSV = () => {
-    if (!filteredEquipment.length) {
-      toast.error("No equipment to export");
-      return;
-    }
-    const headers = [
-      "Equipment ID",
-      "Name",
-      "Type",
-      "Total Quantity",
-      "Available Quantity",
-      "Maintenance",
-      "Status",
-      "Serial",
-      "Purchase Date",
-      "Warranty Expiry",
-      "Last Serviced",
-      "Notes",
-    ];
-    const escapeCSV = (str) => {
-      if (str == null) return "";
-      const s = String(str);
-      return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const rows = filteredEquipment.map((r) => [
-      r.equipmentID ?? "",
-      escapeCSV(r.name ?? ""),
-      escapeCSV(r.type ?? ""),
-      r.totalQuantity ?? "",
-      r.availableQuantity ?? "",
-      r.requiresMaintenance ? "Required" : "Not Required",
-      escapeCSV(r.status ?? "-"),
-      escapeCSV(r.serial ?? "-"),
-      r.purchaseDate ? new Date(r.purchaseDate).toLocaleDateString() : "-",
-      r.warrantyExpiry ? new Date(r.warrantyExpiry).toLocaleDateString() : "-",
-      r.lastServiced ? new Date(r.lastServiced).toLocaleDateString() : "-",
-      escapeCSV(r.notes ?? "-"),
-    ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `equipment_report_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  // ✅ PDF export (filtered)
+  // PDF export
   const handleExportPDF = async () => {
     if (!filteredEquipment.length) {
       toast.error("No equipment to export");
@@ -206,20 +154,6 @@ export default function EquipmentManagement({ darkMode }) {
       { header: "Total Qty", get: (r) => r.totalQuantity ?? "-" },
       { header: "Available Qty", get: (r) => r.availableQuantity ?? "-" },
       { header: "Maintenance", get: (r) => (r.requiresMaintenance ? "Required" : "Not Required") },
-      { header: "Status", get: (r) => r.status || "-" }, // optional if present
-      { header: "Serial", get: (r) => r.serial || "-" },
-      {
-        header: "Purchase Date",
-        get: (r) => (r.purchaseDate ? new Date(r.purchaseDate).toLocaleDateString() : "-"),
-      },
-      {
-        header: "Warranty Expiry",
-        get: (r) => (r.warrantyExpiry ? new Date(r.warrantyExpiry).toLocaleDateString() : "-"),
-      },
-      {
-        header: "Last Serviced",
-        get: (r) => (r.lastServiced ? new Date(r.lastServiced).toLocaleDateString() : "-"),
-      },
       { header: "Notes", get: (r) => r.notes || "-" },
     ];
 
@@ -249,19 +183,6 @@ export default function EquipmentManagement({ darkMode }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={handleExportCSV}
-            type="button"
-            className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
-              darkMode
-                ? "bg-slate-700 text-white hover:bg-slate-600"
-                : "bg-slate-100 text-slate-800 hover:bg-slate-200"
-            }`}
-            title="Export filtered equipment as CSV"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
           <button
             onClick={handleExportPDF}
             type="button"
@@ -483,7 +404,6 @@ export default function EquipmentManagement({ darkMode }) {
                 <th className="py-3 px-4 text-left">Total Qty</th>
                 <th className="py-3 px-4 text-left">Available Qty</th>
                 <th className="py-3 px-4 text-left">Maintenance</th>
-                {/* Status column removed */}
                 <th className="py-3 px-4 text-left">Actions</th>
               </tr>
             </thead>
@@ -550,7 +470,6 @@ export default function EquipmentManagement({ darkMode }) {
                       {item.requiresMaintenance ? "Required" : "Not Required"}
                     </span>
                   </td>
-                  {/* Status cell removed */}
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-3">
                       <Link

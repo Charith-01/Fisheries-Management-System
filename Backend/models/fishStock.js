@@ -6,6 +6,7 @@ const fishStockSchema = new mongoose.Schema({
     unique: true,
     required: false
   },
+  // Safe link to Product by ObjectId
   product: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
@@ -23,14 +24,14 @@ const fishStockSchema = new mongoose.Schema({
     default: 'fish'
   },
   weight: {
-    type: Number,
-    required: true
+    type : Number,
+    required : true
   },
-  unit: {
-    type: String,
-    required: true,
-    default: "kg",
-    enum: ["kg", "g", "lbs", "pieces"]
+  unit : {
+    type : String,
+    required : true,
+    default : "kg",
+    enum : ["kg", "g", "lbs", "pieces"]
   },
   quality: {
     type: String,
@@ -52,69 +53,10 @@ const fishStockSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: ['Admin', 'Fisherman']
-  },
-  // New fields for soft updates
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  updateHistory: [{
-    updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      refPath: 'updateHistory.updatedByModel'
-    },
-    updatedByModel: {
-      type: String,
-      required: true,
-      enum: ['Admin', 'Fisherman']
-    },
-    updateComment: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    previousData: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed // Use Map instead of fixed fields
-    },
-    newData: {
-      type: Map, 
-      of: mongoose.Schema.Types.Mixed // Use Map instead of fixed fields
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }]
+  }
 }, {
   timestamps: true
 });
-
-// Alternative schema if Map doesn't work - use Mixed type
-// updateHistory: [{
-//   updatedBy: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     required: true,
-//     refPath: 'updateHistory.updatedByModel'
-//   },
-//   updatedByModel: {
-//     type: String,
-//     required: true,
-//     enum: ['Admin', 'Fisherman']
-//   },
-//   updateComment: {
-//     type: String,
-//     required: true,
-//     trim: true
-//   },
-//   previousData: mongoose.Schema.Types.Mixed, // Use Mixed type
-//   newData: mongoose.Schema.Types.Mixed, // Use Mixed type
-//   updatedAt: {
-//     type: Date,
-//     default: Date.now
-//   }
-// }]
 
 // auto-increment stockId
 fishStockSchema.pre('save', async function(next) {

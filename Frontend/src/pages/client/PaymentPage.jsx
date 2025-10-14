@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import api from "../../api/axios";
+import api from "../../api/axios"; // ✅ use api instance
 import Payment from "../../components/Payment";
 import toast from "react-hot-toast";
+
 
 
 const stripePromise = loadStripe(
@@ -27,7 +28,7 @@ export default function PaymentPage() {
       }
 
       try {
-        const response = await api.get(`/api/order/${encodeURIComponent(orderId)}`);
+        const response = await api.get(`/api/order/${encodeURIComponent(orderId)}`); // 🔒 safe
         setOrder(response.data);
       } catch (err) {
         console.error("Error fetching order:", err);
@@ -50,7 +51,7 @@ export default function PaymentPage() {
   }, [orderId, navigate]);
 
   const handlePaymentSuccess = () => {
-    navigate(`/checkout/success?orderId=${orderId}`);
+    navigate(`/checkout/success?orderId=${orderId}`); // ✅ smoother than window.location.assign
   };
 
   const handlePaymentCancel = () => {
@@ -59,18 +60,21 @@ export default function PaymentPage() {
 
   if (loading) {
     return (
+
       <div className="min-h-screen flex flex-col">
         
         <main className="flex-1 flex items-center justify-center">
           <div className="text-lg">Loading order details...</div>
         </main>
        
+
       </div>
     );
   }
 
   if (!order) {
     return (
+
       <div className="min-h-screen flex flex-col">
        
         <main className="flex-1 flex items-center justify-center">
@@ -83,11 +87,14 @@ export default function PaymentPage() {
           </button>
         </main>
         
+
+
       </div>
     );
   }
 
   return (
+
     <div className="min-h-screen flex flex-col">
       
       <main className="flex-1 bg-gray-50 py-12">
@@ -104,6 +111,7 @@ export default function PaymentPage() {
         </div>
       </main>
      
+
     </div>
   );
 }
