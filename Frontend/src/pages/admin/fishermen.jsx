@@ -91,7 +91,6 @@ export default function AdminFishermenPage({ darkMode }) {
         { header: "Phone", get: (f) => f.phone || "-" },
         { header: "Address", get: (f) => f.address || "-" },
         { header: "License", get: (f) => f.licenseNumber || "-" },
-        { header: "Boat", get: (f) => f.boatNumber || "-" },
         { header: "Position", get: (f) => f.position || "-" },
         { header: "Verification", get: (f) => (f.isEmailVerified ? "Verified" : "Unverified") },
         { header: "Status", get: (f) => (f.isDisabled ? "Disabled" : "Active") },
@@ -302,7 +301,6 @@ export default function AdminFishermenPage({ darkMode }) {
                 <Th>Phone</Th>
                 <Th>Address</Th>
                 <Th>License</Th>
-                <Th>Boat</Th>
                 <Th>Position</Th>
                 <Th>Verification</Th>
                 <Th>Status</Th>
@@ -326,7 +324,6 @@ export default function AdminFishermenPage({ darkMode }) {
                     <span className="line-clamp-2">{f.address || "-"}</span>
                   </Td>
                   <Td className="whitespace-nowrap">{f.licenseNumber || "-"}</Td>
-                  <Td className="whitespace-nowrap">{f.boatNumber || "-"}</Td>
                   <Td className="whitespace-nowrap capitalize">{f.position || "-"}</Td>
                   <Td>
                     <span
@@ -384,7 +381,6 @@ export default function AdminFishermenPage({ darkMode }) {
   );
 }
 
-
 function Th({ children, className = "" }) {
   return (
     <th className={`whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide ${className}`}>
@@ -400,7 +396,7 @@ function Td({ children, className = "" }) {
 function TableSkeleton({ darkMode }) {
   const row = (
     <tr>
-      {Array.from({ length: 11 }).map((_, i) => (
+      {Array.from({ length: 10 }).map((_, i) => (
         <td key={i} className="px-3 py-2">
           <div className={`h-4 w-full rounded ${darkMode ? "bg-slate-700" : "bg-slate-200"}`} />
         </td>
@@ -413,7 +409,7 @@ function TableSkeleton({ darkMode }) {
       <table className="min-w-full">
         <thead>
           <tr>
-            {Array.from({ length: 11 }).map((_, i) => (
+            {Array.from({ length: 10 }).map((_, i) => (
               <th key={i} className="px-3 py-2">
                 <div className={`h-3 w-24 rounded ${darkMode ? "bg-slate-700" : "bg-slate-200"}`} />
               </th>

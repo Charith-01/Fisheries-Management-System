@@ -498,7 +498,7 @@ function ContactSection() {
   );
 }
 
-/* ===================== UPDATED REVIEWS SECTION (FULL-BLEED MARQUEE) ===================== */
+/* ===================== ENHANCED REVIEWS SECTION (FULL-BLEED MARQUEE) ===================== */
 function ReviewsSection() {
   // Real reviews (5-star only), aggregated from products
   const [reviews, setReviews] = useState([]);
@@ -575,9 +575,16 @@ function ReviewsSection() {
   }, []);
 
   return (
-    <section className="bg-gradient-to-b from-white to-sky-50 py-12 md:py-16" id="reviews">
+    <section className="relative bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 py-16 md:py-24 overflow-hidden" id="reviews">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute top-10 left-10 w-72 h-72 bg-sky-200 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+        <div className="absolute top-20 right-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-10 left-1/2 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+      </div>
+
       {/* Header stays centered in the normal container */}
-      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+      <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
         <SectionHeader
           title="WHAT CUSTOMERS SAY"
           subtitle="Real feedback from happy seafood lovers"
@@ -589,13 +596,20 @@ function ReviewsSection() {
         <div className="mx-auto max-w-7xl px-4 lg:px-8">
           <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm animate-pulse">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-sky-100" />
-                  <div className="h-4 w-32 rounded bg-slate-200" />
+              <div key={i} className="group relative rounded-3xl border border-slate-200/50 bg-white/80 backdrop-blur-sm p-6 shadow-lg animate-pulse">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-sky-100 to-blue-100" />
+                  <div className="flex-1">
+                    <div className="h-4 w-32 rounded-full bg-slate-200 mb-2" />
+                    <div className="h-3 w-20 rounded-full bg-slate-100" />
+                  </div>
                 </div>
-                <div className="mt-3 h-16 rounded bg-slate-100" />
-                <div className="mt-3 h-4 w-16 rounded bg-slate-200" />
+                <div className="space-y-2">
+                  <div className="h-3 rounded-full bg-slate-100" />
+                  <div className="h-3 rounded-full bg-slate-100 w-5/6" />
+                  <div className="h-3 rounded-full bg-slate-100 w-4/6" />
+                </div>
+                <div className="mt-4 h-4 w-24 rounded-full bg-slate-200" />
               </div>
             ))}
           </div>
@@ -604,49 +618,117 @@ function ReviewsSection() {
 
       {loaded && reviews.length === 0 && (
         <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-600">
-            No 5-star reviews yet. Check back soon!
+          <div className="mt-6 rounded-3xl border-2 border-dashed border-slate-300 bg-white/80 backdrop-blur-sm p-12 text-center shadow-lg">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 mb-4">
+              <svg className="w-8 h-8 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            </div>
+            <p className="text-lg text-slate-600 font-medium">No 5-star reviews yet. Check back soon!</p>
           </div>
         </div>
       )}
 
       {loaded && reviews.length > 0 && (
-        <div className="relative mt-6 overflow-hidden -mx-4 lg:-mx-8">
-          {/* left/right edge fades for a polished look */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
+        <div className="relative mt-8 overflow-hidden">
+          {/* Enhanced edge fades with gradient overlays */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-slate-50 via-sky-50/80 to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-blue-50 via-sky-50/80 to-transparent z-10" />
 
           {/* Track: duplicate list to get seamless loop */}
-          <div className="flex gap-4 px-4 lg:px-8 animate-marquee will-change-transform">
+          <div className="flex gap-6 px-4 lg:px-8 animate-marquee will-change-transform hover:animation-pause">
             {[...reviews, ...reviews].map((r, i) => (
               <div
                 key={`${r.name}-${i}`}
-                className="w-[280px] sm:w-[320px] md:w-[360px] shrink-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="group relative w-[300px] sm:w-[340px] md:w-[380px] shrink-0 rounded-3xl border border-slate-200/50 bg-white/90 backdrop-blur-sm p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:-translate-y-1"
               >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-sky-100 grid place-items-center text-sky-700 font-bold">
+                {/* Quote icon decoration */}
+                <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
+                  <svg className="w-12 h-12 text-sky-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                  </svg>
+                </div>
+
+                {/* Header with avatar */}
+                <div className="relative flex items-center gap-4 mb-4">
+                  <div className="relative h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 shadow-lg grid place-items-center text-white font-bold text-lg ring-4 ring-white group-hover:ring-sky-100 transition-all duration-300">
                     {initials(r.name)}
+                    {/* Verified badge */}
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-slate-900">{r.name}</div>
-                    <div className="text-xs text-slate-500">Verified Buyer</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-slate-900 text-lg truncate">{r.name}</div>
+                    <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Verified Buyer
+                    </div>
                   </div>
                 </div>
-                <p className="mt-3 text-slate-700 line-clamp-4">{r.text}</p>
-                <div className="mt-3 text-sky-600">★★★★★</div>
+
+                {/* Review text with better typography */}
+                <div className="relative">
+                  <p className="text-slate-700 leading-relaxed line-clamp-4 text-sm">
+                    {r.text}
+                  </p>
+                </div>
+
+                {/* Star rating with gradient */}
+                <div className="mt-4 flex items-center gap-1">
+                  {[...Array(5)].map((_, idx) => (
+                    <svg
+                      key={idx}
+                      className="w-5 h-5 text-amber-400 drop-shadow-sm"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+
+                {/* Subtle bottom gradient line */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 via-blue-500 to-purple-500 rounded-b-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* styles for the continuous marquee */}
+      {/* Enhanced styles for the continuous marquee with pause on hover */}
       <style>{`
+        /* Blob animation for background */
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+
         /* Make the track width fit content so translateX works predictably */
         .animate-marquee {
           width: max-content;
-          animation: marquee 40s linear infinite;
+          animation: marquee 45s linear infinite;
         }
+        
+        /* Pause animation on hover */
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+        
         @keyframes marquee {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -655,7 +737,7 @@ function ReviewsSection() {
     </section>
   );
 }
-/* =================== END UPDATED REVIEWS SECTION (FULL-BLEED) =================== */
+/* =================== END ENHANCED REVIEWS SECTION (FULL-BLEED) =================== */
 
 
 function LandingPage() {
