@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import axios from "../api/axios";
 import toast from "react-hot-toast";
 import {
-  Save, Loader, ChevronLeft, CalendarClock, Ship, UserCircle2, Users, MapPin, CalendarRange, ClipboardList,
+  Save, Loader, ChevronLeft, CalendarClock, Ship, UserCircle2, Users, MapPin, CalendarRange, ClipboardList, AlertTriangle,
 } from "lucide-react";
 
 export default function EditTripForm({ darkMode = false }) {
@@ -19,6 +19,10 @@ export default function EditTripForm({ darkMode = false }) {
 
   const [status, setStatus] = useState("upcoming");
 
+
+  const [checking, setChecking] = useState(false);
+  const [conflicts, setConflicts] = useState([]);
+
   const [form, setForm] = useState({
     tripId: "",
     boat: "",
@@ -32,6 +36,9 @@ export default function EditTripForm({ darkMode = false }) {
     actualReturnAt: "",
   });
 
+  const token = useMemo(() => localStorage.getItem("token") || "", []);
+  const headers = useMemo(() => ({ Authorization: "Bearer " + token }), [token]);
+
   const idOf = (x) =>
     typeof x === "string" ? x : (x && (x._id || x.id)) ? String(x._id || x.id) : "";
 
@@ -41,22 +48,17 @@ export default function EditTripForm({ darkMode = false }) {
     return full || u.email || idOf(u) || "";
   };
 
-  // Check if trip is completed or cancelled (read-only)
   const isReadOnly = status === "completed" || status === "cancelled";
-  
-  // Check if trip is ongoing (only actual return can be edited)
   const isOngoing = status === "ongoing";
-  
-  // Check if trip is upcoming (cannot set actual return)
   const isUpcoming = status === "upcoming";
 
-  // ensure current selected value exist in dropdown lists
   const ensureSkipperPresent = (list, skipperId, skipperObj) => {
     if (!skipperId) return list;
     const exists = list.some((u) => String(u._id) === String(skipperId));
     if (exists) return list;
     const label = skipperObj ? nameOfFisherman(skipperObj) : skipperId;
     return [{ _id: skipperId, firstName: label }, ...list];
+    // minimal inject so the current value renders even if filtered out
   };
 
   const ensureFishermenPresent = (list, ids, objs) => {
@@ -73,16 +75,11 @@ export default function EditTripForm({ darkMode = false }) {
     return [...inject, ...list];
   };
 
-  
+  /*  load trip + lookups  */
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const headers = { Authorization: "Bearer " + token };
-
     (async () => {
       try {
-        // 1) Load trip
         const t = await axios.get(`/api/trip/${encodeURIComponent(tripId)}`, { headers });
-        
         const trip = t.data?.trip || t.data;
         if (!trip) {
           toast.error("Trip not found");
@@ -92,11 +89,8 @@ export default function EditTripForm({ darkMode = false }) {
 
         setStatus(trip.status || "upcoming");
 
-        // Support both new (skipper) and legacy (captain) fields
         const skipperObj = trip.skipper || trip.captain || null;
         const skipperId = idOf(skipperObj);
-
-        // fishermen could be Fisherman
         const fishermenObjs = Array.isArray(trip.fishermen) ? trip.fishermen : [];
         const fishermenIds = fishermenObjs.map(idOf).filter(Boolean);
 
@@ -113,7 +107,6 @@ export default function EditTripForm({ darkMode = false }) {
           actualReturnAt: toInputDT(trip.actualReturnAt) || "",
         });
 
-        // Load dropdown sources
         const [boatsRes, skRes, fishRes] = await Promise.allSettled([
           axios.get("/api/boat", { headers }),
           axios.get("/api/fisherman?position=skipper", { headers }),
@@ -133,7 +126,6 @@ export default function EditTripForm({ darkMode = false }) {
         if (fishRes.status === "fulfilled") fishermanList = fishRes.value.data || [];
         else toast.error("Failed to load fishermen");
 
-        // 3) Ensure current values exist in lists even if not returned by filters
         skipperList = ensureSkipperPresent(skipperList, skipperId, skipperObj);
         fishermanList = ensureFishermenPresent(fishermanList, fishermenIds, fishermenObjs);
 
@@ -147,101 +139,147 @@ export default function EditTripForm({ darkMode = false }) {
         setLoading(false);
       }
     })();
-  }, [tripId]);
+  }, [tripId, headers]);
 
-  // ---------- handlers ----------
+  /*  handlers & validation  */
   function onChange(e) {
     const { name, value } = e.target;
-    
-    if (isReadOnly) return; // Prevent changes for completed/cancelled trips
-    
+
+    if (isReadOnly) return;
+
     if (name === "departureDateTime") {
+      if (!isUpcoming) {
+        // departure edit only allowed in upcoming state
+        return;
+      }
       const departureDate = new Date(value);
       const now = new Date();
-      
-      // Prevent past dates
       if (departureDate < now) {
         toast.error("Departure date cannot be in the past");
         return;
       }
-      
-      // Automatically set planned return to 30 days after departure
       const plannedReturnDate = new Date(departureDate);
       plannedReturnDate.setDate(plannedReturnDate.getDate() + 30);
-      
-      // Format to datetime-local format (YYYY-MM-DDTHH:mm)
       const formattedReturn = plannedReturnDate.toISOString().slice(0, 16);
-      const formattedDeparture = value;
-      
-      setForm(prev => ({ 
-        ...prev, 
-        departureDateTime: formattedDeparture,
-        plannedReturnAt: formattedReturn
+
+      setForm((prev) => ({
+        ...prev,
+        departureDateTime: value,
+        plannedReturnAt: formattedReturn,
       }));
     } else if (name === "actualReturnAt") {
-      // For ongoing trips, validate actual return date is after departure
-      if (isOngoing && value) {
+      if (!isOngoing && status !== "completed") {
+        // actual return is only meaningful while ongoing or viewing a completed trip
+        return setForm((prev) => ({ ...prev, [name]: value }));
+      }
+      if (value) {
         const actualReturn = new Date(value);
         const departure = new Date(form.departureDateTime);
-        
-        // Actual return cannot be before departure
         if (actualReturn < departure) {
           toast.error("Actual return cannot be before departure date");
           return;
         }
       }
-      
-      setForm(prev => ({ ...prev, [name]: value }));
+      setForm((prev) => ({ ...prev, [name]: value }));
     } else {
-      setForm(prev => ({ ...prev, [name]: value }));
+      if (isOngoing) return; 
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   }
 
   function onFishermenChange(e) {
-    if (isReadOnly || isOngoing) return; // Prevent changes for ongoing/completed/cancelled trips
+    if (isReadOnly || isOngoing) return;
     const values = Array.from(e.target.selectedOptions).map((o) => String(o.value));
     setForm((prev) => ({ ...prev, fishermen: values }));
   }
 
   function validate() {
     if (isReadOnly) return "Cannot edit completed or cancelled trips";
-    
-    // For ongoing trips, only validate actual return date
+
     if (isOngoing) {
       if (!form.actualReturnAt) return "Actual return date is required to complete the trip";
-      
       const actualReturn = new Date(form.actualReturnAt);
       const departure = new Date(form.departureDateTime);
-      
       if (actualReturn < departure) return "Actual return cannot be before departure date";
-      
       return null;
     }
-    
-    // For upcoming trips, validate all fields (except actual return)
+
+    // Upcoming/other editable cases
     if (!form.boat) return "Select a boat";
     if (!form.skipper) return "Select a skipper";
     if (!form.fishermen.length) return "Choose at least one fisherman";
     if (!form.departureDateTime) return "Departure date/time is required";
     if (!form.plannedReturnAt) return "Planned return is required";
-    
+
     const departure = new Date(form.departureDateTime);
     const plannedReturn = new Date(form.plannedReturnAt);
     const now = new Date();
-    
+
     if (departure < now) return "Departure date cannot be in the past";
     if (plannedReturn <= departure) return "Return must be after departure";
-    
+
     const maxReturnDate = new Date(departure);
     maxReturnDate.setDate(maxReturnDate.getDate() + 30);
     if (plannedReturn > maxReturnDate) return "Return date cannot be more than 30 days after departure";
-    
+
     if (!form.destination.trim()) return "Destination is required";
     if (!form.tripType.trim()) return "Trip type is required";
-    
+
+    if (conflicts.length > 0) return "Boat/crew not available for this time window";
     return null;
   }
 
+  /* ---------------- LIVE AVAILABILITY (upcoming only) ---------------- */
+  useEffect(() => {
+    if (!isUpcoming) {
+      setConflicts([]);
+      return;
+    }
+    const { boat, skipper, fishermen, departureDateTime, plannedReturnAt } = form;
+    if (!boat || !skipper || !departureDateTime || !plannedReturnAt) {
+      setConflicts([]);
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      setChecking(true);
+      try {
+        const { data } = await axios.post(
+          "/api/trip/check-availability",
+          {
+            boat,
+            skipper,                 
+            fishermen,
+            departureDateTime,
+            plannedReturnAt,
+            excludeTripId: tripId,   
+          },
+          { headers }
+        );
+        if (!cancelled) setConflicts(Array.isArray(data?.conflicts) ? data.conflicts : []);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) toast.error("Availability check failed");
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    };
+    run();
+
+    return () => { cancelled = true; };
+  }, [
+    isUpcoming,
+    form.boat,
+    form.skipper,
+    form.fishermen,
+    form.departureDateTime,
+    form.plannedReturnAt,
+    tripId,
+    headers,
+  ]);
+
+  /* ---------------- submit ---------------- */
   async function onSubmit(e) {
     e.preventDefault();
     const err = validate();
@@ -249,19 +287,35 @@ export default function EditTripForm({ darkMode = false }) {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: "Bearer " + token };
+      // For upcoming edits: recheck availability on submit
+      if (!isOngoing) {
+        const { data: avail } = await axios.post(
+          "/api/trip/check-availability",
+          {
+            boat: form.boat,
+            skipper: form.skipper,
+            fishermen: form.fishermen,
+            departureDateTime: form.departureDateTime,
+            plannedReturnAt: form.plannedReturnAt,
+            excludeTripId: tripId,
+          },
+          { headers }
+        );
+        if (!avail?.ok) {
+          setConflicts(Array.isArray(avail?.conflicts) ? avail.conflicts : []);
+          throw new Error("Boat/crew not available for this time window");
+        }
+      }
 
       const payload = {
         ...form,
-        // make sure ids are plain strings
         boat: String(form.boat),
         skipper: String(form.skipper),
         fishermen: form.fishermen.map(String),
         departureDateTime: new Date(form.departureDateTime).toISOString(),
         plannedReturnAt: new Date(form.plannedReturnAt).toISOString(),
-        // For upcoming trips, don't send actualReturnAt
-        actualReturnAt: isUpcoming ? undefined : (form.actualReturnAt ? new Date(form.actualReturnAt).toISOString() : undefined),
+        actualReturnAt:
+          isUpcoming ? undefined : (form.actualReturnAt ? new Date(form.actualReturnAt).toISOString() : undefined),
       };
 
       await axios.put(`/api/trip/${encodeURIComponent(tripId)}`, payload, { headers });
@@ -269,7 +323,11 @@ export default function EditTripForm({ darkMode = false }) {
       navigate("/admin/trip");
     } catch (e) {
       console.error(e);
-      toast.error(e.response?.data?.message || "Update failed");
+      const msg = e.response?.data?.message || e.message || "Update failed";
+      toast.error(msg);
+      if (e.response?.status === 409 && Array.isArray(e.response?.data?.conflicts)) {
+        setConflicts(e.response.data.conflicts);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -288,9 +346,8 @@ export default function EditTripForm({ darkMode = false }) {
       ? "border-slate-700 bg-slate-800/80 text-slate-100 placeholder:text-slate-400 focus:ring-cyan-400 focus:border-cyan-400"
       : "border-slate-200 bg-white/60 text-slate-800 placeholder:text-slate-400 focus:ring-cyan-500 focus:border-cyan-500"
   } w-full rounded-xl border px-3 py-2 text-sm shadow-sm outline-none transition`;
-  
+
   const readOnlyInputBase = `${inputBase} bg-opacity-50 cursor-not-allowed opacity-70`;
-  
   const labelBase = `text-sm font-medium mb-1 flex items-center gap-2 ${darkMode ? "text-slate-200" : "text-slate-700"}`;
   const cardWrap = `rounded-2xl border p-6 shadow-xl backdrop-blur ${darkMode ? "border-slate-700 bg-slate-800/90" : "border-slate-200 bg-white/80"}`;
   const pageWrap = `flex justify-center mt-10 px-4 ${darkMode ? "text-slate-100" : "text-slate-800"}`;
@@ -308,15 +365,11 @@ export default function EditTripForm({ darkMode = false }) {
   const submitBtn = `inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow ${
     darkMode ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-600" : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
   } disabled:cursor-not-allowed disabled:opacity-60`;
-  
   const disabledSubmitBtn = `inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow ${
     darkMode ? "bg-slate-700 text-slate-400 cursor-not-allowed" : "bg-slate-300 text-slate-500 cursor-not-allowed"
   }`;
 
-  // Calculate min date for departure input
   const minDepartureDate = new Date().toISOString().slice(0, 16);
-
-  // Calculate min for actual return date (departure date for ongoing trips)
   const minActualReturnDate = form.departureDateTime;
 
   return (
@@ -355,8 +408,8 @@ export default function EditTripForm({ darkMode = false }) {
           <div className="mb-6">
             <h2 className={h2Cls}>Edit Trip <span className={`font-mono text-sm ${darkMode ? "text-slate-400" : "text-slate-500"}`}>{tripId}</span></h2>
             <p className={subCls}>
-              {isReadOnly ? "Viewing trip details (read-only)" : 
-               isOngoing ? "Update actual return date only" : 
+              {isReadOnly ? "Viewing trip details (read-only)" :
+               isOngoing ? "Update actual return date only" :
                "Update the details below and save your changes."}
             </p>
           </div>
@@ -372,22 +425,22 @@ export default function EditTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="tripId">Trip ID</label>
-                  <input 
-                    id="tripId" 
-                    name="tripId" 
-                    value={form.tripId} 
-                    readOnly 
-                    className={`${inputBase} ${darkMode ? "bg-slate-900/40" : "bg-slate-50"} font-mono cursor-not-allowed`} 
+                  <input
+                    id="tripId"
+                    name="tripId"
+                    value={form.tripId}
+                    readOnly
+                    className={`${inputBase} ${darkMode ? "bg-slate-900/40" : "bg-slate-50"} font-mono cursor-not-allowed`}
                   />
                 </div>
 
                 <div>
                   <label className={labelBase} htmlFor="tripType">Trip Type</label>
-                  <select 
-                    id="tripType" 
-                    name="tripType" 
-                    value={form.tripType} 
-                    onChange={onChange} 
+                  <select
+                    id="tripType"
+                    name="tripType"
+                    value={form.tripType}
+                    onChange={onChange}
                     disabled={isReadOnly || isOngoing}
                     className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
                   >
@@ -403,14 +456,14 @@ export default function EditTripForm({ darkMode = false }) {
                     <MapPin className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Destination
                   </label>
-                  <input 
-                    id="destination" 
-                    name="destination" 
-                    placeholder="e.g., Offshore Zone 4B" 
-                    value={form.destination} 
-                    onChange={onChange} 
+                  <input
+                    id="destination"
+                    name="destination"
+                    placeholder="e.g., Offshore Zone 4B"
+                    value={form.destination}
+                    onChange={onChange}
                     disabled={isReadOnly || isOngoing}
-                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase} 
+                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
                   />
                 </div>
               </div>
@@ -431,11 +484,11 @@ export default function EditTripForm({ darkMode = false }) {
                     <Ship className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Boat
                   </label>
-                  <select 
-                    id="boat" 
-                    name="boat" 
-                    value={form.boat} 
-                    onChange={onChange} 
+                  <select
+                    id="boat"
+                    name="boat"
+                    value={form.boat}
+                    onChange={onChange}
                     disabled={isReadOnly || isOngoing}
                     className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
                   >
@@ -451,11 +504,11 @@ export default function EditTripForm({ darkMode = false }) {
                     <UserCircle2 className={`h-4 w-4 ${darkMode ? "text-slate-400" : "text-slate-500"}`} />
                     Skipper
                   </label>
-                  <select 
-                    id="skipper" 
-                    name="skipper" 
-                    value={form.skipper} 
-                    onChange={onChange} 
+                  <select
+                    id="skipper"
+                    name="skipper"
+                    value={form.skipper}
+                    onChange={onChange}
                     disabled={isReadOnly || isOngoing}
                     className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
                   >
@@ -470,11 +523,11 @@ export default function EditTripForm({ darkMode = false }) {
 
                 <div className="md:col-span-2">
                   <label className={labelBase} htmlFor="fishermen">Fishermen</label>
-                  <select 
-                    id="fishermen" 
-                    multiple 
-                    value={form.fishermen} 
-                    onChange={onFishermenChange} 
+                  <select
+                    id="fishermen"
+                    multiple
+                    value={form.fishermen}
+                    onChange={onFishermenChange}
                     disabled={isReadOnly || isOngoing}
                     className={`${isReadOnly || isOngoing ? readOnlyInputBase : inputBase} h-40`}
                   >
@@ -485,7 +538,9 @@ export default function EditTripForm({ darkMode = false }) {
                     ))}
                   </select>
                   <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-                    {isReadOnly || isOngoing ? "Selection disabled for this trip status" : "Hold Ctrl (Windows) or Cmd (Mac) to select multiple."}
+                    {isReadOnly || isOngoing
+                      ? "Selection disabled for this trip status"
+                      : "Hold Ctrl (Windows) or Cmd (Mac) to select multiple."}
                   </p>
                 </div>
               </div>
@@ -503,15 +558,15 @@ export default function EditTripForm({ darkMode = false }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className={labelBase} htmlFor="departureDateTime">Departure</label>
-                  <input 
-                    id="departureDateTime" 
-                    type="datetime-local" 
-                    name="departureDateTime" 
-                    value={form.departureDateTime} 
-                    onChange={onChange} 
+                  <input
+                    id="departureDateTime"
+                    type="datetime-local"
+                    name="departureDateTime"
+                    value={form.departureDateTime}
+                    onChange={onChange}
                     min={minDepartureDate}
                     disabled={isReadOnly || isOngoing}
-                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase} 
+                    className={isReadOnly || isOngoing ? readOnlyInputBase : inputBase}
                   />
                   <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
                     {isReadOnly || isOngoing ? "Cannot edit departure date" : "Cannot be in the past"}
@@ -519,13 +574,13 @@ export default function EditTripForm({ darkMode = false }) {
                 </div>
                 <div>
                   <label className={labelBase} htmlFor="plannedReturnAt">Planned Return</label>
-                  <input 
-                    id="plannedReturnAt" 
-                    type="datetime-local" 
-                    name="plannedReturnAt" 
-                    value={form.plannedReturnAt} 
+                  <input
+                    id="plannedReturnAt"
+                    type="datetime-local"
+                    name="plannedReturnAt"
+                    value={form.plannedReturnAt}
                     readOnly
-                    className={`${inputBase} bg-opacity-50 cursor-not-allowed`} 
+                    className={`${inputBase} bg-opacity-50 cursor-not-allowed`}
                   />
                   <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
                     Automatically set to 30 days after departure
@@ -533,26 +588,25 @@ export default function EditTripForm({ darkMode = false }) {
                 </div>
               </div>
 
-              {/* Actual Return Date - Only show for ongoing and completed trips */}
+              {/* Ongoing/Completed: actual return */}
               {(isOngoing || status === "completed") && (
                 <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
                     <label className={labelBase} htmlFor="actualReturnAt">
                       Actual Return {isOngoing && <span className="text-blue-500">*</span>}
                     </label>
-                    <input 
-                      id="actualReturnAt" 
-                      type="datetime-local" 
-                      name="actualReturnAt" 
-                      value={form.actualReturnAt} 
-                      onChange={onChange} 
+                    <input
+                      id="actualReturnAt"
+                      type="datetime-local"
+                      name="actualReturnAt"
+                      value={form.actualReturnAt}
+                      onChange={onChange}
                       min={minActualReturnDate}
                       disabled={isReadOnly}
-                      className={isReadOnly ? readOnlyInputBase : inputBase} 
+                      className={isReadOnly ? readOnlyInputBase : inputBase}
                     />
                     <p className={`mt-1 text-xs ${darkMode ? "text-slate-400" : "text-slate-600"}`}>
-                      {isOngoing ? "Set the actual return date (must be after departure)" : 
-                       "Actual return date (read-only)"}{" "}
+                      {isOngoing ? "Set the actual return date (must be after departure)" : "Actual return date (read-only)"}{" "}
                       <span className="inline-flex items-center gap-1">
                         <CalendarClock size={12} /> Current status: {status || "—"}
                       </span>
@@ -560,23 +614,57 @@ export default function EditTripForm({ darkMode = false }) {
                   </div>
                 </div>
               )}
+
+              {/* Availability result (only for upcoming & when inputs present) */}
+              {isUpcoming && form.boat && form.skipper && form.departureDateTime && form.plannedReturnAt && (
+                checking ? (
+                  <div className={`mt-3 rounded-xl px-3 py-2 text-sm ring-1 ${darkMode ? "bg-slate-800 text-slate-300 ring-slate-700" : "bg-slate-50 text-slate-600 ring-slate-200"}`}>
+                    Checking availability…
+                  </div>
+                ) : conflicts.length > 0 ? (
+                  <div className={`mt-3 rounded-xl px-3 py-3 text-sm ring-1 ${darkMode ? "bg-rose-900/30 text-rose-200 ring-rose-800" : "bg-rose-50 text-rose-700 ring-rose-200"}`}>
+                    <div className="flex items-center gap-2 font-semibold mb-1">
+                      <AlertTriangle className="h-4 w-4" />
+                      Conflicts found — cannot save these changes:
+                    </div>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {conflicts.map((c) => {
+                        const boat = c.boat?.name || c.boat?.boatName || c.boat?.boatNumber || c.boat?.registrationNumber || c.boat || "Boat";
+                        const skipper = c.skipper?.firstName || c.skipper?.lastName
+                          ? `${c.skipper?.firstName || ""} ${c.skipper?.lastName || ""}`.trim()
+                          : c.skipper?.email || "Skipper";
+                        const dep = new Date(c.departureDateTime).toLocaleString();
+                        const ret = new Date(c.plannedReturnAt).toLocaleString();
+                        return (
+                          <li key={c.tripId}>
+                            Trip <b>{c.tripId}</b> — {boat}; Skipper: {skipper}; {dep} → {ret}; Status: {c.status}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className={`mt-3 rounded-xl px-3 py-2 text-sm ring-1 ${darkMode ? "bg-emerald-900/30 text-emerald-200 ring-emerald-800" : "bg-emerald-50 text-emerald-700 ring-emerald-200"}`}>
+                    Boat, skipper & crew are available for this time window.
+                  </div>
+                )
+              )}
             </section>
 
-            <hr className={divider} />
-
             {/* Notes */}
+            <hr className={divider} />
             <section>
               <div className="mb-3 flex items-center gap-2">
                 <ClipboardList className={`h-5 w-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
                 <h3 className={sectionTitle}>Notes</h3>
               </div>
-              <textarea 
-                name="specialNotes" 
-                placeholder="Any special instructions or notes…" 
-                value={form.specialNotes} 
-                onChange={onChange} 
+              <textarea
+                name="specialNotes"
+                placeholder="Any special instructions or notes…"
+                value={form.specialNotes}
+                onChange={onChange}
                 disabled={isReadOnly || isOngoing}
-                className={`${isReadOnly || isOngoing ? readOnlyInputBase : inputBase} min-h-[120px]`} 
+                className={`${isReadOnly || isOngoing ? readOnlyInputBase : inputBase} min-h-[120px]`}
               />
             </section>
 
@@ -588,7 +676,11 @@ export default function EditTripForm({ darkMode = false }) {
                   Read-only Mode
                 </button>
               ) : (
-                <button type="submit" disabled={isSubmitting} className={submitBtn}>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || (isUpcoming && (checking || conflicts.length > 0))}
+                  className={submitBtn}
+                >
                   {isSubmitting ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
                   {isSubmitting ? "Saving…" : isOngoing ? "Update Return Date" : "Update Trip"}
                 </button>
