@@ -1,4 +1,3 @@
-// Backend/controllers/googleAuthController.js
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import Customer from "../models/customer.js";
@@ -8,7 +7,7 @@ const {
   GOOGLE_CLIENT_SECRET,
   GOOGLE_REDIRECT_URI,
   JWT_KEY,
-  CLIENT_URL, // e.g., http://localhost:5173
+  CLIENT_URL,
 } = process.env;
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI || !JWT_KEY) {
@@ -23,7 +22,6 @@ const oauthClient = new OAuth2Client({
   redirectUri: GOOGLE_REDIRECT_URI,
 });
 
-// -------- helpers --------
 function signAppJwt(user) {
   const payload = {
     id: String(user._id),
@@ -62,7 +60,6 @@ async function findOrCreateUserFromGooglePayload(googlePayload) {
     return user;
   }
 
-  // Create minimal Google user (your schema makes local-only fields optional for provider=google)
   user = await Customer.create({
     email,
     firstName: givenName || "Google",
@@ -86,14 +83,12 @@ async function verifyIdToken(idToken) {
   return ticket.getPayload();
 }
 
-// -------- controllers --------
 export async function oauthStart(req, res, next) {
   try {
     const url = oauthClient.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
       scope: ["openid", "email", "profile"],
-      // state: req.query.state || ""
     });
     return res.redirect(url);
   } catch (err) {
@@ -101,9 +96,6 @@ export async function oauthStart(req, res, next) {
   }
 }
 
-/**
- * Redirect flow: Google → /callback → Redirect back to frontend with token & user in query
- */
 export async function oauthCallback(req, res, next) {
   try {
     const code = req.query.code;
@@ -118,7 +110,6 @@ export async function oauthCallback(req, res, next) {
     const user = await findOrCreateUserFromGooglePayload(payload);
     const appToken = signAppJwt(user);
 
-    // Minimal safe user for the frontend
     const safeUser = {
       id: user._id,
       email: user.email,
@@ -137,16 +128,11 @@ export async function oauthCallback(req, res, next) {
 
     return res.redirect(url);
 
-    // If you ever need JSON instead of redirect:
-    // return res.json({ token: appToken, user: safeUser });
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * One Tap / GIS popup: frontend sends id_token → verify → return JSON
- */
 export async function loginWithIdToken(idToken, req, res) {
   const payload = await verifyIdToken(idToken);
   const user = await findOrCreateUserFromGooglePayload(payload);

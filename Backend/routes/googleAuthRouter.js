@@ -1,4 +1,3 @@
-// Backend/routes/googleAuthRouter.js
 import express from "express";
 import {
   oauthStart,
@@ -8,18 +7,14 @@ import {
 
 const router = express.Router();
 
-// Health check (optional)
 router.get("/", (req, res) => {
   res.json({ ok: true, provider: "google", routes: ["/start", "/callback", "/id-token"] });
 });
 
-// Redirect-based starter (optional)
 router.get("/start", oauthStart);
 
-// OAuth callback (code → tokens)
 router.get("/callback", oauthCallback);
 
-// Token-based flow for GIS/One Tap
 router.post("/id-token", express.json(), async (req, res, next) => {
   try {
     const idToken = req.body?.id_token || req.body?.credential;
