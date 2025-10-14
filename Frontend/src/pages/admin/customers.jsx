@@ -2,7 +2,7 @@ import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Download, X, CheckCircle2, ShieldAlert, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ added
+import { exportTablePDF } from "../../utils/pdfExporter";
 
 const VERIFY_FILTERS = ["all", "verified", "unverified"];
 const STATUS = ["all", "active", "disabled"];
@@ -67,7 +67,6 @@ export default function AdminCustomersPage({ darkMode }) {
     return list;
   }, [customers, query, verifyFilter, status]);
 
-  // ✅ added — Export PDF (replaces CSV)
   const exportPDF = () => {
     exportTablePDF({
       title: "Customers Report",
@@ -96,6 +95,28 @@ export default function AdminCustomersPage({ darkMode }) {
     });
   };
 
+  const handleDelete = (customer) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this customer? This action cannot be undone."
+    );
+
+    if (confirmDelete) {
+      const url = import.meta.env.VITE_BACKEND_URL + "/api/customer/" + customer._id;
+      const token = localStorage.getItem("token");
+
+      axios
+        .delete(url, { headers: { Authorization: "Bearer " + token } })
+        .then((res) => {
+          toast.success("Customer deleted successfully");
+          setCustomers(customers.filter((c) => c._id !== customer._id));
+        })
+        .catch((err) => {
+          const msg = err?.response?.data?.message || "Failed to delete customer";
+          toast.error(msg);
+        });
+    }
+  };
+
   return (
     <div
       className={`rounded-2xl p-4 sm:p-6 shadow ring-1 backdrop-blur ${
@@ -115,7 +136,6 @@ export default function AdminCustomersPage({ darkMode }) {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          {/* ✅ replaced CSV with PDF export */}
           <button
             onClick={exportPDF}
             type="button"
@@ -125,7 +145,7 @@ export default function AdminCustomersPage({ darkMode }) {
             title="Export current view as PDF"
           >
             <Download className="h-4 w-4" />
-            Export PDF
+            Download PDF
           </button>
         </div>
       </div>
@@ -304,8 +324,6 @@ export default function AdminCustomersPage({ darkMode }) {
     </div>
   );
 }
-
-/* ---------- Subcomponents / utils ---------- */
 
 function Th({ children, className = "" }) {
   return (

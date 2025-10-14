@@ -10,7 +10,6 @@ export default function ProductFilters({
   const CATEGORIES = ["all", "fish", "crab", "shellfish", "prawn", "lobster", "squid", "other"];
   const STATUS = ["all", "active", "inactive"];
 
-  // highlight active category
   const CategoryButton = ({ c }) => (
     <button
       type="button"
@@ -26,7 +25,6 @@ export default function ProductFilters({
 
   return (
     <div className="space-y-7 p-4 bg-white rounded-2xl shadow-md border border-slate-200 ml-1">
-      {/* Search */}
       <div>
         <label className="block text-base font-semibold text-slate-800 mb-2.5">Search</label>
         <input
@@ -38,7 +36,6 @@ export default function ProductFilters({
         />
       </div>
 
-      {/* Category List */}
       <div>
         <h4 className="text-base font-semibold text-slate-800 mb-2.5">Categories</h4>
         <div className="space-y-1.5">
@@ -48,7 +45,6 @@ export default function ProductFilters({
         </div>
       </div>
 
-      {/* Status */}
       <div>
         <label className="block text-base font-semibold text-slate-800 mb-2.5">Status</label>
         <select
@@ -64,7 +60,6 @@ export default function ProductFilters({
         </select>
       </div>
 
-      {/* Price Range */}
       <div>
         <h4 className="text-base font-semibold text-slate-800 mb-2.5">Price Range</h4>
         <div className="flex items-center gap-3">

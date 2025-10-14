@@ -42,9 +42,9 @@ export default function ProductCard(props) {
 
       <div className="flex-1 w-full p-3 flex flex-col justify-between">
         <div className="text-center">
-          <span className="block text-xs font-medium text-blue-600 mb-1">
+          {/* <span className="block text-xs font-medium text-blue-600 mb-1 uppercase">
             {product.category}
-          </span>
+          </span> */}
 
           <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition text-lg">
             {product.name}

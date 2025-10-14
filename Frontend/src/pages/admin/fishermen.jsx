@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, X, CheckCircle2, ShieldAlert, Trash2, Anchor, Edit, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ added
+import { exportTablePDF } from "../../utils/pdfExporter";
 
 const VERIFY_FILTERS = ["all", "verified", "unverified"];
 const STATUS = ["all", "active", "disabled"];
@@ -75,7 +75,6 @@ export default function AdminFishermenPage({ darkMode }) {
     return list;
   }, [rows, query, verifyFilter, status, position]);
 
-  // ✅ added — Export PDF
   const exportPDF = () => {
     exportTablePDF({
       title: "Fishermen Report",
@@ -161,7 +160,6 @@ export default function AdminFishermenPage({ darkMode }) {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          {/* ✅ replaced CSV with PDF export */}
           <button
             onClick={exportPDF}
             type="button"
@@ -171,7 +169,7 @@ export default function AdminFishermenPage({ darkMode }) {
             title="Export current view as PDF"
           >
             <Download className="h-4 w-4" />
-            Export PDF
+            Download PDF
           </button>
           <button
             onClick={handleAdd}

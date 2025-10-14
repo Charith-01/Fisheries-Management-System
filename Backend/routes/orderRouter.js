@@ -13,8 +13,6 @@ import verifyJWT from "../middleware/auth.js";
 
 const orderRouter = express.Router();
 
-// NOTE: verifyJWT is applied globally in index.js, so these still remain.
-// Keeping per-route auth where you already had it:
 orderRouter.post('/create', createOrder);
 orderRouter.get('/all', getOrders);
 orderRouter.get('/:orderId', verifyJWT, getOrderById);

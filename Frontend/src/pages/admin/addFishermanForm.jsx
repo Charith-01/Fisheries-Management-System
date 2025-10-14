@@ -17,7 +17,6 @@ export default function AddFishermanForm({ darkMode }) {
   const [password, setPassword]   = useState("");
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
-
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e) {
@@ -190,7 +189,7 @@ export default function AddFishermanForm({ darkMode }) {
                 onChange={(e) => setLicenseNumber(e.target.value)}
                 type="text"
                 required
-                placeholder="LIC-000001"
+                placeholder="Government issued license number"
                 className={inputClass(darkMode)}
               />
             </FormField>
