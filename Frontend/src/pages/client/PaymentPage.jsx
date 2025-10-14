@@ -5,8 +5,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import api from "../../api/axios";
 import Payment from "../../components/Payment";
 import toast from "react-hot-toast";
-import Header from "../../components/header";
-import Footer from "../../components/footer";
+
 
 const stripePromise = loadStripe(
   "pk_test_51S2DQvGjCGbAdkkDgjBNqw3s69w2GeWQ8pX2elXN0qjIURdKDmdUGZSEUO6H5bUzHIBnJqEQ5uxWOr06slvPv5MM00zKOe5NMH"
@@ -61,11 +60,11 @@ export default function PaymentPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
+        
         <main className="flex-1 flex items-center justify-center">
           <div className="text-lg">Loading order details...</div>
         </main>
-        <Footer />
+       
       </div>
     );
   }
@@ -73,7 +72,7 @@ export default function PaymentPage() {
   if (!order) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
+       
         <main className="flex-1 flex items-center justify-center">
           <div className="text-lg text-red-600">Failed to load order</div>
           <button
@@ -83,14 +82,14 @@ export default function PaymentPage() {
             Back to Checkout
           </button>
         </main>
-        <Footer />
+        
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      
       <main className="flex-1 bg-gray-50 py-12">
         <div className="container mx-auto px-4">
           <Elements stripe={stripePromise}>
@@ -104,7 +103,7 @@ export default function PaymentPage() {
           </Elements>
         </div>
       </main>
-      <Footer />
+     
     </div>
   );
 }

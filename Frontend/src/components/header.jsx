@@ -67,6 +67,31 @@ export default function Header() {
   const { pathname } = useLocation();
   const menuRef = useRef(null);
 
+
+
+  const clearAllAuthData = () => {
+  const keysToRemove = [
+    "customer", "user", "auth", "auth_user", "token", "authToken",
+    "access_token", "jwt", "refresh_token", "userRole", "lastLogin"
+  ];
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  });
+  
+  // Clear any cookies that might be set
+  document.cookie.split(";").forEach(cookie => {
+    const eqPos = cookie.indexOf("=");
+    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+  });
+  
+  // Dispatch storage event to sync across tabs
+  window.dispatchEvent(new Event('storage'));
+  
+  console.log("All auth data cleared successfully");
+};
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {

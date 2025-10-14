@@ -15,11 +15,6 @@ export default function EnhancedRoleProtectedRoute({ children, allowedRoles = []
         const customer = localStorage.getItem("customer");
         const user = localStorage.getItem("user");
         
-        console.log("🔐 AUTH DEBUG - LocalStorage contents:");
-        console.log("Token:", token);
-        console.log("Customer:", customer);
-        console.log("User:", user);
-        
         let isAuthenticated = !!(token || customer || user);
         let role = null;
 
@@ -27,11 +22,9 @@ export default function EnhancedRoleProtectedRoute({ children, allowedRoles = []
         if (user) {
           try {
             const userData = JSON.parse(user);
-            console.log("📋 Parsed user data:", userData);
             role = userData.role || userData.user?.role || userData.data?.role;
-            console.log("🎯 Role from user:", role);
           } catch (e) {
-            console.error("❌ Error parsing user:", e);
+            console.error("Error parsing user:", e);
           }
         }
 
@@ -39,11 +32,9 @@ export default function EnhancedRoleProtectedRoute({ children, allowedRoles = []
         if (!role && customer) {
           try {
             const customerData = JSON.parse(customer);
-            console.log("📋 Parsed customer data:", customerData);
             role = customerData.role || customerData.user?.role || customerData.data?.role;
-            console.log("🎯 Role from customer:", role);
           } catch (e) {
-            console.error("❌ Error parsing customer:", e);
+            console.error("Error parsing customer:", e);
           }
         }
 
@@ -51,20 +42,11 @@ export default function EnhancedRoleProtectedRoute({ children, allowedRoles = []
         if (!role && token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            console.log("📋 Token payload:", payload);
             role = payload.role || payload.user?.role || payload.data?.role;
-            console.log("🎯 Role from token:", role);
           } catch (e) {
-            console.error("❌ Error decoding token:", e);
+            console.error("Error decoding token:", e);
           }
         }
-
-        console.log("🔍 Final Auth Check:", { 
-          isAuthenticated, 
-          role, 
-          allowedRoles,
-          hasAccess: allowedRoles.length > 0 ? allowedRoles.includes(role) : true
-        });
 
         setAuthState({
           isAuthenticated,
@@ -72,7 +54,7 @@ export default function EnhancedRoleProtectedRoute({ children, allowedRoles = []
           loading: false
         });
       } catch (error) {
-        console.error("🚨 Auth check error:", error);
+        console.error("Auth check error:", error);
         setAuthState({
           isAuthenticated: false,
           role: null,
@@ -81,7 +63,9 @@ export default function EnhancedRoleProtectedRoute({ children, allowedRoles = []
       }
     };
 
-    checkAuth();
+    // Small delay to prevent race conditions with useRoleAccess hook
+    const timer = setTimeout(checkAuth, 150);
+    return () => clearTimeout(timer);
   }, [allowedRoles]);
 
   if (authState.loading) {
@@ -93,15 +77,12 @@ export default function EnhancedRoleProtectedRoute({ children, allowedRoles = []
   }
 
   if (!authState.isAuthenticated) {
-    console.log("❌ Not authenticated - redirecting to home");
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles.length > 0 && (!authState.role || !allowedRoles.includes(authState.role))) {
-    console.log(`🚫 Access denied. User role: ${authState.role}, Required: ${allowedRoles}`);
     return <Navigate to="/" replace />;
   }
 
-  console.log("✅ Access granted - rendering protected content");
   return children;
 }

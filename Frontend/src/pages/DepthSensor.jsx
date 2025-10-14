@@ -225,15 +225,8 @@ export default function DepthSensor({ darkMode }) {
       <div className={`rounded-2xl p-6 shadow ring-1 backdrop-blur ${
         darkMode ? 'bg-slate-800/90 ring-slate-700' : 'bg-white/80 ring-slate-100'
       }`}>
-        <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-          Setup Instructions
-        </h3>
-        <ol className={`list-decimal list-inside space-y-1 text-sm ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-          <li>Make sure your ESP32 is connected to WiFi</li>
-          <li>Update ESP32 code to send data to: {BACKEND_URL}/api/depth/data</li>
-          <li>Click "Test Backend" to verify API is working</li>
-          <li>Data will appear here automatically when ESP32 sends it</li>
-        </ol>
+      
+        
       </div>
     </div>
   );

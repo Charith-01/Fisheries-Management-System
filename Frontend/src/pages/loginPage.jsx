@@ -39,28 +39,47 @@ export default function LoginPage() {
   }, [navigate]);
 
   // ------------------ Normal login ------------------
-  function handleLogin() {
-    setLoading(true);
+function handleLogin() {
+  setLoading(true);
 
-    axios
-      .post(BACKEND + "/api/auth/login", { email, password })
-      .then((response) => {
-        toast.success("Login successful");
+  axios
+    .post(BACKEND + "/api/auth/login", { email, password })
+    .then((response) => {
+      toast.success("Login successful");
 
-        const { token, user } = response.data || {};
-        if (token) localStorage.setItem("token", token);
-        if (user) localStorage.setItem("user", JSON.stringify(user));
+      const { token, user } = response.data || {};
+      
+      // Clear any existing auth data first
+      const keysToRemove = ["customer", "user", "auth", "token", "authToken"];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Set new auth data
+      if (token) localStorage.setItem("token", token);
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("customer", JSON.stringify(user)); // For compatibility
+      }
 
+      console.log("✅ Login successful - User:", user);
+
+      // Force storage event to trigger AuthContext update
+      window.dispatchEvent(new Event('storage'));
+      
+      // Small delay to ensure auth context updates, then navigate
+      setTimeout(() => {
         const r = user?.role;
+        console.log("🎯 Navigating based on role:", r);
         if (r === "admin") navigate("/admin");
         else if (r === "fisherman") navigate("/fisherman");
         else navigate("/");
-      })
-      .catch((error) => {
-        toast.error(error?.response?.data?.message || "Login failed");
-      })
-      .finally(() => setLoading(false));
-  }
+      }, 100);
+    })
+    .catch((error) => {
+      toast.error(error?.response?.data?.message || "Login failed");
+      console.error("❌ Login error:", error);
+    })
+    .finally(() => setLoading(false));
+}
 
   // ------------------ Google login (robust) ------------------
   // Ensure GIS script is present/loaded
@@ -100,34 +119,52 @@ export default function LoginPage() {
     }
   }, [gisReady, CLIENT_ID]);
 
-  async function handleGoogleResponse(response) {
-    try {
-      const idToken = response?.credential;
-      if (!idToken) {
-        toast.error("Google login failed: No token received");
-        return;
-      }
+async function handleGoogleResponse(response) {
+  try {
+    const idToken = response?.credential;
+    if (!idToken) {
+      toast.error("Google login failed: No token received");
+      return;
+    }
 
-      const res = await axios.post(
-        BACKEND + "/api/auth/google/id-token",
-        { id_token: idToken }
-      );
+    const res = await axios.post(
+      BACKEND + "/api/auth/google/id-token",
+      { id_token: idToken }
+    );
 
-      toast.success("Google login successful");
+    toast.success("Google login successful");
 
-      const { token, user } = res.data || {};
-      if (token) localStorage.setItem("token", token);
-      if (user) localStorage.setItem("user", JSON.stringify(user));
+    const { token, user } = res.data || {};
+    
+    // Clear existing auth data
+    const keysToRemove = ["customer", "user", "auth", "token", "authToken"];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Set new auth data
+    if (token) localStorage.setItem("token", token);
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("customer", JSON.stringify(user));
+    }
 
+    console.log("✅ Google login successful - User:", user);
+
+    // Force storage event
+    window.dispatchEvent(new Event('storage'));
+    
+    // Navigate after auth context updates
+    setTimeout(() => {
       const r = user?.role;
+      console.log("🎯 Google login navigating based on role:", r);
       if (r === "admin") navigate("/admin");
       else if (r === "fisherman") navigate("/fisherman");
       else navigate("/");
-    } catch (err) {
-      console.error(err);
-      toast.error("Google login failed");
-    }
+    }, 100);
+  } catch (err) {
+    console.error("❌ Google login failed:", err);
+    toast.error("Google login failed");
   }
+}
 
   // On click: try GIS prompt; if suppressed, fallback to backend redirect flow
   function handleGoogleLoginClick() {

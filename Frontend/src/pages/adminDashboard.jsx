@@ -61,9 +61,10 @@ import AdminReviewsPage from "./admin/reviews.jsx";
 import { Gauge } from "lucide-react";
 import DepthSensor from "./DepthSensor.jsx";
 import { useRoleAccess,clearAllAuthData  } from "../hook/useRoleAccess";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function AdminDashboard() {
-  useRoleAccess("admin");
+  const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();

@@ -1,4 +1,3 @@
-// src/hook/useRoleAccess.js
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -25,7 +24,7 @@ export const clearAllAuthData = () => {
   window.dispatchEvent(new Event('storage'));
 };
 
-// Your existing useRoleAccess hook
+// Fixed useRoleAccess hook with delays to prevent flashing
 export function useRoleAccess(requiredRole) {
   const navigate = useNavigate();
   
@@ -34,6 +33,7 @@ export function useRoleAccess(requiredRole) {
       try {
         const user = localStorage.getItem("user");
         const customer = localStorage.getItem("customer");
+        const token = localStorage.getItem("token");
         
         let userData = null;
         if (user) userData = JSON.parse(user);
@@ -42,35 +42,36 @@ export function useRoleAccess(requiredRole) {
         const userRole = userData?.role || userData?.user?.role;
         
         // If user is not authenticated at all, redirect to login
-        if (!userData && !localStorage.getItem("token")) {
-          navigate("/login");
+        if (!userData && !token) {
+          navigate("/login", { replace: true });
           return;
         }
         
         // If user doesn't have the required role for this dashboard
         if (userRole !== requiredRole) {
-          console.log(`❌ Access denied. Required: ${requiredRole}, Current: ${userRole}`);
+          console.log(`Access denied. Required: ${requiredRole}, Current: ${userRole}`);
           
           // Redirect to appropriate dashboard based on actual role
           if (userRole === "fisherman") {
-            navigate("/fisherman");
+            navigate("/fisherman", { replace: true });
           } else if (userRole === "admin") {
-            navigate("/admin");
+            navigate("/admin", { replace: true });
           } else {
-            navigate("/"); // Regular users go to home
+            navigate("/", { replace: true }); // Regular users go to home
           }
         }
         // If user has the correct role, they stay on the current dashboard
       } catch (error) {
         console.error("Access check failed:", error);
-        navigate("/login");
+        navigate("/login", { replace: true });
       }
     };
-    
-    checkAccess();
+
+    // Add delay to prevent race conditions with other auth checks
+    const timer = setTimeout(checkAccess, 200);
+    return () => clearTimeout(timer);
   }, [navigate, requiredRole]);
   
-  // Return the current user role for use in the component
   const getUserRole = () => {
     try {
       const user = localStorage.getItem("user");

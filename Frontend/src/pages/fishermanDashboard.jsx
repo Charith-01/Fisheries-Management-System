@@ -46,14 +46,14 @@ import FishStockListFisherman from "./FishStockListFisherman";
 import CreateFishStockFisherman from "./CreateFishStockFisherman";
 import EditFishStockFisherman from "./EditFishStockFisherman";
 import DepthSensor from "./DepthSensor.jsx";
-import { useRoleAccess } from "../hook/useRoleAccess";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function FishermanDashboard() {
-   useRoleAccess("fisherman");
+  const { user } = useAuth(); 
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+ 
  
   // minimal, safe auth clear (doesn't touch other app state)
   function clearAuthFromStorage() {

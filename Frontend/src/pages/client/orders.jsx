@@ -478,15 +478,21 @@ export default function MyOrdersPage() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-stretch gap-2">
-                          {isPayable(o) ? (
-                            <Link
-                              to={`/payment?orderId=${o.orderId}`}
-                              className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-500/30"
-                            >
-                              <CreditCard className="h-4 w-4" />
-                              Pay
-                            </Link>
-                          ) : null}
+                         {isPayable(o) ? (
+                                <Link
+                                  to={`/payment?orderId=${o.orderId}`}
+                                  className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-500/30"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    e.preventDefault(); // Prevent default link behavior
+                                    // Force navigation
+                                    window.location.href = `/payment?orderId=${o.orderId}`;
+                                  }}
+                                >
+                                  <CreditCard className="h-4 w-4" />
+                                  Pay
+                                </Link>
+                              ) : null}
 
                           {/* NEW: Make Review button (only when processed) */}
                           {isProcessed(o) && it?.productId ? (
