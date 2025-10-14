@@ -385,9 +385,6 @@ export default function BoatsManagement({ darkMode }) {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-3">
-                      <Link to={`/admin/boats/${boat.boatNumber}`} className="p-1 text-gray-600 hover:text-blue-800" title="View Details">
-                        <Ship size={18} />
-                      </Link>
                       <button
                         onClick={() => navigate(`/admin/boats/editBoat/${boat.boatNumber}`)}
                         className="p-1 text-blue-600 hover:text-blue-800"
