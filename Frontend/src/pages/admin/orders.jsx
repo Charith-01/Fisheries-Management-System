@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import api from "../../api/axios";
+import { Download} from "lucide-react";
 import {
   Search,
   RefreshCw,
@@ -11,40 +12,33 @@ import {
   Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ ADDED
-
-/* --------------------------- helpers --------------------------- */
+import { exportTablePDF } from "../../utils/pdfExporter";
 
 const norm = (s) => String(s || "").trim().toLowerCase();
 const fmtMoney = (n) => `Rs. ${Number(n || 0).toLocaleString()}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleString() : "-");
 
-// Payment status is separate and authoritative
 const isPaymentSucceeded = (o) => norm(o.paymentStatus) === "succeeded";
 const isPaymentPending = (o) => norm(o.paymentStatus) === "pending";
 const isPaymentFailed = (o) => norm(o.paymentStatus) === "failed";
 
-// Order lifecycle (independent of payment)
 const isOrderPending = (o) => norm(o.status) === "pending";
 
-// Canonical order statuses (admin can change these)
 const ORDER_STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Refunded"];
 
-// Payment filter options for UI
 const PAYMENT_FILTER_OPTIONS = ["all", "pending", "succeeded", "failed"];
 
-/* --------------------------- component --------------------------- */
 
 export default function AdminOrdersPage({ darkMode }) {
   const [orders, setOrders] = useState([]);
   const [filtered, setFiltered] = useState([]);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");     // order status
-  const [paymentFilter, setPaymentFilter] = useState("all");   // payment status
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
 
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState(""); // track row-level action
+  const [busyId, setBusyId] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeOrder, setActiveOrder] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -68,7 +62,6 @@ export default function AdminOrdersPage({ darkMode }) {
     loadOrders();
   }, []);
 
-  // filter + search (order status + payment status + query)
   useEffect(() => {
     let base = [...orders];
 
@@ -97,7 +90,6 @@ export default function AdminOrdersPage({ darkMode }) {
     setFiltered(base);
   }, [orders, search, statusFilter, paymentFilter]);
 
-  // Ensure strong contrast for payment badge in light + dark
   const paymentBadge = (o) => {
     if (isPaymentSucceeded(o)) {
       return "bg-green-100 text-green-700 dark:bg-emerald-900/50 dark:text-emerald-300";
@@ -105,7 +97,6 @@ export default function AdminOrdersPage({ darkMode }) {
     if (isPaymentFailed(o)) {
       return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200";
     }
-    // Pending / unknown
     return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200";
   };
 
@@ -136,7 +127,6 @@ export default function AdminOrdersPage({ darkMode }) {
       await api.put(`/api/order/refund/${encodeURIComponent(orderId)}`, { status });
       toast.success("Order refunded and income adjusted");
     } else {
-      // Regular status update
       await api.put(`/api/order/status/${encodeURIComponent(orderId)}`, { status });
       toast.success("Order status updated");
     }
@@ -185,7 +175,6 @@ export default function AdminOrdersPage({ darkMode }) {
 
   const showRefreshBar = loading && orders.length > 0;
 
-  // ✅ ADDED — PDF export (no other logic changed)
   const handleExportOrders = () => {
     exportTablePDF({
       title: "Orders Report",
@@ -210,13 +199,11 @@ export default function AdminOrdersPage({ darkMode }) {
         { header: "Date", get: (o) => fmtDate(o.date), width: 140 },
       ],
       rows: filtered,
-      // header/footer branding is handled inside the shared exporter
     });
   };
 
   return (
     <div className={`space-y-4 ${darkMode ? "dark text-slate-100" : ""}`}>
-      {/* header / filters */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-xl font-bold">Orders</h1>
@@ -259,7 +246,7 @@ export default function AdminOrdersPage({ darkMode }) {
               ))}
             </select>
 
-            <select
+            {/* <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
               className={`rounded-xl border bg-white px-3 py-2 text-sm outline-none ${
@@ -273,7 +260,7 @@ export default function AdminOrdersPage({ darkMode }) {
                   {p === "all" ? "All payment statuses" : p}
                 </option>
               ))}
-            </select>
+            </select> */}
 
             <button
               onClick={loadOrders}
@@ -287,7 +274,6 @@ export default function AdminOrdersPage({ darkMode }) {
               Refresh
             </button>
 
-            {/* ✅ ADDED — Export PDF button */}
             <button
               onClick={handleExportOrders}
               className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-slate-200 ${
@@ -296,16 +282,15 @@ export default function AdminOrdersPage({ darkMode }) {
               title="Export orders as PDF"
               aria-label="Export orders as PDF"
             >
-              Export PDF
+              <Download className="h-4 w-4" />
+              Download PDF
             </button>
           </div>
         </div>
       </div>
 
-      {/* subtle refresh bar when reloading with data present */}
       {showRefreshBar && <div className="h-0.5 w-full animate-pulse bg-blue-500/60 rounded" />}
 
-      {/* table */}
       <div
         className={`overflow-x-auto rounded-2xl shadow ring-1 ${
           darkMode ? "bg-slate-800 ring-slate-700" : "bg-white ring-slate-200"
@@ -433,7 +418,6 @@ export default function AdminOrdersPage({ darkMode }) {
         </table>
       </div>
 
-      {/* details drawer */}
       <DetailsDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -447,8 +431,6 @@ export default function AdminOrdersPage({ darkMode }) {
   );
 }
 
-/* ----------------------- Inline status select ----------------------- */
-/* Portal + proper outside-click detection */
 function InlineStatusSelect({ current, onChange, disabled, darkMode }) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef(null);
@@ -464,7 +446,7 @@ function InlineStatusSelect({ current, onChange, disabled, darkMode }) {
       setPos({
         top: r.bottom + 4,
         left: r.left,
-        width: 160, // match w-40
+        width: 160,
       });
     };
 
@@ -536,8 +518,6 @@ function InlineStatusSelect({ current, onChange, disabled, darkMode }) {
   );
 }
 
-/* -------------------------- Details Drawer -------------------------- */
-
 function DetailsDrawer({ open, onClose, order, loading, onStatus, onCancel, darkMode }) {
   const badge = order
     ? isPaymentSucceeded(order)
@@ -552,7 +532,6 @@ function DetailsDrawer({ open, onClose, order, loading, onStatus, onCancel, dark
       className={`fixed inset-0 z-40 transition ${open ? "pointer-events-auto" : "pointer-events-none"}`}
       aria-hidden={!open}
     >
-      {/* backdrop */}
       <div
         className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity ${
           open ? "opacity-100" : "opacity-0"
@@ -560,7 +539,6 @@ function DetailsDrawer({ open, onClose, order, loading, onStatus, onCancel, dark
         onClick={onClose}
       />
 
-      {/* panel */}
       <div
         className={`absolute right-0 top-0 h-full w-full max-w-lg transform shadow-xl transition-transform ${
           open ? "translate-x-0" : "translate-x-full"
@@ -621,7 +599,6 @@ function DetailsDrawer({ open, onClose, order, loading, onStatus, onCancel, dark
             <div className="text-slate-500">No order selected.</div>
           ) : (
             <>
-              {/* summary */}
               <div className={`rounded-2xl border p-4 shadow-sm ${darkMode ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"}`}>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
@@ -663,7 +640,6 @@ function DetailsDrawer({ open, onClose, order, loading, onStatus, onCancel, dark
                 </div>
               </div>
 
-              {/* items */}
               <div className={`mt-4 rounded-2xl border p-4 shadow-sm ${darkMode ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"}`}>
                 <div className="mb-2 font-semibold">Items</div>
                 {Array.isArray(order.billItems) && order.billItems.length > 0 ? (
@@ -694,7 +670,6 @@ function DetailsDrawer({ open, onClose, order, loading, onStatus, onCancel, dark
                 )}
               </div>
 
-              {/* actions */}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <InlineStatusSelect
                   current={order.status || "Pending"}

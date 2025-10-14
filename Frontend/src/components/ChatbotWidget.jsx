@@ -37,7 +37,7 @@ function getAuthToken() {
 
 export default function ChatbotWidget() {
   const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false); // NEW: keep panel mounted while closing
+  const [closing, setClosing] = useState(false);
   const [spin, setSpin] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -103,11 +103,10 @@ export default function ChatbotWidget() {
   }
 
   const SPIN_MS = 600;
-  const PANEL_ANIM_MS = 280; // NEW: close animation duration (match CSS)
+  const PANEL_ANIM_MS = 280;
 
   function handleFabClick() {
     if (open) {
-      // NEW: trigger graceful close animation
       setClosing(true);
       setTimeout(() => {
         setOpen(false);
@@ -126,7 +125,6 @@ export default function ChatbotWidget() {
 
   return (
     <>
-      {/* Floating icon button - Only chatbot icon, no background */}
       <button
         onClick={handleFabClick}
         className="fixed bottom-10 right-10 z-50 p-0 border-none bg-transparent cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95"
@@ -134,7 +132,6 @@ export default function ChatbotWidget() {
         disabled={spin}
       >
         {open ? (
-          /* Small chatbot icon while open (no ×) */
           <img
             src="/chatbot.png"
             alt="Close chat"
@@ -149,20 +146,17 @@ export default function ChatbotWidget() {
         )}
       </button>
 
-      {/* Chat panel */}
       {(open || closing) && (
         <div
           className={`fixed bottom-24 right-6 w-96 max-w-[92vw] h-[520px] max-h-[70vh] bg-white rounded-2xl shadow-2xl shadow-blue-900/30 flex flex-col overflow-hidden z-40 border border-blue-100 backdrop-blur-sm
           ${closing ? 'animate-slide-out-down' : 'animate-slide-in-up'}`}
         >
-          {/* Header */}
           <div className="px-5 py-4 font-bold border-b border-blue-100 bg-gradient-to-r from-blue-700 to-teal-600 text-white text-lg flex items-center gap-3 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-wave"></div>
             <span className="text-xl">🐟</span>
             <span className="relative z-10">Customer Assistant</span>
           </div>
 
-          {/* Quick chips */}
           <div className="px-4 py-4 border-b border-blue-50 bg-gradient-to-b from-blue-50 to-cyan-50 flex gap-2 flex-wrap">
             <QuickChip label="Browse products" prompt="Show me available products with price and stock." />
             <QuickChip label="Today's stock" prompt="How much stock do you have for prawns and tuna today?" />
@@ -171,7 +165,6 @@ export default function ChatbotWidget() {
             {token && <QuickChip label="My orders" prompt="Show my recent orders." />}
           </div>
 
-          {/* Messages */}
           <div className="flex-1 p-4 overflow-y-auto bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(42,157,143,0.03)_0%,transparent_50%),radial-gradient(circle_at_80%_20%,rgba(34,84,136,0.03)_0%,transparent_50%)] pointer-events-none"></div>
             
@@ -212,7 +205,6 @@ export default function ChatbotWidget() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input area - No placeholder */}
           <div className="px-4 py-4 border-t border-blue-100 bg-white flex gap-3">
             <textarea
               value={input}
@@ -233,7 +225,6 @@ export default function ChatbotWidget() {
         </div>
       )}
 
-      {/* Tailwind CSS animations */}
       <style jsx>{`
         @keyframes float {
           0% { transform: translateY(0px) scale(1); }

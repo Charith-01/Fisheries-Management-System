@@ -164,8 +164,6 @@ export default function AdminDashboard() {
   );
 }
 
-/* ----------------------------- UI Pieces ------------------------------ */
-
 function Sidebar({ darkMode, setDarkMode, onLogoutRequest }) {
   const linkBase =
     "group flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all duration-300 hover:translate-x-1";
@@ -350,8 +348,6 @@ function Header({ darkMode, setDarkMode }) {
   );
 }
 
-/* ----------------------------- Pages ------------------------------ */
-
 function Overview({ darkMode }) {
   const [customerCount, setCustomerCount] = useState(0);
   const [fishermanCount, setFishermanCount] = useState(0);
@@ -387,7 +383,7 @@ function Overview({ darkMode }) {
     return () => clearInterval(timer);
   }, []);
 
-  // -------- Orders data (real) --------
+  // orders data
   const [ordersTotal, setOrdersTotal] = useState(0);
   const [ordersToday, setOrdersToday] = useState(0);
   const [ordersWeekly, setOrdersWeekly] = useState([]);
@@ -590,11 +586,8 @@ function Overview({ darkMode }) {
         />
       </div>
 
-      {/* Row 2: Main Analytics (Left: Orders + Income | Right: Paid Orders) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* LEFT (spans 2): Orders + Income */}
         <div className="col-span-1 lg:col-span-2 space-y-6">
-          {/* Orders chart */}
           <div className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
             style={{ background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: darkMode ? '#334155' : '#e2e8f0' }}>
             <div className="mb-4 flex items-center justify-between">
@@ -623,7 +616,6 @@ function Overview({ darkMode }) {
             </div>
           </div>
 
-          {/* Income & Expenses (REAL) */}
           <div className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
             style={{ background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: darkMode ? '#334155' : '#e2e8f0' }}>
             <h3 className="mb-4 text-base font-semibold">Income & Expenses</h3>
@@ -653,7 +645,7 @@ function Overview({ darkMode }) {
           </div>
         </div>
 
-        {/* RIGHT (spans 1): Paid Orders (Unprocessed) */}
+        {/*Paid Orders (Unprocessed) */}
         <div className="col-span-1 space-y-6">
           <div className="rounded-2xl p-4 shadow ring-1 backdrop-blur transition-all duration-300 hover:shadow-lg"
             style={{ background: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: darkMode ? '#334155' : '#e2e8f0' }}>
