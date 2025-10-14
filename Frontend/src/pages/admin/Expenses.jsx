@@ -358,25 +358,29 @@ export default function FinancialManagement({ darkMode }) {
           </div>
         </div>
 
-        <div className={`p-4 rounded-lg border ${
-          netProfit >= 0 
-            ? 'bg-blue-50 border-blue-200' 
-            : 'bg-orange-50 border-orange-200'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Net Profit</p>
-              <p className={`text-2xl font-bold ${
-                netProfit >= 0 ? 'text-blue-700' : 'text-orange-700'
-              }`}>
-                Rs. {netProfit.toFixed(2)}
-              </p>
-            </div>
-            <DollarSign className={`w-8 h-8 ${
-              netProfit >= 0 ? 'text-blue-500' : 'text-orange-500'
-            }`} />
+              <div className={`p-4 rounded-lg border ${
+        netProfit >= 0 
+          ? 'bg-blue-50 border-blue-200' 
+          : 'bg-orange-50 border-orange-200'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-gray-600 text-sm">Net Profit</p>
+            <p className={`text-2xl font-bold ${
+              netProfit >= 0 ? 'text-blue-700' : 'text-orange-700'
+            }`}>
+              ₨ {netProfit.toFixed(2)}
+            </p>
           </div>
+          {/* LKR Symbol */}
+          <span className={`text-2xl font-bold ${
+            netProfit >= 0 ? 'text-blue-500' : 'text-orange-500'
+          }`}>
+            ₨
+          </span>
         </div>
+      </div>
+        
       </div>
 
       {/* Tab Navigation */}

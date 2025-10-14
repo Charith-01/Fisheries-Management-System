@@ -49,9 +49,52 @@ import CreateFishStockFisherman from "./CreateFishStockFisherman";
 import EditFishStockFisherman from "./EditFishStockFisherman";
 import DepthSensor from "./DepthSensor.jsx";
 import { useRoleAccess } from "../hook/useRoleAccess";
-
-export default function FishermanDashboard() {
+function useFishermanProtection() {
+  const navigate = useNavigate();
   
+  useEffect(() => {
+    const checkAccess = () => {
+      try {
+        const user = localStorage.getItem("user");
+        const customer = localStorage.getItem("customer");
+        
+        let userData = null;
+        if (user) userData = JSON.parse(user);
+        else if (customer) userData = JSON.parse(customer);
+        
+        const userRole = userData?.role || userData?.user?.role;
+        
+        // If user is not authenticated at all, redirect to login
+        if (!userData && !localStorage.getItem("token")) {
+          navigate("/login");
+          return;
+        }
+        
+        // If user doesn't have fisherman role
+        if (userRole !== "fisherman") {
+          console.log(`❌ Access denied. Required: fisherman, Current: ${userRole}`);
+          
+          // Redirect to appropriate dashboard based on actual role
+          if (userRole === "admin") {
+            navigate("/admin");
+          } else {
+            navigate("/"); // Regular users go to home
+          }
+        }
+      } catch (error) {
+        console.error("Access check failed:", error);
+        navigate("/login");
+      }
+    };
+    
+    // Small delay to prevent race conditions
+    const timer = setTimeout(checkAccess, 100);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+}
+export default function FishermanDashboard() {
+
+  useFishermanProtection();
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
