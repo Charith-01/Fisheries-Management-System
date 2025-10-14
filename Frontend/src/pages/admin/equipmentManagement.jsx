@@ -472,13 +472,6 @@ export default function EquipmentManagement({ darkMode }) {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-3">
-                      <Link
-                        to={`/admin/equipment/${item.equipmentID}`}
-                        className={darkMode ? "p-1 text-slate-300 hover:text-cyan-400" : "p-1 text-gray-600 hover:text-blue-800"}
-                        title="View Details"
-                      >
-                        <Package size={18} />
-                      </Link>
                       <button
                         onClick={() => navigate(`/admin/equipment/editEquipment/${item.equipmentID}`)}
                         className={darkMode ? "p-1 text-cyan-400 hover:text-cyan-200" : "p-1 text-blue-600 hover:text-blue-800"}
