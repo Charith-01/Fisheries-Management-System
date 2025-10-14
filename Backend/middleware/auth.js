@@ -8,7 +8,7 @@ function verifyJWT(req, res, next) {
     const header = req.headers["authorization"];
 
     if (!header) {
-      req.user = null;  // no token provided
+      req.user = null;
       return next();
     }
 
@@ -22,7 +22,7 @@ function verifyJWT(req, res, next) {
         req.user = decoded;
         console.log("✅ JWT verified:", decoded);
       }
-      next(); // ✅ Move inside callback, not outside
+      next();
     });
   } catch (err) {
     console.error("JWT middleware error:", err);

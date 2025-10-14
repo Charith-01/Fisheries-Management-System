@@ -39,8 +39,6 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-
-  // ⭐ Review-related fields
   reviews: [
     {
       type: mongoose.Schema.Types.ObjectId,

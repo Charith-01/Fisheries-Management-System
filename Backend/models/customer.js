@@ -8,7 +8,6 @@ const customerSchema = new mongoose.Schema({
   },
   firstName: {
     type: String,
-    // For Google sign-in, names may come combined → not strictly required if provider=google
     required: function () {
       return this.provider !== "google";
     },
@@ -27,7 +26,7 @@ const customerSchema = new mongoose.Schema({
     type: String,
     minlength: [8, "Password must be at least 8 characters long"],
     required: function () {
-      return this.provider !== "google"; // password required only for non-Google users
+      return this.provider !== "google";
     },
   },
   address: {
@@ -61,15 +60,14 @@ const customerSchema = new mongoose.Schema({
     default: Date.now,
   },
 
-  // ---------- New fields for Google OAuth ----------
   googleId: {
     type: String,
     unique: true,
-    sparse: true, // allows null for non-Google users
+    sparse: true,
   },
   provider: {
     type: String,
-    default: "local", // "local" or "google"
+    default: "local",
   },
   avatar: {
     type: String,

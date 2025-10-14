@@ -124,7 +124,6 @@ export async function getProducts(req, res){
       bestTypeByProduct[pid] = arr[0]?.type;
     }
 
-    // (Optional) keep your legacy name-based as fallback for rows without ref
     const names = Array.from(new Set(products.map(p => normName(p.name)).filter(Boolean)));
     const byUnitAggName = await FishStock.aggregate([
       {
@@ -180,7 +179,6 @@ export async function getProducts(req, res){
       bestTypeByName[n] = arr[0]?.type;
     }
 
-    // Hydrate products; prefer reference-based, fallback to name-based
     const hydrated = products.map(p => {
       const n = normName(p.name);
       const pid = String(p._id);

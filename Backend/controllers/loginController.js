@@ -5,6 +5,7 @@ import Admin from "../models/admin.js";
 import Fisherman from "../models/fisherman.js";
 import Customer from "../models/customer.js";
 
+//dotenv is used to manage environment variables.
 dotenv.config();
 
 export default function loginController(req, res) {

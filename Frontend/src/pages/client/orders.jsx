@@ -14,10 +14,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// ✅ add footer (no changes inside footer.jsx)
 import Footer from "../../components/footer";
-
-/* ------------------------------ helpers (unchanged) ------------------------------ */
 
 const norm = (s) => String(s || "").trim().toLowerCase();
 
@@ -30,14 +27,11 @@ const isCancelled = (o) =>
 const isPayable = (o) =>
   !isPaid(o) && !isCancelled(o) && Number(o.total || 0) > 0;
 
-// NEW: processed = delivered/completed (matches your tab)
 const isProcessed = (o) =>
   ["delivered", "completed"].includes(norm(o.status));
 
 const fmtMoney = (n) => `Rs. ${Number(n || 0).toLocaleString()}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
-
-/* ------------------------------ small UI bits ------------------------------ */
 
 function Badge({ children, variant = "default" }) {
   const base =
@@ -121,7 +115,6 @@ function SkeletonCard() {
   );
 }
 
-/* ------------------------------ component ------------------------------ */
 
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -129,12 +122,10 @@ export default function MyOrdersPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // purely UI states
-  const [activeTab, setActiveTab] = useState("all"); // all | pay | toship | shipped | processed
-  const [period, setPeriod] = useState("all"); // UI-only, no backend change
+  const [activeTab, setActiveTab] = useState("all");
+  const [period, setPeriod] = useState("all");
   const navigate = useNavigate();
 
-  // Track orders that have already received a review (persisted by productOverview after submit)
   const [reviewedOrders, setReviewedOrders] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("reviewedOrders") || "[]");
@@ -143,7 +134,6 @@ export default function MyOrdersPage() {
     }
   });
 
-  // Keep in sync if another tab updates localStorage (not strictly required, but nice)
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === "reviewedOrders") {
@@ -158,7 +148,6 @@ export default function MyOrdersPage() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // Read current user email from localStorage (as stored by your app)
   const currentEmail = useMemo(() => {
     try {
       const raw =
@@ -178,7 +167,6 @@ export default function MyOrdersPage() {
       setLoading(true);
       const res = await api.get("/api/order/all");
       const list = Array.isArray(res.data) ? res.data : res.data.orders || [];
-      // Server should restrict, but filter again by email for safety
       const mine = currentEmail ? list.filter((o) => o.email === currentEmail) : list;
       setOrders(mine);
       setFiltered(mine);
@@ -197,7 +185,6 @@ export default function MyOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -216,7 +203,6 @@ export default function MyOrdersPage() {
     }
   }, [search, orders]);
 
-  // --- counts for tabs (UI only) ---
   const toPayCount = useMemo(() => orders.filter(isPayable).length, [orders]);
   const toShipCount = useMemo(
     () =>
@@ -237,7 +223,6 @@ export default function MyOrdersPage() {
     [orders]
   );
 
-  // derive list by tab (UI only; does not change underlying logic)
   const tabbed = useMemo(() => {
     switch (activeTab) {
       case "pay":
@@ -266,7 +251,6 @@ export default function MyOrdersPage() {
     }
   };
 
-  // simple label like "Completed" section in screenshot
   const sectionLabelFor = (o) => {
     const s = norm(o.status);
     if (isCancelled(o)) return "Cancelled";
@@ -276,16 +260,13 @@ export default function MyOrdersPage() {
     return "Pending";
   };
 
-  // first order item (for summary row)
   const firstItem = (o) =>
     Array.isArray(o.billItems) && o.billItems.length ? o.billItems[0] : null;
 
   return (
-    // ✅ Page shell so the footer sits at the bottom everywhere
     <div className="min-h-screen flex flex-col bg-white">
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          {/* Heading */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-slate-900">My Orders</h1>
             <p className="mt-1 text-sm text-slate-600">
@@ -293,7 +274,6 @@ export default function MyOrdersPage() {
             </p>
           </div>
 
-          {/* Tabs */}
           <div className="flex items-center gap-2 text-sm font-medium overflow-x-auto no-scrollbar">
             {[
               { k: "all", label: "All", count: orders.length },
@@ -322,7 +302,6 @@ export default function MyOrdersPage() {
             })}
           </div>
 
-          {/* Search + filters */}
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <div className="relative flex">
               <div className="flex items-center rounded-l-xl border-y border-l border-slate-300 bg-white px-3 text-sm text-slate-700">
@@ -362,7 +341,6 @@ export default function MyOrdersPage() {
             </div>
           </div>
 
-          {/* Content */}
           {loading ? (
             <div className="min-h-[40vh] flex flex-col gap-4 justify-center">
               <div className="mx-auto flex items-center gap-2 text-slate-500">
@@ -402,13 +380,11 @@ export default function MyOrdersPage() {
                     key={o._id}
                     className="rounded-2xl overflow-hidden ring-1 ring-slate-200 bg-white shadow-sm"
                   >
-                    {/* Section label */}
                     <div className="px-4 py-3 text-sm font-semibold bg-slate-50 flex items-center gap-3">
                       <StatusChip order={o} />
                       <span className="text-slate-700">{statusLabel}</span>
                     </div>
 
-                    {/* top meta row */}
                     <div className="px-4 py-3 flex flex-wrap items-center gap-3 text-sm">
                       <div className="text-slate-700 flex items-center gap-1.5">
                         <Calendar className="h-4 w-4 opacity-70" />
@@ -437,7 +413,6 @@ export default function MyOrdersPage() {
                       </Link>
                     </div>
 
-                    {/* item summary row */}
                     <div className="px-4 py-4 border-t border-slate-100 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="h-16 w-16 rounded-xl bg-slate-100 overflow-hidden shrink-0 ring-1 ring-slate-200">
@@ -488,7 +463,6 @@ export default function MyOrdersPage() {
                             </Link>
                           ) : null}
 
-                          {/* NEW: Make Review button (only when processed) */}
                           {isProcessed(o) && it?.productId ? (
                             isReviewed ? (
                               <span

@@ -141,9 +141,9 @@ export default function UpdateFishermanForm({ darkMode }) {
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Fisherman ID" darkMode={darkMode}>
+            {/* <FormField label="Fisherman ID" darkMode={darkMode}>
               <input value={id} disabled type="text" className={inputClass(darkMode)} />
-            </FormField>
+            </FormField> */}
 
             <FormField label="Position *" darkMode={darkMode}>
               <select
@@ -219,7 +219,7 @@ export default function UpdateFishermanForm({ darkMode }) {
                 onChange={(e) => setLicenseNumber(e.target.value)}
                 type="text"
                 required
-                placeholder="LIC-000001"
+                placeholder="Government issued license number"
                 className={inputClass(darkMode)}
               />
             </FormField>

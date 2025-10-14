@@ -17,6 +17,7 @@ export default function AddProductForm({ darkMode }) {
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  //Discount calculation
   const discountPct = useMemo(() => {
     const p = Number(price);
     const lp = Number(labeledPrice);
@@ -111,7 +112,6 @@ export default function AddProductForm({ darkMode }) {
             Fill in the details below to add a new item to your catalog.
           </p>
 
-        {/* Live hints */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {discountPct > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-600/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-600 dark:bg-blue-600/20">

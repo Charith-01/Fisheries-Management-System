@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 
 import verifyJWT from './middleware/auth.js';
-
 import customerRouter from './routes/customerRouter.js';
 import adminRouter from './routes/adminRouter.js';
 import fishermanRouter from './routes/fishermanRouter.js';
@@ -22,11 +21,8 @@ import productRouter from './routes/productRouter.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import orderRouter from './routes/orderRouter.js';
 import weatherRouter from './routes/weatherRouter.js';
-
 import { handleWebhook } from './controllers/paymentController.js';
 import chatRouter from './routes/chatRouter.js';
-
-// ✅ New import for Google Auth router
 import googleAuthRouter from './routes/googleAuthRouter.js';
 
 dotenv.config();
@@ -43,21 +39,13 @@ mongoose.connect(process.env.MONGO_URL).then(() => {
   console.error("MongoDB connection error:", error);
 });
 
-/**
- * IMPORTANT: Stripe webhook needs the raw body and NO auth.
- * We mount this ONE route early with express.raw, before any JSON parsing or auth.
- */
+// Stripe webhook
 app.post("/api/payment/webhook", express.raw({ type: 'application/json' }), handleWebhook);
 
-/**
- * Body parser for the rest of the app
- */
+// Body parser
 app.use(bodyParser.json());
 
-/**
- * JWT auth for everything else, but skip the webhook URL explicitly.
- * (This keeps your global pattern and preserves existing per-route checks.)
- */
+// JWT Middleware
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/payment/webhook") return next();
   return verifyJWT(req, res, next);
@@ -66,7 +54,7 @@ app.use((req, res, next) => {
 // Routes
 app.post("/api/auth/login", loginController);
 
-// ✅ New Google Auth routes
+//Google Auth routes
 app.use("/api/auth/google", googleAuthRouter);
 
 app.use("/api/customer", customerRouter);

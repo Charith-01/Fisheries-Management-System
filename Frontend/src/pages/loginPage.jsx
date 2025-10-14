@@ -14,7 +14,6 @@ export default function LoginPage() {
   const BACKEND = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
   const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-  // --- Capture backend redirect (?token=...&user=...) and finish login ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("token");
@@ -30,15 +29,12 @@ export default function LoginPage() {
         else if (r === "fisherman") navigate("/fisherman");
         else navigate("/");
 
-        // Clean query params
         window.history.replaceState({}, "", "/login");
       } catch {
-        // ignore parse errors
       }
     }
   }, [navigate]);
 
-  // ------------------ Normal login ------------------
   function handleLogin() {
     setLoading(true);
 
@@ -62,8 +58,6 @@ export default function LoginPage() {
       .finally(() => setLoading(false));
   }
 
-  // ------------------ Google login (robust) ------------------
-  // Ensure GIS script is present/loaded
   useEffect(() => {
     if (window.google && window.google.accounts?.id) {
       setGisReady(true);
@@ -85,7 +79,6 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    /* global google */
     if (!gisReady || !CLIENT_ID || !window.google) return;
     try {
       google.accounts.id.initialize({
@@ -129,9 +122,7 @@ export default function LoginPage() {
     }
   }
 
-  // On click: try GIS prompt; if suppressed, fallback to backend redirect flow
   function handleGoogleLoginClick() {
-    /* global google */
     if (gisReady && window.google?.accounts?.id) {
       let shown = false;
       try {
@@ -176,14 +167,12 @@ export default function LoginPage() {
             {loading ? "Loading..." : "Login"}
           </button>
 
-          {/* Divider */}
           <div className="flex items-center w-full my-4">
             <div className="flex-grow h-px bg-gray-300"></div>
             <span className="px-3 text-gray-500 text-sm">or</span>
             <div className="flex-grow h-px bg-gray-300"></div>
           </div>
 
-          {/* Google Login Button (UI unchanged) */}
           <button
             onClick={handleGoogleLoginClick}
             className="w-full h-[50px] flex items-center justify-center gap-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"

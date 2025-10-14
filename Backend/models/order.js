@@ -5,7 +5,7 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    index: true // Add index for better performance
+    index: true
   },
   email: {
     type: String,
@@ -24,7 +24,6 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
 
-  // NOTE: your file had two "status" fields; keeping the single canonical one:
   status: {
     type: String,
     enum: [
@@ -42,10 +41,10 @@ const orderSchema = new mongoose.Schema({
   },
 
   billItems: [{
-    productId: String,     // public product id (string)
+    productId: String,
     productName: String,
     image: String,
-    quantity: Number,      // assumed in the same unit as FishStock.unit (often "kg")
+    quantity: Number,
     price: Number,
     total: Number
   }],
@@ -77,7 +76,6 @@ const orderSchema = new mongoose.Schema({
     default: null
   },
 
-  // NEW: idempotency flags for stock adjustment
   stockAdjusted: {
     type: Boolean,
     default: false,

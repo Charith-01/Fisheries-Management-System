@@ -1,4 +1,3 @@
-// src/pages/client/registrationPage.jsx
 import axios from "axios";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -19,7 +18,6 @@ export default function RegistrationPage() {
 
   const BACKEND = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
-  // --- Capture backend redirect (?token=...&user=...) and finish login ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("token");
@@ -35,10 +33,8 @@ export default function RegistrationPage() {
         else if (r === "fisherman") navigate("/fisherman");
         else navigate("/");
 
-        // Clean the query string from the URL
         window.history.replaceState({}, "", "/register");
       } catch {
-        // ignore parse errors
       }
     }
   }, [navigate]);
@@ -55,6 +51,23 @@ export default function RegistrationPage() {
     return null;
   }
 
+  function validateEmail(email) {
+    const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    if (!regex.test(email)) return "Invalid email format";
+    return null;
+  }
+
+  function validatePhone(phone) {
+    const regex = /^[0-9]{10}$/;
+    if (!regex.test(phone)) return "Phone number must be 10 digits";
+    return null;
+  }
+
+  function validateName(name) {
+    if (name.trim().length === 0) return "Name cannot be empty";
+    return null;
+  }
+
   async function handleRegister() {
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
@@ -63,6 +76,30 @@ export default function RegistrationPage() {
     const pwdError = validatePassword(password);
     if (pwdError) {
       toast.error(`Password requirement: ${pwdError}`);
+      return;
+    }
+
+    const emailError = validateEmail(email);
+    if (emailError) {
+      toast.error(emailError);
+      return;
+    }
+
+    const phoneError = validatePhone(phone);
+    if (phoneError) {
+      toast.error(phoneError);
+      return;
+    }
+
+    const firstNameError = validateName(firstName);
+    if (firstNameError) {
+      toast.error(firstNameError);
+      return;
+    }
+
+    const lastNameError = validateName(lastName);
+    if (lastNameError) {
+      toast.error(lastNameError);
       return;
     }
 
@@ -85,10 +122,7 @@ export default function RegistrationPage() {
     }
   }
 
-  // --- Google sign-up (same as sign-in; first login creates the account) ---
   function handleGoogleSignupClick() {
-    /* global google */
-    // Try Google prompt (if SDK loaded); otherwise fall back to server redirect
     if (window.google?.accounts?.id) {
       let shown = false;
       try {
@@ -166,14 +200,12 @@ export default function RegistrationPage() {
             {loading ? "Registering..." : "Register"}
           </button>
 
-          {/* Divider */}
           <div className="flex items-center w-full my-4">
             <div className="flex-grow h-px bg-gray-300"></div>
             <span className="px-3 text-gray-500 text-sm">or</span>
             <div className="flex-grow h-px bg-gray-300"></div>
           </div>
 
-          {/* Google Signup Button (same look as login page) */}
           <button
             onClick={handleGoogleSignupClick}
             className="w-full h-[50px] flex items-center justify-center gap-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"

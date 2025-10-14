@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Edit, Trash2, Plus, Tag, Download, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { exportTablePDF } from "../../utils/pdfExporter"; // ✅ added
+import { exportTablePDF } from "../../utils/pdfExporter";
 
 const CATEGORIES = ["all", "fish", "crab", "shellfish", "prawn", "lobster", "squid", "other"];
 const STATUS = ["all", "active", "inactive"];
@@ -43,7 +43,6 @@ export default function AdminProductsPage({ darkMode }) {
     return list;
   }, [products, query, category, status]);
 
-  // ✅ new — Export PDF (replaces CSV)
   const exportPDF = () => {
     exportTablePDF({
       title: "Products Report",
@@ -108,7 +107,6 @@ export default function AdminProductsPage({ darkMode }) {
           </div>
         </div>
         <div className="flex items-center justify-end gap-2">
-          {/* ✅ Export PDF button (CSV removed) */}
           <button
             onClick={exportPDF}
             type="button"
@@ -118,7 +116,7 @@ export default function AdminProductsPage({ darkMode }) {
             title="Export current view as PDF"
           >
             <Download className="h-4 w-4" />
-            Export PDF
+            Download PDF
           </button>
           <Link
             to="/admin/addProduct"
@@ -262,14 +260,12 @@ function ProductCard({ product, darkMode }) {
     description = "",
   } = product || {};
 
-  // Use FishStock-derived values if present
   const effectiveCategory = product?.stockType || category;
   const effectiveUnit = product?.stockUnit || unit;
 
   const img = Array.isArray(images) && images.length > 0 ? images[0] : "";
   const hasDiscount = typeof labeledPrice === "number" && typeof price === "number" && labeledPrice > price;
 
-  // Prefer dynamic stockWeight from FishStock; fallback to static product.stock
   const effectiveStock =
     typeof product?.stockWeight === "number" ? product.stockWeight : stock;
 

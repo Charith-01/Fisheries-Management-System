@@ -7,18 +7,15 @@ import Notification from "../models/notification.js";
 
 const sendOrderStatusNotification = async (orderId, newStatus, previousStatus) => {
   try {
-    // Don't send notifications for these statuses (already handled by payment)
     const excludedStatuses = ['success', 'completed', 'paid', 'pending'];
     if (excludedStatuses.includes(newStatus.toLowerCase())) {
       return;
     }
 
-    // Don't send notification if status didn't actually change
     if (newStatus === previousStatus) {
       return;
     }
 
-    // Get order details
     const order = await Order.findOne({ orderId });
     if (!order) {
       console.log('Order not found for notification');
@@ -28,7 +25,6 @@ const sendOrderStatusNotification = async (orderId, newStatus, previousStatus) =
     let title = '';
     let message = '';
 
-    // Customize notification based on status
     switch (newStatus.toLowerCase()) {
       case 'refunded':
         title = 'Order Refund Processed';
@@ -55,12 +51,11 @@ const sendOrderStatusNotification = async (orderId, newStatus, previousStatus) =
         message = `Your order ${orderId} status has been updated to: ${newStatus}`;
     }
 
-    // Create notification specifically for this customer
     const notification = new Notification({
       title,
       message,
       role: 'customer',
-      targetEmails: [order.email], // Send only to the specific customer
+      targetEmails: [order.email],
       relatedOrder: orderId,
       status: newStatus
     });
@@ -70,10 +65,8 @@ const sendOrderStatusNotification = async (orderId, newStatus, previousStatus) =
 
   } catch (error) {
     console.error('Error sending order status notification:', error);
-    // Don't throw error - notification failure shouldn't break order update
   }
 };
-// --- helper reused locally (light wrapper that calls the one in payment controller would also be fine)
 async function decrementStockForOrder(orderDoc) {
   if (!orderDoc || orderDoc.stockAdjusted) return;
 
@@ -294,11 +287,8 @@ export async function updateOrderStatus(req, res) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // Send notification after successful update (non-blocking)
     sendOrderStatusNotification(req.params.orderId, nextStatus, previousStatus).catch(console.error);
 
-    // **NEW**: if admin moves to "Paid" or "Processing" and payment already succeeded,
-    // try to decrement stock (idempotent).
     if ((nextStatus === 'Paid' || nextStatus === 'Processing') && updated.paymentStatus === 'succeeded') {
       try {
         await decrementStockForOrder(updated);
@@ -393,12 +383,10 @@ export const refundOrder = async (req, res) => {
       });
     }
 
-    const previousStatus = order.status; // Get previous status
+    const previousStatus = order.status;
 
-    // Create UNIQUE order ID for refund record
     const refundOrderId = `${order.orderId}_REFUND_${Date.now()}`;
     
-    // Create refund record
     const refundRecord = new Income({
       orderId: refundOrderId,
       originalOrderId: order.orderId,
@@ -420,7 +408,6 @@ export const refundOrder = async (req, res) => {
     await refundRecord.save();
     await order.save();
 
-    // Send notification
     sendOrderStatusNotification(orderId, status, previousStatus).catch(console.error);
 
     res.json({ 
