@@ -21,19 +21,16 @@ export default function EditBoatForm({ darkMode }) {
         images: []
     });
 
-    // Equipment state
     const [equipmentAssignments, setEquipmentAssignments] = useState([]);
     const [availableEquipment, setAvailableEquipment] = useState([]);
     const [selectedEquipment, setSelectedEquipment] = useState("");
 
-    // For preview purposes
     const [imageUrls, setImageUrls] = useState([]);
     const [imageFiles, setImageFiles] = useState([]);
 
     useEffect(() => {
         const fetchBoatDetails = async () => {
             try {
-                // Fetch boat details with equipment assignments
                 const boatResponse = await api.get(`/api/boat/${boatNumber}`);
                 const boat = boatResponse.data.boat;
                 
@@ -45,14 +42,13 @@ export default function EditBoatForm({ darkMode }) {
                     images: boat.images || []
                 });
 
-                // Set equipment assignments
                 if (boat.equipmentAssignments) {
                     setEquipmentAssignments(boat.equipmentAssignments.map(assignment => ({
                         equipmentId: assignment.equipment._id,
                         equipmentID: assignment.equipment.equipmentID,
                         equipmentName: assignment.equipment.name,
                         quantity: assignment.quantity,
-                        availableQuantity: assignment.equipment.availableQuantity + assignment.quantity // Add back assigned quantity
+                        availableQuantity: assignment.equipment.availableQuantity + assignment.quantity 
                     })));
                 }
 
@@ -155,7 +151,7 @@ export default function EditBoatForm({ darkMode }) {
             return;
         }
 
-        // Calculate total currently assigned (excluding this assignment)
+        // Calculate total currently assigned
         const otherAssignmentsQuantity = equipmentAssignments
             .filter((_, i) => i !== index)
             .reduce((sum, a) => sum + a.quantity, 0);
@@ -214,7 +210,6 @@ export default function EditBoatForm({ darkMode }) {
         try {
             let finalFormData = { ...formData };
 
-            // Upload new images if any
             if (imageFiles.length > 0) {
                 setIsUploadingImages(true);
                 try {
@@ -233,8 +228,7 @@ export default function EditBoatForm({ darkMode }) {
             // Update boat basic info first
             await api.put(`/api/boat/${boatNumber}`, finalFormData);
 
-            // Handle equipment assignments
-            // Get current assignments to compare
+            // Fetch current assignments to determine changes
             const currentBoatResponse = await api.get(`/api/boat/${boatNumber}`);
             const currentAssignments = currentBoatResponse.data.boat.equipmentAssignments || [];
 
@@ -288,7 +282,6 @@ export default function EditBoatForm({ darkMode }) {
             </div>
 
             <form onSubmit={handleSubmit} className={`shadow-md rounded-lg p-8 ${darkMode ? 'bg-slate-800 text-slate-100' : 'bg-white text-gray-800'}`}>
-                {/* Basic Information Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div>
                         <label className="block text-sm font-medium mb-1">Boat Number</label>
@@ -335,13 +328,10 @@ export default function EditBoatForm({ darkMode }) {
                         >
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
-                            <option value="maintenance">Maintenance</option>
-                            <option value="retired">Retired</option>
                         </select>
                     </div>
                 </div>
 
-                {/* Images Section */}
                 <div className="mb-8">
                     <label className="block text-sm font-medium mb-1">Boat Images *</label>
                     <div className={`border-2 border-dashed rounded-md p-6 ${errors.images ? 'border-red-500' : darkMode ? 'border-slate-600' : 'border-gray-300'}`}>
@@ -386,7 +376,6 @@ export default function EditBoatForm({ darkMode }) {
                     )}
                 </div>
 
-                {/* Equipment Assignments Section */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-cyan-300' : 'text-blue-600'}`}>
