@@ -127,7 +127,6 @@ export default function EquipmentDetails({ darkMode }) {
             : "bg-white border-gray-200 text-gray-900"
         }`}
       >
-        {/* Top actions (Back + Edit + Delete) */}
         <div className="flex justify-between items-center p-6 border-b dark:border-slate-700 border-gray-200">
           <button
             onClick={() => navigate("/admin/equipment")}
@@ -168,7 +167,6 @@ export default function EquipmentDetails({ darkMode }) {
 
         {/* Content */}
         <div className="p-8">
-          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1
@@ -183,7 +181,6 @@ export default function EquipmentDetails({ darkMode }) {
               </p>
             </div>
             
-            {/* Quantity Status */}
             <div className="flex gap-4">
               <div className={`text-center p-3 rounded-lg ${
                 darkMode ? "bg-slate-800" : "bg-gray-100"
@@ -214,9 +211,7 @@ export default function EquipmentDetails({ darkMode }) {
             </div>
           </div>
 
-          {/* Main Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Basic Information */}
             <DetailItem
               label="Equipment ID"
               value={equipment.equipmentID}
@@ -239,7 +234,6 @@ export default function EquipmentDetails({ darkMode }) {
               darkMode={darkMode} 
             />
             
-            {/* Description */}
             <div className="md:col-span-2">
               <DetailItem
                 label="Description"
@@ -249,7 +243,6 @@ export default function EquipmentDetails({ darkMode }) {
               />
             </div>
 
-            {/* Maintenance Information */}
             {equipment.requiresMaintenance && (
               <>
                 <DetailItem
@@ -269,7 +262,6 @@ export default function EquipmentDetails({ darkMode }) {
                   icon={<Clock size={18} />}
                 />
                 
-                {/* Maintenance Status */}
                 {maintenanceStatus && (
                   <div className="md:col-span-2">
                     <div className={`p-4 rounded-xl border-2 ${
@@ -320,8 +312,7 @@ export default function EquipmentDetails({ darkMode }) {
               </>
             )}
 
-            {/* Notes */}
-            <div className="md:col-span-2">
+              <div className="md:col-span-2">
               <DetailItem
                 label="Notes"
                 value={equipment.notes || "No additional notes"}
@@ -330,7 +321,6 @@ export default function EquipmentDetails({ darkMode }) {
               />
             </div>
 
-            {/* Timestamps */}
             {equipment.createdAt && (
               <DetailItem
                 label="Created Date"
@@ -349,7 +339,6 @@ export default function EquipmentDetails({ darkMode }) {
             )}
           </div>
 
-          {/* Equipment Usage Info */}
           {equipment.availableQuantity < equipment.totalQuantity && (
             <div className="mt-8 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700">
               <div className="flex items-center gap-3">
@@ -366,7 +355,6 @@ export default function EquipmentDetails({ darkMode }) {
             </div>
           )}
 
-          {/* No Maintenance Warning */}
           {!equipment.requiresMaintenance && (
             <div className="mt-8 p-4 rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700">
               <div className="flex items-center gap-3">
@@ -388,7 +376,6 @@ export default function EquipmentDetails({ darkMode }) {
   );
 }
 
-// DetailItem Component
 function DetailItem({ label, value, darkMode, icon, multiline }) {
   return (
     <div

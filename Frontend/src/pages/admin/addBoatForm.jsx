@@ -110,7 +110,6 @@ export default function AddBoatForm({ darkMode }) {
 
         setIsSubmitting(true);
         try {
-            // Upload images
             const uploadedUrls = await Promise.all(
                 imageFiles.map(f => meadiaUpload(f))
             );
@@ -156,7 +155,6 @@ export default function AddBoatForm({ darkMode }) {
         } catch (err) {
             console.error("Error adding boat:", err);
             
-            // More specific error messages
             if (err.response?.status === 404) {
                 toast.error("API endpoint not found. Please check server configuration.");
             } else if (err.response?.status === 401) {
@@ -211,11 +209,8 @@ export default function AddBoatForm({ darkMode }) {
                     >
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="retired">Retired</option>
                     </select>
 
-                    {/* Images */}
                     <div>
                         <div className={`border-2 border-dashed rounded p-4 text-center ${errors.images ? "border-red-500" : darkMode ? "border-slate-600" : "border-gray-300"}`}>
                             <p className="mb-2">Drag and drop images or click to select</p>
@@ -253,7 +248,6 @@ export default function AddBoatForm({ darkMode }) {
                         )}
                     </div>
 
-                    {/* Equipment Assignments */}
                     <div>
                         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
                             Equipment Assignments

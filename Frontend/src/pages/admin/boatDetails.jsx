@@ -25,7 +25,7 @@ export default function BoatDetails({ darkMode }) {
             }
         };
         fetchBoat();
-        // Fetch equipment list for mapping
+        
         const fetchEquipment = async () => {
             try {
                 const res = await api.get("/api/equipment");

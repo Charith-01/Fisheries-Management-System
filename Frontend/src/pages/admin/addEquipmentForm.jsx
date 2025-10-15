@@ -17,7 +17,6 @@ export default function AddEquipmentForm({ darkMode }) {
         notes: ""
     });
 
-    // Add this useEffect in AddEquipmentForm.jsx
     useEffect(() => {
         if (formData.requiresMaintenance && formData.maintenanceInterval) {
             const today = new Date();
