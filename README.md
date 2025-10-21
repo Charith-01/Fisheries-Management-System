@@ -95,27 +95,16 @@ This project demonstrates how technology can empower sustainable fisheries and s
 ---
 
 ## ⚙️ Installation
-<ol>
-  <li><strong>Backend Setup</strong>
-    <ul>
-      <pre><code>cd Backend</code></pre>
-      <pre><code>npm install</code></pre>
-      <pre><code>npm start</code></pre>
-    </ul>
-  </li>
-
-  <li><strong>Frontend Setup</strong>
-    <ul>
-      <pre><code>cd Frontend</code></pre>
-      <pre><code>npm install</code></pre>
-      <pre><code>npm run dev</code></pre>
-    </ul>
-  </li>
-</ol>
-
-
-### 1️⃣ Clone the Repo
 ```bash
-git clone https://github.com/Charith-01/Fisheries-Management-System.git
-cd Fisheries-Management-System
 
+git clone https://github.com/Charith-01/Fisheries-Management-System.git
+
+Backend Setup
+cd Backend
+npm install
+npm start
+
+Frontend Setup
+cd Frontend
+npm install
+npm run dev
