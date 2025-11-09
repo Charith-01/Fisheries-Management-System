@@ -1,4 +1,6 @@
-# 🎣 Ocean Track 360 (Fisheries Management System)
+<img width="3220" height="2100" alt="Image" src="https://github.com/user-attachments/assets/997039b4-77ae-4921-a906-18e8da1ad2e1" />
+
+# 🌊 Ocean Track 360 - Fisheries Management System
 
 A **Full-Stack MERN Web Application** designed to modernize and automate fisheries operations.  
 The system helps administrators, fishermen, and customers manage boats, trips, equipment, stock, sales, payments, and real-time environmental conditions — all from one centralized digital platform.
